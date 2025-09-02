@@ -1,0 +1,7 @@
+services:
+  commute-bot:
+    build: .
+    container_name: commute-bot
+    restart: unless-stopped
+    env_file:
+      - .env
