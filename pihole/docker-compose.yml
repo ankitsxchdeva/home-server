@@ -1,0 +1,29 @@
+services:
+  pihole:
+    container_name: pihole
+    image: pihole/pihole:latest
+    restart: unless-stopped
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "8053:80/tcp"  # Web interface on port 8053 to avoid conflicts
+    environment:
+      TZ: ${TZ}
+      WEBPASSWORD: ${WEBPASSWORD}
+      FTLCONF_LOCAL_IPV4: ${LOCAL_IPV4}
+      PIHOLE_DNS_: ${PIHOLE_DNS}
+      DNSMASQ_LISTENING: ${DNSMASQ_LISTENING}
+    volumes:
+      - ./etc-pihole:/etc/pihole
+      - ./etc-dnsmasq.d:/etc/dnsmasq.d
+      # Custom configuration files (these are safe to track in git)
+      - ./custom.list:/etc/pihole/custom.list:ro
+      - ./adlists.list:/etc/pihole/adlists.list:ro
+      - ./whitelist.txt:/etc/pihole/whitelist.txt:ro
+    dns:
+      - 127.0.0.1
+      - 1.1.1.1
+    cap_add:
+      - NET_ADMIN
+    env_file:
+      - .env

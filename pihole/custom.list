@@ -1,0 +1,18 @@
+# Pi-hole Custom DNS Records
+# Format: IP_ADDRESS DOMAIN_NAME
+# This file maps local hostnames to IP addresses for your network
+
+# Home Server Services
+192.168.1.227 homeserver.local
+192.168.1.227 homer.local
+192.168.1.227 pihole.local
+192.168.1.227 homeassistant.local
+192.168.1.227 uptime.local
+192.168.1.227 glances.local
+192.168.1.227 netalertx.local
+192.168.1.227 cups.local
+
+# Example: Add your other devices
+# 192.168.1.100 desktop.local
+# 192.168.1.101 laptop.local
+# 192.168.1.102 phone.local

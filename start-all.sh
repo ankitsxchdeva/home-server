@@ -15,15 +15,21 @@ else
         -f commute-bot/docker-compose.yml \
         -f home-assistant/docker-compose.yml \
         -f cups/docker-compose.yml \
+        -f pihole/docker-compose.yml \
+        -f netalertx/docker-compose.yml \
+        -f glances/docker-compose.yml \
         up -d
 fi
 
 echo "✅ All services started!"
 echo ""
 echo "📋 Access your services:"
-echo "  - Homer Dashboard: http://$(hostname -I | awk '{print $1}'):8080"
-echo "  - Uptime Kuma: http://$(hostname -I | awk '{print $1}'):3001"
-echo "  - Home Assistant: http://$(hostname -I | awk '{print $1}'):8123"
-echo "  - CUPS Print Server: http://$(hostname -I | awk '{print $1}'):631"
+echo "  - 🏠 Homer Dashboard: http://$(hostname -I | awk '{print $1}'):8080"
+echo "  - 🏡 Home Assistant: http://$(hostname -I | awk '{print $1}'):8123"
+echo "  - 📊 Uptime Kuma: http://$(hostname -I | awk '{print $1}'):3001"
+echo "  - 🛡️  Pi-hole Admin: http://$(hostname -I | awk '{print $1}'):8053/admin"
+echo "  - 📈 Glances: http://$(hostname -I | awk '{print $1}'):61208"
+echo "  - 📡 NetAlertX: http://$(hostname -I | awk '{print $1}'):20211"
+echo "  - 🖨️  CUPS Print Server: http://$(hostname -I | awk '{print $1}'):631"
 echo ""
 echo "📊 Check status with: docker ps"

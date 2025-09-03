@@ -7,3 +7,6 @@ include:
   - commute-bot/docker-compose.yml
   - home-assistant/docker-compose.yml
   - cups/docker-compose.yml
+  - pihole/docker-compose.yml
+  - netalertx/docker-compose.yml
+  - glances/docker-compose.yml

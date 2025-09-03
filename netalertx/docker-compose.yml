@@ -1,0 +1,15 @@
+services:
+  netalertx:
+    container_name: netalertx
+    image: jokobsk/netalertx:latest
+    restart: unless-stopped
+    network_mode: "host"
+    volumes:
+      - ./config:/app/config
+      - ./db:/app/db
+      # Configuration template (safe to track in git)
+      - ./netalertx.conf:/app/config/netalertx.conf:ro
+    environment:
+      - TZ=${TZ}
+    env_file:
+      - .env

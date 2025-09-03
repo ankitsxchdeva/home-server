@@ -1,0 +1,43 @@
+# Pi-hole Whitelist
+# Domains that should never be blocked
+# Add one domain per line (without http:// or https://)
+
+# Essential services
+github.com
+githubusercontent.com
+docker.io
+docker.com
+
+# Home Assistant integrations
+home-assistant.io
+hassio.local
+
+# Weather services (for Homer)
+api.openweathermap.org
+openweathermap.org
+
+# Google services (if needed)
+google.com
+googleapis.com
+gstatic.com
+youtube.com
+
+# Microsoft services (if needed)
+microsoft.com
+msftconnecttest.com
+outlook.com
+
+# Apple services (if needed)
+apple.com
+icloud.com
+itunes.com
+
+# Streaming services (add as needed)
+netflix.com
+spotify.com
+twitch.tv
+
+# Social media (add as needed)
+# facebook.com
+# instagram.com
+# twitter.com

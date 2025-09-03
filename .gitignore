@@ -30,6 +30,17 @@ cups/config/interfaces/
 uptime-kuma/data/
 homer/assets/config.yml
 
+# Pi-hole data
+pihole/etc-pihole/
+pihole/etc-dnsmasq.d/
+
+# NetAlertX data
+netalertx/config/
+netalertx/db/
+
+# Glances config (if customized)
+# glances/glances.conf - keep this tracked for consistency
+
 # Docker & System files
 .DS_Store
 Thumbs.db

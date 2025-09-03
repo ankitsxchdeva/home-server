@@ -15,6 +15,9 @@ else
         -f commute-bot/docker-compose.yml \
         -f home-assistant/docker-compose.yml \
         -f cups/docker-compose.yml \
+        -f pihole/docker-compose.yml \
+        -f netalertx/docker-compose.yml \
+        -f glances/docker-compose.yml \
         down
 fi
 
