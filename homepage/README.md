@@ -24,7 +24,7 @@ A modern, responsive dashboard for your home server services, built with [Homepa
    ```
 
 3. **Access the dashboard:**
-   - URL: http://your-pi-ip:8080
+   - URL: http://your-pi-ip:3000
    - The dashboard will automatically discover your Docker containers
 
 ## Configuration
@@ -71,7 +71,7 @@ This Homepage setup includes all the services from your previous Homer dashboard
 
 - **Container not showing**: Ensure the container has proper labels
 - **Widgets not working**: Check API keys and service URLs
-- **Access issues**: Verify port 8080 is accessible on your network
+- **Access issues**: Verify port 3000 is accessible on your network
 
 ## Documentation
 

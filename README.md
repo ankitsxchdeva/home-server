@@ -63,7 +63,7 @@ A complete home server setup running on Raspberry Pi with Docker containers.
 
 ## Access URLs
 
-- **Homepage Dashboard**: http://your-pi-ip:8080
+- **Homepage Dashboard**: http://your-pi-ip:3000
 - **Home Assistant**: http://your-pi-ip:8123
 - **Uptime Kuma**: http://your-pi-ip:3001
 - **Pi-hole Admin**: http://your-pi-ip:8053/admin

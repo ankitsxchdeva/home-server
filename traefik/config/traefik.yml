@@ -1,0 +1,68 @@
+# Traefik Configuration
+# See: https://doc.traefik.io/traefik/
+
+# Global configuration
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+# API and dashboard configuration
+api:
+  dashboard: true
+  debug: false
+
+# Entry points configuration
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entrypoint:
+          to: websecure
+          scheme: https
+          permanent: true
+  
+  websecure:
+    address: ":443"
+
+# Providers configuration
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+    network: traefik
+
+# Middleware for VPN-only access
+http:
+  middlewares:
+    vpn-only:
+      ipWhiteList:
+        sourceRange:
+          - "10.8.0.0/24"  # WireGuard VPN network
+          - "192.168.1.0/24" # Local network (optional)
+
+# Logging configuration
+log:
+  level: INFO
+  filePath: "/logs/traefik.log"
+
+accessLog:
+  filePath: "/logs/access.log"
+
+# Metrics configuration (optional)
+metrics:
+  prometheus:
+    addEntryPointsLabels: true
+    addServicesLabels: true
+
+# Certificate resolvers
+certificatesResolvers:
+  cloudflare:
+    acme:
+      email: ${CF_API_EMAIL}
+      storage: /certs/acme.json
+      dnsChallenge:
+        provider: cloudflare
+        resolvers:
+          - "1.1.1.1:53"
+          - "8.8.8.8:53"

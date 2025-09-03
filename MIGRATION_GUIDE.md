@@ -5,7 +5,7 @@ This guide will help you migrate from Homer to Homepage dashboard while maintain
 ## What's Changed
 
 - **Dashboard**: Homer → Homepage
-- **Port**: Still 8080 (same as before)
+- **Port**: Now 3000 (Homepage's default port)
 - **Features**: Enhanced with Docker integration, widgets, and modern UI
 - **Configuration**: YAML-based instead of Homer's custom format
 
@@ -31,7 +31,7 @@ docker compose up -d
 
 ### 3. Verify Migration
 
-- Access your new dashboard at: http://your-pi-ip:8080
+- Access your new dashboard at: http://your-pi-ip:3000
 - All your services should be automatically discovered
 - The layout will be similar but with enhanced features
 
