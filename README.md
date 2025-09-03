@@ -17,8 +17,6 @@ A complete home server setup running on Raspberry Pi with Docker containers.
 
 ### Planned Services
 - WireGuard - VPN server
-- Grafana - Data visualization
-- InfluxDB - Time series database
 
 ## Quick Start
 
@@ -72,22 +70,3 @@ A complete home server setup running on Raspberry Pi with Docker containers.
 - **Glances**: http://your-pi-ip:61208
 - **NetAlertX**: http://your-pi-ip:20211
 - **CUPS Print Server**: http://your-pi-ip:631
-
-## Configuration Files
-
-### 📁 Safe to Track in Git
-- **Glances**: `glances.conf` - Monitoring thresholds and display settings
-- **Pi-hole**: `custom.list`, `adlists.list`, `whitelist.txt` - DNS records and blocking rules  
-- **NetAlertX**: `netalertx.conf` - Network scanning and alert settings
-- **All**: `.env.example` files - Environment templates
-
-### 🚫 Never Track in Git  
-- **All**: `.env` files - Contains secrets and API keys
-- **All**: `data/`, `config/`, `db/` directories - Runtime data and user settings
-- **Home Assistant**: `secrets.yaml` - Contains all HA secrets
-
-### 🎯 Benefits
-- **Consistent deployments** across multiple Pi setups
-- **Version-controlled configurations** for Pi-hole blocklists and DNS
-- **Optimized defaults** for monitoring and alerting
-- **Easy customization** while maintaining security

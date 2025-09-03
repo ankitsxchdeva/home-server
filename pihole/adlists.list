@@ -1,24 +1,15 @@
 # Pi-hole Additional Blocklists
-# These are curated blocklists beyond the default ones
-# Add one URL per line
-
-# StevenBlack's Unified Hosts (comprehensive)
 https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
-
-# Malware Domain List
 https://www.malwaredomainlist.com/hostslist/hosts.txt
-
-# Ad Guard DNS Filter
 https://adguardteam.github.io/AdGuardSDNSFilter/Filters/filter.txt
-
-# EasyList (for web ads)
 https://easylist.to/easylist/easylist.txt
-
-# Disconnect.me Tracking Protection
 https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt
-
-# Block Facebook/Meta tracking
 https://raw.githubusercontent.com/jmdugan/blocklists/master/corporations/facebook/all
+https://raw.githubusercontent.com/llacb47/mischosts/master/social/tiktok-block
+https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@release/hosts/pro.plus.txt
+https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@release/hosts/tif.txt
+https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@release/hosts/hoster.txt
+https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@release/hosts/doh-vpn-proxy-bypass.txt
+https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@release/hosts/fake.txt
+https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@release/hosts/pop-up-ads.txt
 
-# Block TikTok (optional - uncomment if desired)
-# https://raw.githubusercontent.com/llacb47/mischosts/master/social/tiktok-block
