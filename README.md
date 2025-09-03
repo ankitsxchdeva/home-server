@@ -53,58 +53,9 @@ A complete home server setup running on Raspberry Pi with Docker containers.
    # etc...
    ```
 
-## Architecture
-
-This setup uses a **modular approach** to eliminate code duplication:
-
-- **Main `docker-compose.yml`** - Uses `include` directive to reference individual service files
-- **Individual service folders** - Each contains its own self-contained `docker-compose.yml`
-- **No duplication** - Service definitions exist only once, in their respective folders
-
-Each service folder contains:
-- `docker-compose.yml` - Service definition
-- `.env.example` - Environment template  
-- `README.md` - Service-specific documentation
-- Configuration files and data volumes
-
-### Benefits:
-- ✅ **No code duplication** between main and individual compose files
-- ✅ **Modular design** - services can be managed independently
-- ✅ **Easy maintenance** - update service configs in one place only
-- ✅ **Flexible deployment** - start all services together or individually
-
-## Security
-
-- **All secrets are managed via `.env` files** (not tracked in git)
-- **Copy `.env.example` to `.env`** and fill in your values
-- **Never commit actual `.env` files** to version control
-- **Read [SECURITY.md](./SECURITY.md)** for comprehensive security guidelines
-- **Run `./check-secrets.sh`** before committing to scan for sensitive data
-
-### Quick Security Check
-```bash
-./check-secrets.sh  # Run before git commit
-```
-
 ## Access URLs
 
 - Homer Dashboard: http://your-pi-ip:8080
 - Uptime Kuma: http://your-pi-ip:3001
 - Home Assistant: http://your-pi-ip:8123
 - CUPS Web Interface: http://your-pi-ip:631
-
-## Deployment
-
-### Setting up on a New Pi
-See **[DEPLOYMENT.md](./DEPLOYMENT.md)** for complete instructions on deploying to a new Raspberry Pi.
-
-**Quick setup:**
-```bash
-git clone https://github.com/your-username/home-server.git
-cd home-server
-./new-pi-setup.sh  # Interactive setup wizard
-```
-
-## Next Steps
-
-Consider setting up Ansible for automated deployment and configuration management.
