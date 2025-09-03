@@ -2,7 +2,7 @@
 # This eliminates code duplication and keeps each service self-contained
 
 include:
-  - homer/docker-compose.yml
+  - homepage/docker-compose.yml
   - uptime-kuma/docker-compose.yml
   - commute-bot/docker-compose.yml
   - home-assistant/docker-compose.yml

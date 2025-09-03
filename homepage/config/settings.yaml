@@ -1,0 +1,10 @@
+# Homepage Settings Configuration
+# See: https://homepage.0xcc.pw/configuration/settings
+
+title: "Home Server Dashboard"
+theme: dark
+color: slate
+language: en
+units: metric
+timeFormat: 24
+timezone: America/New_York

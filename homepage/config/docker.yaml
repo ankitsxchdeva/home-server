@@ -1,0 +1,11 @@
+# Homepage Docker Configuration
+# See: https://homepage.0xcc.pw/configuration/docker
+
+# Enable Docker integration
+enabled: true
+
+# Docker socket path (already mounted in docker-compose.yml)
+socket: /var/run/docker.sock
+
+# Optional: Custom container labels for better organization
+# You can add labels to your containers for better Homepage integration

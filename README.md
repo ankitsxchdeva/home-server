@@ -6,7 +6,7 @@ A complete home server setup running on Raspberry Pi with Docker containers.
 ## Services
 
 ### Currently Deployed
-- **[Homer](./homer/)** - Dashboard/homepage (port 8080)
+- **[Homepage](./homepage/)** - Dashboard/homepage (port 8080)
 - **[Home Assistant](./home-assistant/)** - Home automation (port 8123)
 - **[Uptime Kuma](./uptime-kuma/)** - Service monitoring (port 3001)
 - **[Pi-hole](./pihole/)** - DNS ad blocker (port 8053)
@@ -24,7 +24,7 @@ A complete home server setup running on Raspberry Pi with Docker containers.
    ```bash
    cd home-server
    # Copy and configure .env files for each service
-   cp homer/.env.example homer/.env
+   cp homepage/env.example homepage/.env
    cp commute-bot/.env.example commute-bot/.env
    cp cups/.env.example cups/.env
    cp home-assistant/.env.example home-assistant/.env
@@ -56,14 +56,14 @@ A complete home server setup running on Raspberry Pi with Docker containers.
 
 4. **Start individual services:**
    ```bash
-   cd homer && docker compose up -d
+   cd homepage && docker compose up -d
    cd ../uptime-kuma && docker compose up -d
    # etc...
    ```
 
 ## Access URLs
 
-- **Homer Dashboard**: http://your-pi-ip:8080
+- **Homepage Dashboard**: http://your-pi-ip:8080
 - **Home Assistant**: http://your-pi-ip:8123
 - **Uptime Kuma**: http://your-pi-ip:3001
 - **Pi-hole Admin**: http://your-pi-ip:8053/admin

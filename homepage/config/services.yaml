@@ -1,0 +1,59 @@
+# Homepage Services Configuration
+# See: https://homepage.0xcc.pw/configuration/services
+
+- Group: Home Automation
+  icon: fas fa-home
+  items:
+    - name: Home Assistant
+      icon: fas fa-home
+      description: Home automation hub
+      url: http://home-assistant:8123
+      widget:
+        type: homeassistant
+        url: http://home-assistant:8123
+        key: !secret homeassistant_token
+
+- Group: Monitoring & Management
+  icon: fas fa-chart-line
+  items:
+    - name: Homer Dashboard
+      icon: fas fa-tachometer-alt
+      description: Legacy dashboard (being replaced)
+      url: http://homer:8080
+    - name: Uptime Kuma
+      icon: fas fa-heartbeat
+      description: Service monitoring
+      url: http://uptime-kuma:3001
+    - name: Glances
+      icon: fas fa-server
+      description: System monitoring
+      url: http://glances:61208
+    - name: NetAlertX
+      icon: fas fa-network-wired
+      description: Network monitoring
+      url: http://netalertx:20211
+
+- Group: Network Services
+  icon: fas fa-wifi
+  items:
+    - name: Pi-hole
+      icon: fas fa-shield-alt
+      description: DNS ad blocker
+      url: http://pihole:8053/admin
+      widget:
+        type: pihole
+        url: http://pihole:8053
+        key: !secret pihole_api_key
+
+- Group: Utilities
+  icon: fas fa-tools
+  items:
+    - name: CUPS Print Server
+      icon: fas fa-print
+      description: Print server management
+      url: http://cups:631
+    - name: Commute Bot
+      icon: fab fa-discord
+      description: Discord bot for commute times
+      url: https://discord.com
+      subtitle: Discord bot service
