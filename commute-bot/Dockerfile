@@ -9,3 +9,4 @@ COPY bot.py .
 COPY .env .
 
 CMD ["python", "-u", "bot.py"]
+

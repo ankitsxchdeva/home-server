@@ -1,0 +1,18 @@
+services:
+  cups:
+    image: anujdatar/cups
+    container_name: cups
+    restart: unless-stopped
+    network_mode: "host"   # Important: makes CUPS bind directly to Pi's IP for network access
+    environment:
+      - CUPSADMIN=${CUPSADMIN}
+      - CUPSPASSWORD=${CUPSPASSWORD}
+      - TZ=${TZ}
+    volumes:
+      - ./config:/etc/cups:rw
+      - /var/run/dbus:/var/run/dbus
+      - /dev/bus/usb:/dev/bus/usb:rw  # Enable USB printers
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+    env_file:
+      - .env

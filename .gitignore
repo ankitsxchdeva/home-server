@@ -1,0 +1,43 @@
+# Environment files with secrets
+.env
+**/.env
+
+# Home Assistant - Sensitive Data & Runtime Files
+home-assistant/config/secrets.yaml
+home-assistant/config/.storage/
+home-assistant/config/.cloud/
+home-assistant/config/home-assistant_v2.db*
+home-assistant/config/home-assistant.log*
+home-assistant/config/.HA_VERSION
+home-assistant/config/zigbee.db*
+home-assistant/config/deps/
+home-assistant/config/tts/
+home-assistant/config/.google.token
+home-assistant/config/known_devices.yaml
+home-assistant/config/ip_bans.yaml
+
+# Home Assistant - Device & User specific files
+home-assistant/config/.*
+!home-assistant/config/.gitkeep
+
+# CUPS - Sensitive printer configs
+cups/config/printers.conf*
+cups/config/cupsd.conf
+cups/config/ssl/
+cups/config/interfaces/
+
+# Service data directories
+uptime-kuma/data/
+homer/assets/config.yml
+
+# Docker & System files
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+
+# IDE files
+.vscode/
+.cursor/
+*.swp
+*.swo

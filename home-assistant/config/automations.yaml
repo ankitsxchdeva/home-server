@@ -1,0 +1,41 @@
+- id: '1756658406869'
+  alias: Living Room Sunset Ramp
+  description: Gradually increase lights from 40% to 70% starting 1 hour before sunset
+  triggers:
+  - event: sunset
+    offset: -01:00:00
+    trigger: sun
+  conditions: []
+  actions:
+  - data:
+      brightness_pct: 60
+    action: light.turn_on
+    target:
+      device_id:
+      - 58e87fc40a2c5f413dbb70d49d8d07ff
+      - 81f51bb523b25bfeba1589f71bcd7572
+  - delay: 00:00:01
+  - data:
+      brightness_pct: 90
+      transition: 3600
+    action: light.turn_on
+    target:
+      device_id:
+      - 58e87fc40a2c5f413dbb70d49d8d07ff
+      - 81f51bb523b25bfeba1589f71bcd7572
+  mode: single
+- id: '1756658435209'
+  alias: Turn Off Living Room Lights at Midnight
+  description: ''
+  triggers:
+  - at: 00:00:00
+    trigger: time
+  conditions: []
+  actions:
+  - action: light.turn_off
+    data: {}
+    target:
+      device_id:
+      - 58e87fc40a2c5f413dbb70d49d8d07ff
+      - 81f51bb523b25bfeba1589f71bcd7572
+  mode: single
