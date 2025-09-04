@@ -43,14 +43,19 @@ class CommuteBot(discord.Client):
         print("Setting up bot...")
         # For testing, register commands to a single guild (fast)
         GUILD_ID = os.getenv("GUILD_ID")
-        if GUILD_ID:
-            print(f"Registering commands to guild {GUILD_ID}")
-            guild = discord.Object(id=int(GUILD_ID))
-            self.tree.copy_global_to(guild=guild)
-            await self.tree.sync(guild=guild)
-            print("Commands registered to guild!")
+        if GUILD_ID and GUILD_ID != "your_guild_id_here":
+            try:
+                print(f"Registering commands to guild {GUILD_ID}")
+                guild = discord.Object(id=int(GUILD_ID))
+                self.tree.copy_global_to(guild=guild)
+                await self.tree.sync(guild=guild)
+                print("Commands registered to guild!")
+            except ValueError:
+                print(f"Invalid GUILD_ID '{GUILD_ID}', registering commands globally instead")
+                await self.tree.sync()
+                print("Commands registered globally!")
         else:
-            print("Registering commands globally (this may take up to 1 hour)")
+            print("No valid GUILD_ID provided, registering commands globally (this may take up to 1 hour)")
             await self.tree.sync()
             print("Commands registered globally!")
 

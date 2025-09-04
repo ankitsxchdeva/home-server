@@ -1,18 +1,18 @@
 services:
   wg-easy:
-    image: weejewel/wg-easy:latest
+    image: ghcr.io/wg-easy/wg-easy:latest
     container_name: wg-easy
     environment:
       - WG_HOST=${WG_HOST}
-      - PASSWORD=${WG_PASSWORD}
+      - PASSWORD_HASH=${WG_PASSWORD_HASH}
       - WG_PORT=51820
-      - WG_PERSISTENT_KEEPALIVE=25
+      - WG_PERSISTENT_KEEPALIVE=60
       - WG_DEFAULT_ADDRESS=10.8.0.x
-      - WG_DEFAULT_DNS=1.1.1.1,8.8.8.8
-      - WG_MTU=1420
+      - WG_DEFAULT_DNS=192.168.1.227,1.1.1.1
+      - WG_MTU=1500
       - WG_ALLOWED_IPS=0.0.0.0/0,::/0
-      - WG_POST_UP=iptables -A FORWARD -i wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
-      - WG_POST_DOWN=iptables -D FORWARD -i wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
+      - WG_POST_UP=iptables -A FORWARD -i wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -o eth+ -j MASQUERADE
+      - WG_POST_DOWN=iptables -D FORWARD -i wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -o eth+ -j MASQUERADE
     volumes:
       - ./config:/etc/wireguard
     ports:
@@ -23,7 +23,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.wg-easy.rule=Host(`vpn.${DOMAIN}`)"
-      - "traefik.http.routers.wg-easy.entrypoints=websecure"
+      - "traefik.http.routers.wg-easy.entrypoints=web,websecure"
       - "traefik.http.routers.wg-easy.tls.certresolver=cloudflare"
       - "traefik.http.services.wg-easy.loadbalancer.server.port=51821"
       - "traefik.http.middlewares.wg-easy-auth.basicauth.users=${WG_AUTH}"

@@ -16,12 +16,6 @@ api:
 entryPoints:
   web:
     address: ":80"
-    http:
-      redirections:
-        entrypoint:
-          to: websecure
-          scheme: https
-          permanent: true
   
   websecure:
     address: ":443"
@@ -56,7 +50,13 @@ metrics:
     addEntryPointsLabels: true
     addServicesLabels: true
 
-# Certificate resolvers
+# TLS configuration with Cloudflare Origin Certificates
+tls:
+  certificates:
+    - certFile: /certs/cloudflare-origin.crt
+      keyFile: /certs/cloudflare-origin.key
+
+# Certificate resolvers (fallback)
 certificatesResolvers:
   cloudflare:
     acme:
