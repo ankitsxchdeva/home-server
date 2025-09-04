@@ -10,6 +10,8 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
+      - HOMEPAGE_VAR_HOMEASSISTANT_TOKEN=${HOMEASSISTANT_TOKEN}
+      - HOMEPAGE_VAR_PIHOLE_API_KEY=${PIHOLE_API_KEY}
     env_file:
       - .env
     restart: unless-stopped

@@ -1,59 +1,45 @@
 # Homepage Services Configuration
-# See: https://homepage.0xcc.pw/configuration/services
 
-- Group: Home Automation
-  icon: fas fa-home
-  items:
-    - name: Home Assistant
-      icon: fas fa-home
-      description: Home automation hub
-      url: http://home-assistant:8123
-      widget:
-        type: homeassistant
-        url: http://home-assistant:8123
-        key: !secret homeassistant_token
+- Home Automation:
+    - Home Assistant:
+        icon: home-assistant.png
+        href: http://192.168.1.227:8123
+        description: Home automation hub
 
-- Group: Monitoring & Management
-  icon: fas fa-chart-line
-  items:
-    - name: Homer Dashboard
-      icon: fas fa-tachometer-alt
-      description: Legacy dashboard (being replaced)
-      url: http://homer:8080
-    - name: Uptime Kuma
-      icon: fas fa-heartbeat
-      description: Service monitoring
-      url: http://uptime-kuma:3001
-    - name: Glances
-      icon: fas fa-server
-      description: System monitoring
-      url: http://glances:61208
-    - name: NetAlertX
-      icon: fas fa-network-wired
-      description: Network monitoring
-      url: http://netalertx:20211
+- Monitoring:
+    - Uptime Kuma:
+        icon: uptime-kuma.png
+        href: http://192.168.1.227:3001
+        description: Service monitoring
 
-- Group: Network Services
-  icon: fas fa-wifi
-  items:
-    - name: Pi-hole
-      icon: fas fa-shield-alt
-      description: DNS ad blocker
-      url: http://pihole:8053/admin
-      widget:
-        type: pihole
-        url: http://pihole:8053
-        key: !secret pihole_api_key
+    - Glances:
+        icon: glances.png
+        href: http://192.168.1.227:61208
+        description: System monitoring
 
-- Group: Utilities
-  icon: fas fa-tools
-  items:
-    - name: CUPS Print Server
-      icon: fas fa-print
-      description: Print server management
-      url: http://cups:631
-    - name: Commute Bot
-      icon: fab fa-discord
-      description: Discord bot for commute times
-      url: https://discord.com
-      subtitle: Discord bot service
+    - NetAlertX:
+        icon: mdi-network
+        href: http://192.168.1.227:20211
+        description: Network monitoring
+
+- Network Services:
+    - Pi-hole:
+        icon: pi-hole.png
+        href: http://192.168.1.227:8053/admin
+        description: DNS ad blocker (Widget disabled - newer Pi-hole version)
+
+- Utilities:
+    - CUPS Print Server:
+        icon: mdi-printer
+        href: http://192.168.1.227:631
+        description: Print server
+
+    - Traefik Dashboard:
+        icon: traefik.png
+        href: http://192.168.1.227:8080
+        description: Reverse proxy
+
+    - WireGuard VPN:
+        icon: wireguard.png
+        href: http://192.168.1.227:51821
+        description: VPN management
