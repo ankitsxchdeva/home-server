@@ -52,3 +52,13 @@ Thumbs.db
 .cursor/
 *.swp
 *.swo
+
+# Traefik - SSL certificates and logs (added for security)
+traefik/certs/
+traefik/logs/
+
+# WireGuard - Configuration with private keys (added for security)
+wg-easy/config/
+
+# DDNS - Log files (added for security)
+ddns/*.log

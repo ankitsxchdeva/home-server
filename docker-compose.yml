@@ -2,6 +2,8 @@
 # This eliminates code duplication and keeps each service self-contained
 
 include:
+  - traefik/docker-compose.yml
+  - wg-easy/docker-compose.yml
   - homepage/docker-compose.yml
   - uptime-kuma/docker-compose.yml
   - commute-bot/docker-compose.yml
