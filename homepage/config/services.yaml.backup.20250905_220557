@@ -3,43 +3,43 @@
 - Home Automation:
     - Home Assistant:
         icon: home-assistant.png
-        href: http://192.168.1.102:8123
+        href: http://192.168.1.227:8123
         description: Home automation hub
 
 - Monitoring:
     - Uptime Kuma:
         icon: uptime-kuma.png
-        href: http://192.168.1.102:3001
+        href: http://192.168.1.227:3001
         description: Service monitoring
 
     - Glances:
         icon: glances.png
-        href: http://192.168.1.102:61208
+        href: http://192.168.1.227:61208
         description: System monitoring
 
     - NetAlertX:
         icon: mdi-network
-        href: http://192.168.1.102:20211
+        href: http://192.168.1.227:20211
         description: Network monitoring
 
 - Network Services:
     - Pi-hole:
         icon: pi-hole.png
-        href: http://192.168.1.102:8053/admin
+        href: http://192.168.1.227:8053/admin
         description: DNS ad blocker (Widget disabled - newer Pi-hole version)
 
 - Utilities:
     - CUPS Print Server:
         icon: mdi-printer
-        href: http://192.168.1.102:631
+        href: http://192.168.1.227:631
         description: Print server
 
     - Traefik Dashboard:
         icon: traefik.png
-        href: http://192.168.1.102:8080
+        href: http://192.168.1.227:8080
         description: Reverse proxy
 
     - WireGuard VPN:
         icon: wireguard.png
-        href: http://192.168.1.102:51821
+        href: http://192.168.1.227:51821
         description: VPN management

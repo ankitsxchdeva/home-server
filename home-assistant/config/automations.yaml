@@ -12,8 +12,8 @@
     action: light.turn_on
     target:
       device_id:
-      - 58e87fc40a2c5f413dbb70d49d8d07ff
-      - 81f51bb523b25bfeba1589f71bcd7572
+      - f5317caddef3f9d1279526c1b64a3b4b
+      - 2878198d7d2a1f0f81e4f80242284ac8
   - delay: 00:00:01
   - data:
       brightness_pct: 90
@@ -21,8 +21,8 @@
     action: light.turn_on
     target:
       device_id:
-      - 58e87fc40a2c5f413dbb70d49d8d07ff
-      - 81f51bb523b25bfeba1589f71bcd7572
+      - 2878198d7d2a1f0f81e4f80242284ac8
+      - f5317caddef3f9d1279526c1b64a3b4b
   mode: single
 - id: '1756658435209'
   alias: Turn Off Living Room Lights at Midnight

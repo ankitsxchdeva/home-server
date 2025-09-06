@@ -1,0 +1,11 @@
+[Unit]
+Description=Homepage IP Monitor Timer
+Requires=homepage-ip-monitor.service
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=10min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

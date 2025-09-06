@@ -12,7 +12,9 @@ services:
       - ./config:/etc/cups:rw
       - /var/run/dbus:/var/run/dbus
       - /dev/bus/usb:/dev/bus/usb:rw  # Enable USB printers
+      - /dev/usb:/dev/usb:rw  # USB printer device directory
     devices:
       - /dev/bus/usb:/dev/bus/usb
+      - /dev/usb/lp0:/dev/usb/lp0  # Direct USB printer device
     env_file:
       - .env

@@ -1,0 +1,15 @@
+[Unit]
+Description=Homepage IP Monitor Service
+After=network.target
+
+[Service]
+Type=oneshot
+User=ankit
+Group=ankit
+WorkingDirectory=/home/ankit/home-server
+ExecStart=/home/ankit/home-server/scripts/update-homepage-ip.sh
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
