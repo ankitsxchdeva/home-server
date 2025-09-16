@@ -1,41 +1,91 @@
 - id: '1756658406869'
-  alias: Living Room Sunset Ramp
-  description: Gradually increase lights from 40% to 70% starting 1 hour before sunset
+  alias: Evening Cozy Ramp
+  description: Gradually increase living room and bedroom lights 1 hour before sunset
+    with cozy bedroom tones
   triggers:
   - event: sunset
     offset: -01:00:00
     trigger: sun
   conditions: []
   actions:
-  - data:
-      brightness_pct: 60
-    action: light.turn_on
-    target:
+  - target:
       device_id:
       - f5317caddef3f9d1279526c1b64a3b4b
       - 2878198d7d2a1f0f81e4f80242284ac8
+    data:
+      brightness_pct: 40
+    action: light.turn_on
+  - target:
+      device_id:
+      - e209b58eac25e36ca86ec61c2f1c9c81
+      - 937a69fc55efe9077168dd25a87a1d6d
+    data:
+      brightness_pct: 10
+      color_temp: 454
+    action: light.turn_on
   - delay: 00:00:01
-  - data:
-      brightness_pct: 90
+  - target:
+      device_id:
+      - f5317caddef3f9d1279526c1b64a3b4b
+      - 2878198d7d2a1f0f81e4f80242284ac8
+    data:
+      brightness_pct: 70
       transition: 3600
     action: light.turn_on
-    target:
+  - target:
       device_id:
-      - 2878198d7d2a1f0f81e4f80242284ac8
-      - f5317caddef3f9d1279526c1b64a3b4b
+      - e209b58eac25e36ca86ec61c2f1c9c81
+      - 937a69fc55efe9077168dd25a87a1d6d
+    data:
+      brightness_pct: 40
+      transition: 3600
+      color_temp: 454
+    action: light.turn_on
   mode: single
 - id: '1756658435209'
-  alias: Turn Off Living Room Lights at Midnight
-  description: ''
+  alias: Turn Off All Lights at Midnight
+  description: Backup to turn off all lights at midnight if you're not home
   triggers:
   - at: 00:00:00
     trigger: time
   conditions: []
   actions:
-  - action: light.turn_off
-    data: {}
-    target:
+  - target:
       device_id:
       - 58e87fc40a2c5f413dbb70d49d8d07ff
       - 81f51bb523b25bfeba1589f71bcd7572
+      - e209b58eac25e36ca86ec61c2f1c9c81
+      - 937a69fc55efe9077168dd25a87a1d6d
+    action: light.turn_off
+  mode: single
+- id: '1758031929542'
+  alias: Sunrise Alarm Clock
+  description: Slowly brighten lights to daylight by 6:30 AM, then turn off at 6:40
+  triggers:
+  - at: 06:00:00
+    trigger: time
+  actions:
+  - target:
+      device_id:
+      - e209b58eac25e36ca86ec61c2f1c9c81
+      - 937a69fc55efe9077168dd25a87a1d6d
+    data:
+      brightness: 1
+      color_temp: 450
+    action: light.turn_on
+  - target:
+      device_id:
+      - e209b58eac25e36ca86ec61c2f1c9c81
+      - 937a69fc55efe9077168dd25a87a1d6d
+    data:
+      brightness: 255
+      color_temp: 153
+      transition: 1800
+    action: light.turn_on
+  - delay: 00:40:00
+  - target:
+      device_id:
+      - e209b58eac25e36ca86ec61c2f1c9c81
+      - 937a69fc55efe9077168dd25a87a1d6d
+    action: light.turn_off
   mode: single
