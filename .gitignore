@@ -30,6 +30,9 @@ cups/config/interfaces/
 uptime-kuma/data/
 homer/assets/config.yml
 
+# Matter Server - Runtime data, certificates, and device info
+matter-server/data/
+
 # Pi-hole data
 pihole/etc-pihole/
 pihole/etc-dnsmasq.d/

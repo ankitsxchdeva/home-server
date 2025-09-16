@@ -6,6 +6,11 @@
         href: http://192.168.1.102:8123
         description: Home automation hub
 
+    - Matter Server:
+        icon: mdi-home-automation
+        href: http://192.168.1.102:5580
+        description: Matter/Thread controller
+
 - Monitoring:
     - Uptime Kuma:
         icon: uptime-kuma.png

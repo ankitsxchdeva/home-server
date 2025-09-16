@@ -8,6 +8,7 @@ include:
   - uptime-kuma/docker-compose.yml
   - commute-bot/docker-compose.yml
   - home-assistant/docker-compose.yml
+  - matter-server/docker-compose.yml
   - cups/docker-compose.yml
   - pihole/docker-compose.yml
   - netalertx/docker-compose.yml

@@ -45,6 +45,7 @@ alias homepage-ip-logs='sudo journalctl -u homepage-ip-monitor.service -f'
 
 The script automatically updates these services in your homepage:
 - Home Assistant (port 8123)
+- Matter Server (port 5580)
 - Uptime Kuma (port 3001)
 - Glances (port 61208)
 - NetAlertX (port 20211)
