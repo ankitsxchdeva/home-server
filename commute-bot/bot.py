@@ -45,8 +45,8 @@ class CommuteBot(discord.Client):
         GUILD_ID = os.getenv("GUILD_ID")
         if GUILD_ID and GUILD_ID != "your_guild_id_here":
             try:
-                print(f"Registering commands to guild {GUILD_ID}")
                 guild = discord.Object(id=int(GUILD_ID))
+                print(f"Registering commands to guild {GUILD_ID}")
                 self.tree.copy_global_to(guild=guild)
                 await self.tree.sync(guild=guild)
                 print("Commands registered to guild!")
