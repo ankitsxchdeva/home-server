@@ -71,3 +71,5 @@ wg-easy/config/
 
 # DDNS - Log files (added for security)
 ddns/*.log
+
+.venv/

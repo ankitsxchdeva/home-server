@@ -7,6 +7,7 @@ include:
   - homepage/docker-compose.yml
   - uptime-kuma/docker-compose.yml
   - commute-bot/docker-compose.yml
+  - autovrr/docker-compose.yml
   - home-assistant/docker-compose.yml
   - matter-server/docker-compose.yml
   - cups/docker-compose.yml

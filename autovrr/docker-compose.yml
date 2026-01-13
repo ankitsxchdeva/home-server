@@ -1,0 +1,8 @@
+services:
+  autovrr:
+    build: .
+    container_name: autovrr
+    restart: unless-stopped
+    env_file:
+      - .env
+
