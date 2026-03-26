@@ -5,18 +5,30 @@ A complete home server setup running on Raspberry Pi with Docker containers.
 
 ## Services
 
-### Currently Deployed
-- **[Homepage](./homepage/)** - Dashboard/homepage (port 8080)
-- **[Home Assistant](./home-assistant/)** - Home automation (port 8123)
-- **[Uptime Kuma](./uptime-kuma/)** - Service monitoring (port 3001)
-- **[Pi-hole](./pihole/)** - DNS ad blocker (port 8053)
-- **[Glances](./glances/)** - System monitoring (port 61208)
-- **[NetAlertX](./netalertx/)** - Network monitoring (port 20211)
-- **[CUPS](./cups/)** - Print server (port 631)
-- **[Commute Bot](./commute-bot/)** - Discord bot for commute times
+### Infrastructure
+- **[Traefik](./traefik/)** - Reverse proxy / TLS termination (ports 80, 443; dashboard 8080)
+- **[WireGuard (wg-easy)](./wg-easy/)** - VPN server (port 51820/UDP; web UI via Traefik)
 
-### Planned Services
-- WireGuard - VPN server
+### Home Automation
+- **[Home Assistant](./home-assistant/)** - Home automation hub (port 8123, host network)
+- **[Matter Server](./matter-server/)** - Matter protocol bridge (internal)
+
+### Dashboard & Monitoring
+- **[Homepage](./homepage/)** - Dashboard (port 3000)
+- **[Uptime Kuma](./uptime-kuma/)** - Service monitoring (port 3001)
+- **[Glances](./glances/)** - System resource monitoring (port 61208)
+
+### Network
+- **[Pi-hole](./pihole/)** - DNS ad blocker (DNS port 53; web UI port 8053)
+- **[NetAlertX](./netalertx/)** - Network device scanner (port 20211, host network)
+
+### Services
+- **[CUPS](./cups/)** - Print server (port 631, host network)
+- **[13ft](./13ft/)** - Paywall bypass reader proxy (port 5000)
+
+### Discord Bots
+- **[Commute Bot](./commute-bot/)** - Commute time lookup via Google Maps
+- **[AutoVRR](./autovrr/)** - Visitor parking registration automation
 
 ## Quick Start
 
@@ -24,41 +36,26 @@ A complete home server setup running on Raspberry Pi with Docker containers.
    ```bash
    cd home-server
    # Copy and configure .env files for each service
-   cp homepage/env.example homepage/.env
-   cp commute-bot/.env.example commute-bot/.env
-   cp cups/.env.example cups/.env
-   cp home-assistant/.env.example home-assistant/.env
+   for dir in traefik wg-easy homepage home-assistant uptime-kuma pihole glances netalertx cups commute-bot autovrr; do
+     cp $dir/.env.example $dir/.env
+   done
+   # Edit each .env with your actual values
    ```
 
-2. **Setup environment files for new services:**
+2. **Start all services:**
    ```bash
-   # Copy templates for new services
-   cp pihole/.env.example pihole/.env
-   cp netalertx/.env.example netalertx/.env
-   cp glances/.env.example glances/.env
-   # Edit each .env file with your settings
-   ```
-
-3. **Start all services:**
-   ```bash
-   # Option 1: Use the convenience script
-   ./start-all.sh
-   
-   # Option 2: Use docker compose directly (requires v2.20+ for include support)
    docker compose up -d
    ```
 
 3. **Stop all services:**
    ```bash
-   ./stop-all.sh
-   # or: docker compose down
+   docker compose down
    ```
 
-4. **Start individual services:**
+4. **Start a single service:**
    ```bash
-   cd homepage && docker compose up -d
-   cd ../uptime-kuma && docker compose up -d
-   # etc...
+   docker compose up -d <service-name>
+   # e.g.: docker compose up -d homepage
    ```
 
 ## Access URLs
@@ -70,3 +67,6 @@ A complete home server setup running on Raspberry Pi with Docker containers.
 - **Glances**: http://your-pi-ip:61208
 - **NetAlertX**: http://your-pi-ip:20211
 - **CUPS Print Server**: http://your-pi-ip:631
+- **13ft Reader**: http://your-pi-ip:5000
+- **Traefik Dashboard**: http://your-pi-ip:8080
+- **WireGuard**: vpn.your-domain (via Traefik)
