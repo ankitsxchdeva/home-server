@@ -1,0 +1,7 @@
+services:
+  13ft:
+    build: .
+    container_name: 13ft
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
