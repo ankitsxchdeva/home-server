@@ -26,6 +26,9 @@ A complete home server setup running on Raspberry Pi with Docker containers.
 - **[CUPS](./cups/)** - Print server (port 631, host network)
 - **[13ft](./13ft/)** - Paywall bypass reader proxy (port 5000)
 
+### Maintenance
+- **[Watchtower](./watchtower/)** - Automatic container updates (checks nightly at 4am)
+
 ### Discord Bots
 - **[Commute Bot](./commute-bot/)** - Commute time lookup via Google Maps
 - **[AutoVRR](./autovrr/)** - Visitor parking registration automation
