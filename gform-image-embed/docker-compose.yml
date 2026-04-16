@@ -1,0 +1,7 @@
+services:
+  gform-image-embed:
+    build: .
+    container_name: gform-image-embed
+    restart: unless-stopped
+    env_file:
+      - .env

@@ -29,6 +29,7 @@ A complete home server setup running on Raspberry Pi with Docker containers.
 ### Discord Bots
 - **[Commute Bot](./commute-bot/)** - Commute time lookup via Google Maps
 - **[AutoVRR](./autovrr/)** - Visitor parking registration automation
+- **[Google Form Image Embed](./gform-image-embed/)** - Replies with images extracted from Google Forms links
 
 ## Quick Start
 
@@ -36,7 +37,7 @@ A complete home server setup running on Raspberry Pi with Docker containers.
    ```bash
    cd home-server
    # Copy and configure .env files for each service
-   for dir in traefik wg-easy homepage home-assistant uptime-kuma pihole glances netalertx cups commute-bot autovrr; do
+   for dir in traefik wg-easy homepage home-assistant uptime-kuma pihole glances netalertx cups commute-bot autovrr gform-image-embed; do
      cp $dir/.env.example $dir/.env
    done
    # Edit each .env with your actual values
