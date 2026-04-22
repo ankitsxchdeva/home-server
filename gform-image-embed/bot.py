@@ -32,10 +32,12 @@ FORMS_PATTERN = re.compile(
 SKIP_HOSTS = ("www.gstatic.com",)
 
 
-async def extract_form_images(url: str) -> list[str]:
+async def extract_form_info(url: str) -> dict:
     """
-    Navigate to a Google Form with a headless browser and return
-    all user-uploaded image URLs (excludes Google branding).
+    Navigate to a Google Form with a headless browser and return:
+      - title:     the form's h1 title
+      - prices:    dollar amounts found outside shipping-related question groups
+      - img_urls:  user-uploaded image URLs (excludes Google branding)
     """
     async with async_playwright() as pw:
         browser = await pw.chromium.launch(headless=True)
@@ -44,12 +46,54 @@ async def extract_form_images(url: str) -> list[str]:
         try:
             await page.goto(url, wait_until="networkidle", timeout=30_000)
         except Exception:
-            # Fallback: wait for DOM content if network idle times out
             await page.wait_for_load_state("domcontentloaded")
 
-        img_urls: list[str] = []
+        # Form title
+        title = ""
+        title_el = await page.query_selector("h1")
+        if title_el:
+            title = (await title_el.inner_text()).strip()
 
-        # Grab all <img> src values that have loaded
+        # Prices — walk all text nodes; skip any that live inside a container
+        # whose aria-label mentions shipping (e.g. "Shipping Required question").
+        prices: list[str] = await page.evaluate("""
+            () => {
+                const PRICE_RE = /\\$\\d+(?:\\.\\d{2})?/g;
+                const SHIP_RE  = /\\bship/i;
+
+                function isInShippingGroup(el) {
+                    let cur = el;
+                    while (cur && cur !== document.body) {
+                        if (SHIP_RE.test(cur.getAttribute('aria-label') || '')) return true;
+                        cur = cur.parentElement;
+                    }
+                    return false;
+                }
+
+                const results = [];
+                const seen = new Set();
+                const walker = document.createTreeWalker(
+                    document.body, NodeFilter.SHOW_TEXT, null
+                );
+                let node;
+                while ((node = walker.nextNode())) {
+                    const text = node.nodeValue || '';
+                    PRICE_RE.lastIndex = 0;
+                    let m;
+                    while ((m = PRICE_RE.exec(text)) !== null) {
+                        const price = m[0];
+                        if (!seen.has(price) && !isInShippingGroup(node.parentElement)) {
+                            seen.add(price);
+                            results.push(price);
+                        }
+                    }
+                }
+                return results;
+            }
+        """)
+
+        # Images
+        img_urls: list[str] = []
         handles = await page.query_selector_all("img[src]")
         for handle in handles:
             src = await handle.get_attribute("src") or ""
@@ -61,7 +105,7 @@ async def extract_form_images(url: str) -> list[str]:
                 img_urls.append(src)
 
         await browser.close()
-        return img_urls
+        return {"title": title, "prices": prices, "img_urls": img_urls}
 
 
 async def download_images(
@@ -110,13 +154,21 @@ class FormImageBot(discord.Client):
         if message.author == self.user:
             return
 
-        matches = FORMS_PATTERN.findall(message.content)
-        if not matches:
-            return
+        # Collect text to search: direct content + any forwarded message snapshots
+        texts = [message.content or ""]
+        for snapshot in getattr(message, "message_snapshots", []):
+            texts.append(snapshot.content or "")
 
-        # Deduplicate while preserving order
         seen: set[str] = set()
-        unique_urls = [u for u in matches if not (u in seen or seen.add(u))]
+        unique_urls: list[str] = []
+        for text in texts:
+            for url in FORMS_PATTERN.findall(text):
+                if url not in seen:
+                    seen.add(url)
+                    unique_urls.append(url)
+
+        if not unique_urls:
+            return
 
         for form_url in unique_urls:
             await self._handle_form(message, form_url)
@@ -124,16 +176,31 @@ class FormImageBot(discord.Client):
     async def _handle_form(self, message: discord.Message, form_url: str):
         async with message.channel.typing():
             try:
-                img_urls = await extract_form_images(form_url)
+                info = await extract_form_info(form_url)
             except Exception as exc:
                 print(f"[error] Could not scrape {form_url}: {exc}")
                 return
 
-            if not img_urls:
-                return  # No images — stay silent
+            title = info["title"]
+            prices = info["prices"]
+            img_urls = info["img_urls"]
 
-            image_data = await download_images(self._http_session, img_urls)
+            if not title and not prices and not img_urls:
+                return  # Nothing found — stay silent
+
+            # Build header: bold title + price line
+            lines = []
+            if title:
+                lines.append(f"**{title}**")
+            if prices:
+                lines.append(f"Price: {', '.join(prices)}")
+            header = "\n".join(lines)
+
+            image_data = await download_images(self._http_session, img_urls) if img_urls else []
+
             if not image_data:
+                if header:
+                    await message.reply(header, mention_author=False)
                 return
 
             # Discord allows up to 10 files per message; split into batches
@@ -146,7 +213,7 @@ class FormImageBot(discord.Client):
                 ]
                 if i == 0:
                     await message.reply(
-                        f"Found {len(image_data)} image(s) in that form:",
+                        header or f"Found {len(image_data)} image(s):",
                         files=files,
                         mention_author=False,
                     )
