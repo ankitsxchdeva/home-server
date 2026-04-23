@@ -48,11 +48,14 @@ async def extract_form_info(url: str) -> dict:
         except Exception:
             await page.wait_for_load_state("domcontentloaded")
 
-        # Form title
+        # Form title — try heading element first, fall back to page <title>
         title = ""
-        title_el = await page.query_selector("h1")
+        title_el = await page.query_selector("h1, [role='heading'][aria-level='1']")
         if title_el:
             title = (await title_el.inner_text()).strip()
+        if not title:
+            page_title = await page.title()
+            title = page_title.replace(" - Google Forms", "").replace(" - Google Forms", "").strip()
 
         # Prices — walk all text nodes; skip any that live inside a container
         # whose aria-label mentions shipping (e.g. "Shipping Required question").
@@ -82,7 +85,8 @@ async def extract_form_info(url: str) -> dict:
                     let m;
                     while ((m = PRICE_RE.exec(text)) !== null) {
                         const price = m[0];
-                        if (!seen.has(price) && !isInShippingGroup(node.parentElement)) {
+                        const amount = parseFloat(price.replace('$', ''));
+                        if (!seen.has(price) && amount >= 30 && !isInShippingGroup(node.parentElement)) {
                             seen.add(price);
                             results.push(price);
                         }
