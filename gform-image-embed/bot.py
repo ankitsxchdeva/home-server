@@ -48,53 +48,6 @@ async def extract_form_info(url: str) -> dict:
         except Exception:
             await page.wait_for_load_state("domcontentloaded")
 
-        # Form title — try heading element first, fall back to page <title>
-        title = ""
-        title_el = await page.query_selector("h1, [role='heading'][aria-level='1']")
-        if title_el:
-            title = (await title_el.inner_text()).strip()
-        if not title:
-            page_title = await page.title()
-            title = page_title.replace(" - Google Forms", "").replace(" - Google Forms", "").strip()
-
-        # Prices — walk all text nodes; skip any that live inside a container
-        # whose aria-label mentions shipping (e.g. "Shipping Required question").
-        prices: list[str] = await page.evaluate("""
-            () => {
-                const PRICE_RE = /\\$\\d+(?:\\.\\d{2})?/g;
-                const SHIP_RE  = /\\bship/i;
-
-                function isInShippingGroup(el) {
-                    let cur = el;
-                    while (cur && cur !== document.body) {
-                        if (SHIP_RE.test(cur.getAttribute('aria-label') || '')) return true;
-                        cur = cur.parentElement;
-                    }
-                    return false;
-                }
-
-                const results = [];
-                const seen = new Set();
-                const walker = document.createTreeWalker(
-                    document.body, NodeFilter.SHOW_TEXT, null
-                );
-                let node;
-                while ((node = walker.nextNode())) {
-                    const text = node.nodeValue || '';
-                    PRICE_RE.lastIndex = 0;
-                    let m;
-                    while ((m = PRICE_RE.exec(text)) !== null) {
-                        const price = m[0];
-                        const amount = parseFloat(price.replace('$', ''));
-                        if (!seen.has(price) && amount >= 30 && !isInShippingGroup(node.parentElement)) {
-                            seen.add(price);
-                            results.push(price);
-                        }
-                    }
-                }
-                return results;
-            }
-        """)
 
         # Images
         img_urls: list[str] = []
@@ -109,7 +62,7 @@ async def extract_form_info(url: str) -> dict:
                 img_urls.append(src)
 
         await browser.close()
-        return {"title": title, "prices": prices, "img_urls": img_urls}
+        return {"img_urls": img_urls}
 
 
 async def download_images(
@@ -185,26 +138,14 @@ class FormImageBot(discord.Client):
                 print(f"[error] Could not scrape {form_url}: {exc}")
                 return
 
-            title = info["title"]
-            prices = info["prices"]
             img_urls = info["img_urls"]
 
-            if not title and not prices and not img_urls:
+            if not img_urls:
                 return  # Nothing found — stay silent
 
-            # Build header: bold title + price line
-            lines = []
-            if title:
-                lines.append(f"**{title}**")
-            if prices:
-                lines.append(f"Price: {', '.join(prices)}")
-            header = "\n".join(lines)
-
-            image_data = await download_images(self._http_session, img_urls) if img_urls else []
+            image_data = await download_images(self._http_session, img_urls)
 
             if not image_data:
-                if header:
-                    await message.reply(header, mention_author=False)
                 return
 
             # Discord allows up to 10 files per message; split into batches
@@ -216,11 +157,7 @@ class FormImageBot(discord.Client):
                     for data, name in batch
                 ]
                 if i == 0:
-                    await message.reply(
-                        header or f"Found {len(image_data)} image(s):",
-                        files=files,
-                        mention_author=False,
-                    )
+                    await message.reply(files=files, mention_author=False)
                 else:
                     await message.channel.send(files=files)
 
