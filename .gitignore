@@ -73,3 +73,9 @@ wg-easy/config/
 ddns/*.log
 
 .venv/
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Home Assistant - Backups (full config archive: contains secrets.yaml & auth tokens)
+home-assistant/config/backups/
