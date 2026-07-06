@@ -34,7 +34,7 @@ cups/config/*.convs
 
 # Service data directories
 uptime-kuma/data/
-homer/assets/config.yml
+reddit-swap-notifier/data/
 
 # Matter Server - Runtime data, certificates, and device info
 matter-server/data/
@@ -55,22 +55,13 @@ netalertx/db/
 Thumbs.db
 *.log
 *.tmp
+*.backup.*
 
 # IDE files
 .vscode/
 .cursor/
 *.swp
 *.swo
-
-# Traefik - SSL certificates and logs (added for security)
-traefik/certs/
-traefik/logs/
-
-# WireGuard - Configuration with private keys (added for security)
-wg-easy/config/
-
-# DDNS - Log files (added for security)
-ddns/*.log
 
 .venv/
 # Python bytecode

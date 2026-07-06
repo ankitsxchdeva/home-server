@@ -1,0 +1,4 @@
+discord.py>=2.7,<3
+asyncpraw>=8,<9
+asyncprawcore>=4,<5
+python-dotenv>=1,<2

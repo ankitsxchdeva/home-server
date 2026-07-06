@@ -51,8 +51,6 @@ The script automatically updates these services in your homepage:
 - NetAlertX (port 20211)
 - Pi-hole (port 8053)
 - CUPS Print Server (port 631)
-- Traefik Dashboard (port 8080)
-- WireGuard VPN (port 51821)
 
 ## Troubleshooting
 

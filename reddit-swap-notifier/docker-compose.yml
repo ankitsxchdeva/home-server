@@ -1,0 +1,9 @@
+services:
+  reddit-swap-notifier:
+    build: .
+    container_name: reddit-swap-notifier
+    restart: unless-stopped
+    volumes:
+      - ./data:/app/data   # Persistent SQLite state (watches survive rebuilds)
+    env_file:
+      - .env

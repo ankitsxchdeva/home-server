@@ -5,10 +5,6 @@ A complete home server setup running on Raspberry Pi with Docker containers.
 
 ## Services
 
-### Infrastructure
-- **[Traefik](./traefik/)** - Reverse proxy / TLS termination (ports 80, 443; dashboard 8080)
-- **[WireGuard (wg-easy)](./wg-easy/)** - VPN server (port 51820/UDP; web UI via Traefik)
-
 ### Home Automation
 - **[Home Assistant](./home-assistant/)** - Home automation hub (port 8123, host network)
 - **[Matter Server](./matter-server/)** - Matter protocol bridge (internal)
@@ -24,12 +20,13 @@ A complete home server setup running on Raspberry Pi with Docker containers.
 
 ### Services
 - **[CUPS](./cups/)** - Print server (port 631, host network)
-- **[13ft](./13ft/)** - Paywall bypass reader proxy (port 5000)
+- **[13ft](./13ft/)** - Paywall bypass reader proxy (port 5001)
 
 ### Discord Bots
 - **[Commute Bot](./commute-bot/)** - Commute time lookup via Google Maps
 - **[AutoVRR](./autovrr/)** - Visitor parking registration automation
 - **[Google Form Image Embed](./gform-image-embed/)** - Replies with images extracted from Google Forms links
+- **[Reddit Swap Notifier](./reddit-swap-notifier/)** - Pings you on Discord when new swap-subreddit posts match your keywords
 
 ## Quick Start
 
@@ -37,7 +34,7 @@ A complete home server setup running on Raspberry Pi with Docker containers.
    ```bash
    cd home-server
    # Copy and configure .env files for each service
-   for dir in traefik wg-easy homepage home-assistant uptime-kuma pihole glances netalertx cups commute-bot autovrr gform-image-embed; do
+   for dir in homepage home-assistant uptime-kuma pihole glances netalertx cups commute-bot autovrr gform-image-embed reddit-swap-notifier; do
      cp $dir/.env.example $dir/.env
    done
    # Edit each .env with your actual values
@@ -68,6 +65,4 @@ A complete home server setup running on Raspberry Pi with Docker containers.
 - **Glances**: http://your-pi-ip:61208
 - **NetAlertX**: http://your-pi-ip:20211
 - **CUPS Print Server**: http://your-pi-ip:631
-- **13ft Reader**: http://your-pi-ip:5000
-- **Traefik Dashboard**: http://your-pi-ip:8080
-- **WireGuard**: vpn.your-domain (via Traefik)
+- **13ft Reader**: http://your-pi-ip:5001

@@ -38,13 +38,3 @@
         icon: mdi-printer
         href: http://192.168.1.102:631
         description: Print server
-
-    - Traefik Dashboard:
-        icon: traefik.png
-        href: http://192.168.1.102:8080
-        description: Reverse proxy
-
-    - WireGuard VPN:
-        icon: wireguard.png
-        href: http://192.168.1.102:51821
-        description: VPN management
