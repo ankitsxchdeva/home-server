@@ -57,9 +57,11 @@ Thumbs.db
 *.tmp
 *.backup.*
 
-# IDE files
+# IDE & agent tooling files
 .vscode/
 .cursor/
+.claude/
+.browser-sessions/
 *.swp
 *.swo
 
