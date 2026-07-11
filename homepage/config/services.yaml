@@ -1,40 +1,45 @@
 # Homepage Services Configuration
+# Tiles use HTTPS subdomains served by Caddy (wildcard cert, tailnet-only).
 
 - Home Automation:
     - Home Assistant:
         icon: home-assistant.png
-        href: http://192.168.1.102:8123
+        href: https://ha.ankit.casa
         description: Home automation hub
 
     - Matter Server:
         icon: mdi-home-automation
-        href: http://192.168.1.102:5580
-        description: Matter/Thread controller
+        href: http://100.109.7.124:5580
+        description: Matter/Thread controller (no web UI)
 
 - Monitoring:
     - Uptime Kuma:
         icon: uptime-kuma.png
-        href: http://192.168.1.102:3001
+        href: https://kuma.ankit.casa
         description: Service monitoring
 
     - Glances:
         icon: glances.png
-        href: http://192.168.1.102:61208
+        href: https://glances.ankit.casa
         description: System monitoring
 
     - NetAlertX:
         icon: mdi-network
-        href: http://192.168.1.102:20211
+        href: https://netalertx.ankit.casa
         description: Network monitoring
-
-- Network Services:
-    - Pi-hole:
-        icon: pi-hole.png
-        href: http://192.168.1.102:8053/admin
-        description: DNS ad blocker (Widget disabled - newer Pi-hole version)
 
 - Utilities:
     - CUPS Print Server:
         icon: mdi-printer
-        href: http://192.168.1.102:631
+        href: https://cups.ankit.casa
         description: Print server
+
+    - 13ft:
+        icon: mdi-newspaper
+        href: https://13ft.ankit.casa
+        description: Paywall bypass reader
+
+    - RSS Reader:
+        icon: mdi-rss
+        href: https://rss.ankit.casa/docs
+        description: RSS digest for lede (API — Swagger UI)

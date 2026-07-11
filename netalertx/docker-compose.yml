@@ -4,11 +4,15 @@ services:
     image: jokobsk/netalertx:latest
     restart: unless-stopped
     network_mode: "host"
+    # New image ships python3 with file caps (cap_net_admin,cap_net_raw);
+    # exec fails with EPERM unless these are in the bounding set.
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
     volumes:
-      - ./config:/app/config
-      - ./db:/app/db
-      # Configuration template (safe to track in git)
-      - ./netalertx.conf:/app/config/netalertx.conf:ro
+      # v25+ moved app data from /app/* to /data/*
+      - ./config:/data/config
+      - ./db:/data/db
     environment:
       - TZ=${TZ}
     env_file:

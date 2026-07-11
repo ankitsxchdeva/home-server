@@ -81,3 +81,11 @@ wg-easy/
 
 # DDNS runtime logs
 ddns/
+
+# Deprecated service data (never commit)
+deprecated/pihole/etc-pihole/
+deprecated/pihole/etc-dnsmasq.d/
+
+# Caddy runtime (certs are secrets)
+caddy/data/
+caddy/config/

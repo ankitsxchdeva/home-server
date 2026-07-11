@@ -9,3 +9,9 @@ frontend:
 automation: !include automations.yaml
 script: !include scripts.yaml
 scene: !include scenes.yaml
+
+# Allow the Caddy reverse proxy (docker bridge) — needed for https://ha.ankit.casa
+http:
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 172.16.0.0/12

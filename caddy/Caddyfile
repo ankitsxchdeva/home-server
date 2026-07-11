@@ -1,0 +1,53 @@
+{
+	email ankitsachdeva001@gmail.com
+}
+
+# One wildcard Let's Encrypt cert (DNS-01 via Cloudflare — no public exposure).
+# ankit.casa and *.ankit.casa resolve to the Pi's Tailscale IP: tailnet-only.
+# Bridge-network services are proxied by container name; host-network
+# services (home-assistant, netalertx, cups) via the Pi's LAN IP.
+ankit.casa, *.ankit.casa {
+	tls {
+		dns cloudflare {env.CF_API_TOKEN}
+	}
+
+	@ha host ha.ankit.casa
+	handle @ha {
+		reverse_proxy 192.168.1.102:8123
+	}
+
+	@kuma host kuma.ankit.casa
+	handle @kuma {
+		reverse_proxy uptime-kuma:3001
+	}
+
+	@glances host glances.ankit.casa
+	handle @glances {
+		reverse_proxy glances:61208
+	}
+
+	@netalertx host netalertx.ankit.casa
+	handle @netalertx {
+		reverse_proxy 192.168.1.102:20211
+	}
+
+	@cups host cups.ankit.casa
+	handle @cups {
+		reverse_proxy 192.168.1.102:631
+	}
+
+	@thirteenft host 13ft.ankit.casa
+	handle @thirteenft {
+		reverse_proxy 13ft:5000
+	}
+
+	@rss host rss.ankit.casa
+	handle @rss {
+		reverse_proxy rss-reader:8000
+	}
+
+	# default: the dashboard
+	handle {
+		reverse_proxy homepage:3000
+	}
+}
