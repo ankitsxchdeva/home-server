@@ -13,8 +13,15 @@ services:
       - /var/run/dbus:/var/run/dbus
       - /dev/bus/usb:/dev/bus/usb:rw  # Enable USB printers
       - /dev/usb:/dev/usb:rw  # USB printer device directory
+      - ./config/usblp-backend.sh:/usr/lib/cups/backend/usblp:ro  # custom raw backend -> kernel usblp device
     devices:
       - /dev/bus/usb:/dev/bus/usb
-      - /dev/usb/lp0:/dev/usb/lp0  # Direct USB printer device
+    # No hard /dev/usb/lp0 device mapping: it blocked container startup whenever
+    # the printer was off/unplugged at boot (cause of the Apr-Jul 2026 outage).
+    # The cgroup rules below grant access to USB printer nodes whenever they
+    # (re)appear, without requiring them to exist at container start.
+    device_cgroup_rules:
+      - "c 180:* rwm"  # usblp devices (/dev/usb/lp*)
+      - "c 189:* rwm"  # USB bus devices hotplugged after container start
     env_file:
       - .env
