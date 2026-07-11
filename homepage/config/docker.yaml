@@ -1,11 +1,7 @@
 # Homepage Docker Configuration
-# See: https://homepage.0xcc.pw/configuration/docker
+# See: https://gethomepage.dev/configs/docker/
+# Socket is mounted read-only in homepage/docker-compose.yml. Tiles in
+# services.yaml reference it via `server: pi` + `container: <name>`.
 
-# Enable Docker integration
-enabled: true
-
-# Docker socket path (already mounted in docker-compose.yml)
-socket: /var/run/docker.sock
-
-# Optional: Custom container labels for better organization
-# You can add labels to your containers for better Homepage integration
+pi:
+  socket: /var/run/docker.sock

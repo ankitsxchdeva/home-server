@@ -9,7 +9,9 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
       - PUID=1000
-      - PGID=1000
+      # 991 = host docker group, needed to read the socket (root:docker 660).
+      # group_add doesn't work here: the PUID entrypoint drops supp. groups.
+      - PGID=991
       - HOMEPAGE_ALLOWED_HOSTS=*
       - HOMEPAGE_VAR_HOMEASSISTANT_TOKEN=${HOMEASSISTANT_TOKEN}
     env_file:

@@ -13,6 +13,7 @@ A complete home server setup running on Raspberry Pi with Docker containers.
 - **[Homepage](./homepage/)** - Dashboard (port 3000)
 - **[Uptime Kuma](./uptime-kuma/)** - Service monitoring (port 3001)
 - **[Glances](./glances/)** - System resource monitoring (port 61208)
+- **[Dozzle](./dozzle/)** - Container log viewer (port 8080, https://logs.ankit.casa)
 
 ### Network
 - **[NetAlertX](./netalertx/)** - Network device scanner (port 20211, host network)

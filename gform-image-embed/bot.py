@@ -162,6 +162,11 @@ class FormImageBot(discord.Client):
             print(f"[error] Could not send reply: {exc}", file=sys.stderr)
 
     async def _handle_form(self, message: discord.Message, form_url: str):
+        print(
+            f"[info] Processing {form_url} from {message.author} "
+            f"in #{message.channel}",
+            file=sys.stderr,
+        )
         async with message.channel.typing():
             try:
                 result = await fetch_form_images(form_url)

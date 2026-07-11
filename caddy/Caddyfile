@@ -46,6 +46,11 @@ ankit.casa, *.ankit.casa {
 		reverse_proxy rss-reader:8000
 	}
 
+	@dozzle host logs.ankit.casa
+	handle @dozzle {
+		reverse_proxy dozzle:8080
+	}
+
 	# default: the dashboard
 	handle {
 		reverse_proxy homepage:3000

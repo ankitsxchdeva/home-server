@@ -1,45 +1,108 @@
 # Homepage Services Configuration
 # Tiles use HTTPS subdomains served by Caddy (wildcard cert, tailnet-only).
+# server/container wire each tile to docker.yaml for live status dots
+# and click-to-expand CPU/mem stats. Headless services have no href.
 
 - Home Automation:
     - Home Assistant:
         icon: home-assistant.png
         href: https://ha.ankit.casa
         description: Home automation hub
+        server: pi
+        container: homeassistant
 
     - Matter Server:
         icon: mdi-home-automation
         href: http://100.109.7.124:5580
         description: Matter/Thread controller (no web UI)
+        server: pi
+        container: matter-server
 
 - Monitoring:
     - Uptime Kuma:
         icon: uptime-kuma.png
         href: https://kuma.ankit.casa
         description: Service monitoring
+        server: pi
+        container: uptime-kuma
 
     - Glances:
         icon: glances.png
         href: https://glances.ankit.casa
         description: System monitoring
+        server: pi
+        container: glances
+
+    - Dozzle:
+        icon: dozzle.png
+        href: https://logs.ankit.casa
+        description: Container logs
+        server: pi
+        container: dozzle
 
     - NetAlertX:
         icon: mdi-network
         href: https://netalertx.ankit.casa
         description: Network monitoring
+        server: pi
+        container: netalertx
 
 - Utilities:
     - CUPS Print Server:
         icon: mdi-printer
         href: https://cups.ankit.casa
         description: Print server
+        server: pi
+        container: cups
 
     - 13ft:
         icon: mdi-newspaper
         href: https://13ft.ankit.casa
         description: Paywall bypass reader
+        server: pi
+        container: 13ft
 
     - RSS Reader:
         icon: mdi-rss
         href: https://rss.ankit.casa/docs
         description: RSS digest for lede (API — Swagger UI)
+        server: pi
+        container: rss-reader
+
+- Discord Bots:
+    - Commute Bot:
+        icon: mdi-bus-clock
+        description: Commute times via Google Maps
+        server: pi
+        container: commute-bot
+
+    - AutoVRR:
+        icon: mdi-car
+        description: Visitor parking registration
+        server: pi
+        container: autovrr
+
+    - GForm Image Embed:
+        icon: mdi-image
+        description: Google Forms image extractor
+        server: pi
+        container: gform-image-embed
+
+    - Reddit Swap Notifier:
+        icon: mdi-reddit
+        description: Swap-subreddit keyword alerts
+        server: pi
+        container: reddit-swap-notifier
+
+- Infrastructure:
+    - Caddy:
+        icon: caddy.png
+        description: HTTPS reverse proxy (ankit.casa)
+        server: pi
+        container: caddy
+
+    - Watchtower:
+        icon: watchtower.png
+        description: Nightly image updates
+        server: pi
+        container: watchtower

@@ -1,6 +1,6 @@
 services:
   cups:
-    image: anujdatar/cups
+    image: ghcr.io/ankitsxchdeva/cups:latest
     container_name: cups
     restart: unless-stopped
     network_mode: "host"   # Important: makes CUPS bind directly to Pi's IP for network access
