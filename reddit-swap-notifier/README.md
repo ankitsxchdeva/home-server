@@ -32,9 +32,8 @@ Worth knowing:
 | Variable | Required | Notes |
 |---|---|---|
 | `DISCORD_TOKEN` | yes | Bot token — see setup step 1. |
-| `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET` | yes | Reddit script app — see setup step 2. |
-| `REDDIT_USER_AGENT` | no | Reddit asks that it name the app and your reddit username. |
-| `POLL_INTERVAL_SECONDS` | no | Default 60. Each cycle is one API request regardless of watch count. |
+| `REDDIT_USER_AGENT` | no | User-Agent for RSS requests; Reddit asks that it name the app and your reddit username. |
+| `POLL_INTERVAL_SECONDS` | no | Default 60. Each cycle is one RSS request regardless of watch count. |
 | `GUILD_ID` | no | Your server ID makes slash commands appear instantly; without it the first global sync can take an hour. Developer Mode → right-click server → *Copy Server ID*. |
 | `TZ` | no | Timezone for log timestamps; defaults to UTC. |
 
@@ -45,21 +44,20 @@ Worth knowing:
    Then *OAuth2 → URL Generator*: scopes `bot` + `applications.commands`,
    permissions *View Channel*, *Send Messages*, *Embed Links*. Open the
    generated URL to invite the bot to your server.
-2. **Reddit app** — <https://www.reddit.com/prefs/apps> → create app, type
-   **script**. The name is irrelevant; the redirect URI field is required by
-   the form but unused by the bot — `http://localhost:8080` works. The client
-   ID sits under the app name; the secret is labelled.
-3. ```sh
+2. ```sh
    docker compose up -d --build
    ```
+
+No Reddit account or API credentials needed: posts come from Reddit's public
+RSS feeds.
 
 State lives in `./data/bot.db` (volume-mounted SQLite), so watches survive
 rebuilds and restarts.
 
 ## How it decides what to ping
 
-Each poll cycle makes one request for the newest 100 posts across every
-watched subreddit combined (`r/a+b+c/new`). A post pings you when all three
+Each poll cycle makes one RSS request for the newest 100 posts across every
+watched subreddit combined (`r/a+b+c/new.rss`). A post pings you when all three
 hold: it's newer than your subscription, it matches one of your keywords, and
 it hasn't been notified before. Consequences:
 
@@ -69,7 +67,7 @@ it hasn't been notified before. Consequences:
   re-checked hourly; the others keep working. Re-running `/setup` for it
   un-benches it immediately.
 
-Rate math: 1 request/minute against Reddit's 100/minute OAuth allowance.
+Rate math: 1 unauthenticated RSS request per minute.
 
 ## Troubleshooting
 

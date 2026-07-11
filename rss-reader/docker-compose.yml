@@ -1,0 +1,12 @@
+services:
+  rss-reader:
+    build: .
+    container_name: rss-reader
+    restart: unless-stopped
+    ports:
+      - "8000:8000"          # tailscale funnel points here
+    volumes:
+      - ./data:/app/data     # data.json output
+      - ./feeds.yaml:/app/feeds.yaml:ro   # edit live; next cycle picks it up
+    env_file:
+      - .env

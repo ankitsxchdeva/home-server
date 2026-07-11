@@ -15,4 +15,5 @@ include:
   - netalertx/docker-compose.yml
   - glances/docker-compose.yml
   - 13ft/docker-compose.yml
+  - rss-reader/docker-compose.yml
   - watchtower/docker-compose.yml

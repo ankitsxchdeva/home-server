@@ -5,10 +5,10 @@ import logging
 import re
 import time
 
-import asyncprawcore
 import discord
 
 import db
+from reddit_feed import FeedError, RedditFeed, SubredditGone
 
 log = logging.getLogger(__name__)
 
@@ -22,22 +22,13 @@ def matching_keywords(keywords: list[str], text: str) -> list[str]:
     return [k for k in keywords if keyword_pattern(k).search(text)]
 
 
-# Statuses meaning one subreddit in the combined listing went bad (banned,
-# private, renamed) — as opposed to Reddit itself having a moment.
-BAD_SUBREDDIT_ERRORS = (
-    asyncprawcore.exceptions.Forbidden,
-    asyncprawcore.exceptions.NotFound,
-    asyncprawcore.exceptions.Redirect,
-    asyncprawcore.exceptions.BadRequest,
-    asyncprawcore.exceptions.UnavailableForLegalReasons,
-)
 RECHECK_BROKEN_AFTER = 3600
 
 
 class Poller:
-    def __init__(self, bot: discord.Client, reddit, interval: int):
+    def __init__(self, bot: discord.Client, feed: RedditFeed, interval: int):
         self.bot = bot
-        self.reddit = reddit
+        self.feed = feed
         self.interval = interval
         self.broken: dict[str, float] = {}  # subreddit -> when it was found bad
 
@@ -55,22 +46,25 @@ class Poller:
         subreddits = [s for s in db.distinct_subreddits() if self._usable(s)]
         if not subreddits:
             return
-        # One request covers every subscribed subreddit: r/a+b+c/new
-        combined = await self.reddit.subreddit("+".join(subreddits))
         subscriptions = db.all_subscriptions()
-        new_posts = 0
         try:
-            async for post in combined.new(limit=100):
-                if db.is_seen(post.id):
-                    continue
-                new_posts += 1
-                await self.notify_matches(post, subscriptions)
-        except BAD_SUBREDDIT_ERRORS as e:
-            # One bad name poisons the whole combined listing; find and bench
+            # One request covers every subscribed subreddit: r/a+b+c/new.rss
+            posts = await self.feed.new_posts(subreddits)
+        except SubredditGone as e:
+            # One bad name poisons the whole combined feed; find and bench
             # it so the rest keep working.
-            log.warning("Combined listing failed (%r) — probing each subreddit", e)
+            log.warning("Combined feed failed (%r) — probing each subreddit", e)
             await self._find_broken(subreddits)
             return
+        except FeedError as e:
+            log.warning("Poll cycle skipped: %s", e)
+            return
+        new_posts = 0
+        for post in posts:
+            if db.is_seen(post.id):
+                continue
+            new_posts += 1
+            await self.notify_matches(post, subscriptions)
         db.prune_seen()
         log.info(
             "Poll cycle done: %s subreddits, %s new posts", len(subreddits), new_posts
@@ -89,12 +83,14 @@ class Poller:
         bad = []
         for name in subreddits:
             try:
-                await self.reddit.subreddit(name, fetch=True)
-            except BAD_SUBREDDIT_ERRORS:
+                await self.feed.probe(name)
+            except SubredditGone:
                 bad.append(name)
+            except FeedError:
+                pass  # transient network trouble; don't bench on a blip
         if not bad:
             log.error(
-                "Combined listing failed but every subreddit probes fine —"
+                "Combined feed failed but every subreddit probes fine —"
                 " retrying next cycle"
             )
             return
@@ -115,8 +111,8 @@ class Poller:
             )
 
     async def notify_matches(self, post, subscriptions) -> None:
-        post_subreddit = post.subreddit.display_name.lower()
-        text = f"{post.title}\n{post.selftext or ''}"
+        post_subreddit = post.subreddit
+        text = f"{post.title}\n{post.selftext}"
         # One message per (channel, post): mention every matched user, union keywords.
         by_channel: dict[int, tuple[list[int], list[str]]] = {}
         for sub in subscriptions:
@@ -162,27 +158,25 @@ class Poller:
         channel = self.bot.get_channel(channel_id)
         if channel is None:
             channel = await self.bot.fetch_channel(channel_id)
-        body = post.selftext or ""
+        body = post.selftext
         embed = discord.Embed(
             title=post.title[:256],
-            url=f"https://www.reddit.com{post.permalink}",
+            url=post.url,
             description=(body[:200] + "…") if len(body) > 200 else (body or None),
             color=discord.Color.orange(),
         )
-        embed.add_field(name="Subreddit", value=f"r/{post.subreddit.display_name}")
+        embed.add_field(name="Subreddit", value=f"r/{post.subreddit}")
         matched_str = ", ".join(matched)
         if len(matched_str) > 1024:  # Discord's embed-field limit
             matched_str = matched_str[:1021] + "…"
         embed.add_field(name="Matched", value=matched_str)
-        if post.link_flair_text:
-            embed.add_field(name="Flair", value=post.link_flair_text)
         await channel.send(
             content=" ".join(f"<@{u}>" for u in user_ids), embed=embed
         )
         log.info(
             "Notified users %s: r/%s post %s (matched: %s)",
             user_ids,
-            post.subreddit.display_name,
+            post.subreddit,
             post.id,
             ", ".join(matched),
         )

@@ -1,4 +1,4 @@
-"""Discord bot: /setup, /show, /remove slash commands + Reddit poller."""
+"""Discord bot: /setup, /show, /remove slash commands + Reddit RSS poller."""
 
 import asyncio
 import logging
@@ -6,14 +6,13 @@ import os
 import re
 import sys
 
-import asyncpraw
-import asyncprawcore
 import discord
 from discord import app_commands
 from dotenv import load_dotenv
 
 import db
 from poller import Poller
+from reddit_feed import FeedError, RedditFeed, SubredditGone
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
@@ -25,19 +24,13 @@ class SwapNotifier(discord.Client):
     def __init__(self):
         super().__init__(intents=discord.Intents.default())
         self.tree = app_commands.CommandTree(self)
-        self.reddit: asyncpraw.Reddit | None = None
+        self.feed: RedditFeed | None = None
 
     async def setup_hook(self) -> None:
         db.init()
-        self.reddit = asyncpraw.Reddit(
-            client_id=os.environ["REDDIT_CLIENT_ID"],
-            client_secret=os.environ["REDDIT_CLIENT_SECRET"],
-            user_agent=os.environ.get(
-                "REDDIT_USER_AGENT", "reddit-swap-notifier/1.0 (discord bot)"
-            ),
-        )
+        self.feed = RedditFeed()
         interval = int(os.environ.get("POLL_INTERVAL_SECONDS") or "60")
-        self.poller = Poller(self, self.reddit, interval)
+        self.poller = Poller(self, self.feed, interval)
         self.poller_task = asyncio.create_task(self.poller.run())
 
         def log_poller_exit(task: asyncio.Task) -> None:
@@ -115,19 +108,19 @@ async def setup(interaction: discord.Interaction, subreddit: str, keywords: str)
         )
         return
     try:
-        await client.reddit.subreddit(name, fetch=True)
-    except (asyncprawcore.exceptions.NotFound, asyncprawcore.exceptions.Redirect):
-        await interaction.followup.send(f"r/{name} doesn't seem to exist.")
+        await client.feed.probe(name)
+    except SubredditGone as e:
+        if e.status == 403:
+            await interaction.followup.send(f"r/{name} is private — can't watch it.")
+        else:
+            await interaction.followup.send(f"r/{name} doesn't seem to exist.")
         return
-    except asyncprawcore.exceptions.Forbidden:
-        await interaction.followup.send(f"r/{name} is private — can't watch it.")
-        return
-    except asyncprawcore.exceptions.AsyncPrawcoreException:
+    except FeedError:
         await interaction.followup.send(
             f"Couldn't reach Reddit to verify r/{name} — try again in a minute."
         )
         return
-    # The fetch just proved the sub works; un-bench it if the poller had it
+    # The probe just proved the sub works; un-bench it if the poller had it
     # sidelined so watching resumes now instead of at the next hourly re-check.
     client.poller.broken.pop(name, None)
     all_keywords, previous_channel_id = db.upsert_subscription(
@@ -240,7 +233,6 @@ async def remove_keyword_autocomplete(interaction: discord.Interaction, current:
 
 if __name__ == "__main__":
     load_dotenv()
-    for var in ("DISCORD_TOKEN", "REDDIT_CLIENT_ID", "REDDIT_CLIENT_SECRET"):
-        if not os.environ.get(var):
-            sys.exit(f"Missing required environment variable: {var}")
+    if not os.environ.get("DISCORD_TOKEN"):
+        sys.exit("Missing required environment variable: DISCORD_TOKEN")
     client.run(os.environ["DISCORD_TOKEN"])

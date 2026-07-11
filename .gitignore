@@ -72,3 +72,12 @@ __pycache__/
 
 # Home Assistant - Backups (full config archive: contains secrets.yaml & auth tokens)
 home-assistant/config/backups/
+
+# Traefik runtime data (certs are secrets)
+traefik/
+
+# WireGuard config (private keys)
+wg-easy/
+
+# DDNS runtime logs
+ddns/
