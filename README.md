@@ -53,7 +53,7 @@ Subnet routes / exit node must be approved in the Tailscale admin console after 
 | Docker prune (`crontab -l`) | Sun 04:30 | `docker system prune -af --filter "until=168h"` — clears week-old unused images and build cache from GitOps builds |
 | Watchtower | daily ~04:00 UTC | Auto-pulls new images and recreates containers (skips locally-built images). Runs the maintained fork `nickfedor/watchtower` (original containrrr project is unmaintained). |
 
-Retired 2026-07-11: the Cloudflare DDNS cron (`ddns/`) and the homepage IP-monitor timer (`scripts/`) — both obsolete now that the dashboard links use the stable Tailscale IP and nothing is served over the public internet.
+Retired 2026-07-11: the Cloudflare DDNS cron and the homepage IP-monitor timer (both in `deprecated/`) — both obsolete now that the dashboard links use the stable Tailscale IP and nothing is served over the public internet.
 
 ## Quick Start
 
