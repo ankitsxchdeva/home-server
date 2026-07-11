@@ -1,0 +1,48 @@
+# The only file you edit to add sources. Bind-mounted read-only into the
+# container; the next poll cycle picks up changes — no rebuild, no restart.
+#
+# A source needs a name, a url, and the section it lands in. If the url isn't
+# itself a feed, discover.py finds one (<link rel="alternate">, /feed, /rss...).
+# Per-source knobs:
+#   category: software      # section on the page: software | hardware | health
+#   tags: [ai, tech]        # searchable in the frontend
+#   limit: 10               # cap items taken per cycle (top of the feed)
+#   paywall: true           # fetch through the 13ft proxy (needs PAYWALL_PROXY)
+#   scrape: module_name     # genuinely feedless site → scrapers/module_name.py
+#   aggregator: true        # links out to other sites; when the same article
+#                           # appears in an origin feed too, the origin wins
+#
+# Only items published today (since midnight, DIGEST_TZ) make the digest.
+
+sources:
+  - name: Hacker News
+    url: https://hnrss.org/best?description=0   # HN's highest-rated stories, titles only
+    category: software
+    tags: [hn]
+    limit: 10
+    aggregator: true
+
+  - name: MacroFactor
+    url: https://macrofactor.com/articles/feed/
+    category: health
+    tags: [fitness]
+    limit: 8
+
+  - name: Mitchell Hashimoto
+    url: https://mitchellh.com/writing   # bare page URL — discovery finds feed.xml
+    category: software
+    tags: [tech]
+    limit: 8
+
+  - name: Jeff Geerling
+    url: https://www.jeffgeerling.com/blog.xml
+    category: hardware
+    tags: [tech, homelab]
+    limit: 8
+
+  - name: Yahoo Finance AI
+    url: https://finance.yahoo.com/topic/artificial-intelligence/
+    scrape: yahoo_finance_ai             # topic pages have no feed → scraper
+    category: software
+    tags: [ai, finance]
+    limit: 5                             # headliners only: top of the stream
