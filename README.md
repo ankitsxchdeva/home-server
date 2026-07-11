@@ -21,7 +21,7 @@ A complete home server setup running on Raspberry Pi with Docker containers.
 - **[Caddy](./caddy/)** - HTTPS reverse proxy for ankit.casa + *.ankit.casa (ports 80/443; wildcard Let's Encrypt cert via Cloudflare DNS-01, built from the official image with xcaddy)
 - **[CUPS](./cups/)** - Print server (port 631, host network)
 - **[13ft](./13ft/)** - Paywall bypass reader proxy (port 5001)
-- **[RSS Reader](./rss-reader/)** - RSS digest service for lede (port 8000, JSON API)
+- **[RSS Reader](./rss-reader/)** - RSS digest service for lede (port 8000, JSON API; served publicly via Tailscale Funnel :8443 for ankitsachdeva.com/lede)
 
 ### Discord Bots
 - **[Commute Bot](./commute-bot/)** - Commute time lookup via Google Maps
@@ -41,7 +41,7 @@ The Pi is on the tailnet (`raspberrypi`, MagicDNS enabled) and is configured as:
 - **Subnet router** advertising `192.168.1.0/24` - remote devices on the tailnet can reach the whole LAN
 - **Exit node** (optional full-tunnel routing)
 
-Subnet routes / exit node must be approved in the Tailscale admin console after (re)advertising. The old Tailscale Funnel (public rss-reader) was removed 2026-07-11 — it had no consumers and its port 443 is now Caddy's.
+Subnet routes / exit node must be approved in the Tailscale admin console after (re)advertising. A Tailscale Funnel publicly serves the rss-reader on https://raspberrypi.tail9476fb.ts.net:8443 — it feeds ankitsachdeva.com/lede (github.com/ankitsxchdeva/lede), so do not remove it. Port 443 belongs to Caddy.
 
 `ankit.casa` and `*.ankit.casa` resolve (unproxied Cloudflare DNS) to the Pi's Tailscale IP, so every URL below works from any tailnet device anywhere, with a real Let's Encrypt certificate, and is unreachable from the public internet.
 
