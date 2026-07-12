@@ -89,3 +89,6 @@ deprecated/pihole/etc-dnsmasq.d/
 # Caddy runtime (certs are secrets)
 caddy/data/
 caddy/config/
+
+# Home Assistant - stock blueprints regenerated on every start
+home-assistant/config/blueprints/
