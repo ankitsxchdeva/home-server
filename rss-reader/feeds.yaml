@@ -16,7 +16,8 @@
 
 sources:
   - name: Hacker News
-    url: https://hnrss.org/best?description=0   # HN's highest-rated stories, titles only
+    url: https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=30
+    scrape: hackernews                   # official Algolia API: live front page
     category: software
     tags: [hn]
     limit: 10
