@@ -7,14 +7,14 @@ A modern, responsive dashboard for your home server services, built with [Homepa
 - **Modern UI**: Clean, responsive design with dark/light theme support
 - **Docker Integration**: Automatic container discovery and status monitoring
 - **Service Groups**: Organized service categories for easy navigation
-- **Widgets**: Interactive widgets for services like Home Assistant and Pi-hole
+- **Widgets**: Interactive widgets for services like Home Assistant
 - **LAN Access**: Available to all devices on your local network
 
 ## Quick Setup
 
 1. **Copy environment file:**
    ```bash
-   cp env.example .env
+   cp .env.example .env
    # Edit .env if you need custom environment variables
    ```
 
@@ -48,7 +48,6 @@ Homepage automatically discovers Docker containers and can display:
 
 Some services support interactive widgets:
 - **Home Assistant**: Shows entity states and allows control
-- **Pi-hole**: Displays blocking statistics and recent queries
 
 ## Customization
 
@@ -63,7 +62,6 @@ This Homepage setup includes all the services from your previous Homer dashboard
 - Uptime Kuma
 - Glances
 - NetAlertX
-- Pi-hole
 - CUPS Print Server
 - Commute Bot
 
@@ -99,30 +97,3 @@ To enable Home Assistant integration in Homepage:
    ```
 
 The token will enable Homepage to display Home Assistant widgets and statistics.
-
-## Getting Pi-hole API Key
-
-The Pi-hole API key is the same as your Pi-hole web interface password:
-
-1. **Check your current Pi-hole password:**
-   ```bash
-   # From the pihole directory
-   cat .env | grep WEBPASSWORD
-   ```
-
-2. **Or get it from the running container:**
-   ```bash
-   docker exec pihole cat /etc/pihole/setupVars.conf | grep WEBPASSWORD
-   ```
-
-3. **Update your Homepage `.env` file:**
-   ```bash
-   PIHOLE_API_KEY=your_pihole_password_here
-   ```
-
-4. **Restart Homepage:**
-   ```bash
-   docker compose restart homepage
-   ```
-
-The API key enables Homepage to display Pi-hole statistics and widget information.

@@ -4,11 +4,12 @@ Backend for [lede](https://github.com/ankitsxchdeva/lede) — a personal news
 digest. One container that:
 
 - rebuilds `data/data.json` from `feeds.yaml` every `POLL_INTERVAL_SECONDS`
-  (feeds + scraped sites, deduped, newest first, trimmed to `DAYS_KEPT` days)
+  (feeds + scraped sites, deduped, newest first, trimmed to items published
+  since midnight in `DIGEST_TZ`)
 - serves `GET /data.json` (with CORS for the Pages frontend) and `GET /healthz`
   on port 8000
 
-Tailscale Funnel exposes port 8000 publicly; the static frontend at
+Tailscale Funnel serves port 8000 publicly (on `:8443`); the static frontend at
 `ankitsachdeva.com/lede/` fetches `data.json` from there.
 
 ## Adding a source

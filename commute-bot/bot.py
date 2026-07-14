@@ -1,3 +1,4 @@
+import asyncio
 import os
 import sys
 import discord
@@ -83,7 +84,7 @@ def get_commute_time(origin_address, destination_address):
     print(f"Parameters: {params}", flush=True)
     
     try:
-        response = requests.get(url, params=params)
+        response = requests.get(url, params=params, timeout=15)
         print(f"Response status code: {response.status_code}", flush=True)
         
         if response.status_code != 200:
@@ -137,14 +138,18 @@ def get_commute_time(origin_address, destination_address):
 @client.tree.command(name="gowork", description="Commute from Apartment → Work")
 async def gowork(interaction: discord.Interaction):
     print(f"gowork command called by {interaction.user}")
-    duration = get_commute_time(APARTMENT_ADDRESS, WORK_ADDRESS)
-    await interaction.response.send_message(f"🏠 → 🏢 **Commute to Work**\n{duration}")
+    # Defer first (Maps can exceed the 3s interaction window), and keep the
+    # blocking requests call off the event loop.
+    await interaction.response.defer()
+    duration = await asyncio.to_thread(get_commute_time, APARTMENT_ADDRESS, WORK_ADDRESS)
+    await interaction.followup.send(f"🏠 → 🏢 **Commute to Work**\n{duration}")
 
 @client.tree.command(name="gohome", description="Commute from Work → Apartment")
 async def gohome(interaction: discord.Interaction):
     print(f"gohome command called by {interaction.user}")
-    duration = get_commute_time(WORK_ADDRESS, APARTMENT_ADDRESS)
-    await interaction.response.send_message(f"🏢 → 🏠 **Commute to Home**\n{duration}")
+    await interaction.response.defer()
+    duration = await asyncio.to_thread(get_commute_time, WORK_ADDRESS, APARTMENT_ADDRESS)
+    await interaction.followup.send(f"🏢 → 🏠 **Commute to Home**\n{duration}")
 
 print("Commands defined, registering with tree...", flush=True)
 

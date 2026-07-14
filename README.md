@@ -62,10 +62,11 @@ Retired 2026-07-11: the Cloudflare DDNS cron and the homepage IP-monitor timer (
    ```bash
    cd home-server
    # Copy and configure .env files for each service
-   for dir in homepage home-assistant uptime-kuma glances netalertx cups commute-bot autovrr gform-image-embed reddit-swap-notifier; do
+   for dir in caddy homepage home-assistant glances netalertx cups rss-reader commute-bot autovrr gform-image-embed reddit-swap-notifier; do
      cp $dir/.env.example $dir/.env
    done
    # Edit each .env with your actual values
+   # (caddy/.env needs a real Cloudflare API token or the wildcard cert can't issue)
    ```
 
 2. **Start all services:**
@@ -96,5 +97,6 @@ All served HTTPS by Caddy (http redirects to https):
 - **CUPS Print Server**: https://cups.ankit.casa
 - **13ft Reader**: https://13ft.ankit.casa
 - **RSS Reader**: https://rss.ankit.casa/docs (JSON API; Swagger UI)
+- **Dozzle**: https://logs.ankit.casa
 
-Direct `http://<pi>:<port>` access still works on the LAN/tailnet (3000, 8123, 3001, 61208, 20211, 631, 5001, 8000).
+Direct `http://<pi>:<port>` access still works on the LAN/tailnet (3000, 8123, 3001, 61208, 20211, 631, 5001, 8000, 8080).

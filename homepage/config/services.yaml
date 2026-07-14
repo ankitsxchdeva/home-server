@@ -13,7 +13,6 @@
 
     - Matter Server:
         icon: mdi-home-automation
-        href: http://100.109.7.124:5580
         description: Matter/Thread controller (no web UI)
         server: pi
         container: matter-server

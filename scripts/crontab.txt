@@ -1,6 +1,6 @@
 # Snapshot of the ankit user's crontab on the Pi.
 # Restore after a rebuild/SD swap with:  crontab scripts/crontab.txt
 # After changing the live crontab, re-export: crontab -l > scripts/crontab.txt
-*/5 * * * * cd ~/home-server && git fetch && git diff --quiet HEAD origin/main || (git pull && docker compose up -d --build)
+*/5 * * * * cd ~/home-server && flock -n /tmp/home-server-deploy.lock -c 'git fetch && git diff --quiet HEAD origin/main || (git pull && docker compose up -d --build)'
 
 30 4 * * 0 docker system prune -af --filter "until=168h" >> /home/ankit/home-server/scripts/docker-prune.log 2>&1

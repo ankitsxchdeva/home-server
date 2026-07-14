@@ -1,4 +1,5 @@
 import os
+import re
 import asyncio
 import discord
 from discord import app_commands
@@ -338,7 +339,6 @@ async def register_visitor_parking(
             # Verify total is $0.00
             try:
                 total_element = page.locator('text="Total amount" >> .. >> span').last
-                total_verified = False
                 total_text = None
                 
                 if await total_element.count() > 0:
@@ -355,9 +355,10 @@ async def register_visitor_parking(
                     if "$0.00" not in total_text:
                         raise VRRError(f"Total amount is {total_text} - expected $0.00. Registration aborted for safety.")
                     print("✓ Total is $0.00 - safe to proceed", flush=True)
-                    total_verified = True
                 else:
-                    print("WARNING: Could not find total amount element", flush=True)
+                    # If the page markup changed and the total can't be read,
+                    # never submit blind — that's the whole point of this check.
+                    raise VRRError("Could not find total amount element - cannot confirm $0.00. Registration aborted for safety.")
             except VRRError:
                 raise
             except Exception as e:
@@ -398,7 +399,7 @@ async def register_visitor_parking(
                 pass
             
             # Check for success message
-            success = page.locator('text="success" i, text="confirmed" i, text="thank you" i, text="registered" i')
+            success = page.get_by_text(re.compile(r"success|confirmed|thank you|registered", re.IGNORECASE))
             success_detected = await success.count() > 0
             if success_detected:
                 print("✓ Success message detected!", flush=True)

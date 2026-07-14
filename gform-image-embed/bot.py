@@ -29,7 +29,7 @@ def _require_token() -> str:
 
 # Matches short links (forms.gle/...) and full URLs (docs.google.com/forms/...)
 FORMS_PATTERN = re.compile(
-    r"https?://(?:forms\.gle/\S+|docs\.google\.com/forms/[^\s>\"']+)"
+    r"https?://(?:forms\.gle/[^\s>\"']+|docs\.google\.com/forms/[^\s>\"']+)"
 )
 
 # Skip Google branding/logo images

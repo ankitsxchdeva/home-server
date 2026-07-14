@@ -36,7 +36,7 @@ def bypass_paywall(url):
     Bypass paywall for a given url
     """
     if url.startswith("http"):
-        response = requests.get(url, headers=googlebot_headers)
+        response = requests.get(url, headers=googlebot_headers, timeout=60)
         response.encoding = response.apparent_encoding
         return add_base_tag(response.text, response.url)
 
@@ -73,8 +73,8 @@ def get_article(path):
             return bypass_paywall(actual_url)
         except requests.exceptions.RequestException as e:
             return str(e), 400
-        except e:
-            raise e
+        except Exception as exc:
+            raise exc
     else:
         return "Invalid URL", 400
 

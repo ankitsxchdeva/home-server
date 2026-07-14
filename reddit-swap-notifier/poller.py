@@ -5,6 +5,7 @@ import logging
 import re
 import time
 
+import aiohttp
 import discord
 
 import db
@@ -142,10 +143,20 @@ class Poller:
                     post.id,
                     user_ids,
                 )
-            except Exception:
+            except (discord.DiscordServerError, aiohttp.ClientError, OSError, asyncio.TimeoutError):
                 all_sent = False
                 log.exception(
                     "Failed to notify users %s in channel %s", user_ids, channel_id
+                )
+            except Exception:
+                # Anything else (400s, type errors) will fail identically every
+                # cycle — dropping beats re-pinging the healthy channels forever.
+                log.exception(
+                    "Permanent-looking error notifying users %s in channel %s;"
+                    " dropping notification for post %s",
+                    user_ids,
+                    channel_id,
+                    post.id,
                 )
         # Mark seen only after every send succeeded so transient failures retry
         # next cycle.
@@ -170,9 +181,10 @@ class Poller:
         if len(matched_str) > 1024:  # Discord's embed-field limit
             matched_str = matched_str[:1021] + "…"
         embed.add_field(name="Matched", value=matched_str)
-        await channel.send(
-            content=" ".join(f"<@{u}>" for u in user_ids), embed=embed
-        )
+        content = " ".join(f"<@{u}>" for u in user_ids)
+        if len(content) > 2000:  # Discord's message-content limit; drop whole mentions
+            content = content[: content.rfind(" ", 0, 2000)]
+        await channel.send(content=content, embed=embed)
         log.info(
             "Notified users %s: r/%s post %s (matched: %s)",
             user_ids,

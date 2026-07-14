@@ -21,16 +21,14 @@ home-assistant/config/.*
 !home-assistant/config/.gitkeep
 
 # CUPS - Sensitive printer configs and runtime data
+# (seed configs like cups-browsed.conf, snmp.conf, raw.types/raw.convs are
+# deliberately tracked; ./config is the rw-mounted /etc/cups)
 cups/config/printers.conf*
 cups/config/cupsd.conf*
 cups/config/classes.conf*
-cups/config/cups-browsed.conf
-cups/config/snmp.conf
 cups/config/ssl/
 cups/config/interfaces/
 cups/config/ppd/
-cups/config/*.types
-cups/config/*.convs
 
 # Service data directories
 uptime-kuma/data/

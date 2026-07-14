@@ -13,4 +13,4 @@ services:
       - MATTER_SERVER__INSTANCE_PATH=/data
       - MATTER_SERVER__PORT=5580
       - MATTER_SERVER__LOG_LEVEL=info
-      - TZ=America/New_York
+      - TZ=America/Chicago

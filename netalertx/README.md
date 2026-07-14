@@ -9,9 +9,7 @@ Network monitoring and device discovery tool. Monitors your network for new devi
    cp .env.example .env
    ```
 
-2. Edit `.env` with your network settings:
-   - `TZ`: Your timezone
-   - `SCAN_SUBNETS`: Your network subnet (usually 192.168.1.0/24)
+2. Edit `.env` with your timezone (`TZ`).
 
 3. Start the service:
    ```bash
@@ -23,15 +21,10 @@ Network monitoring and device discovery tool. Monitors your network for new devi
 ## Configuration
 
 ### Runtime Data (Not in Git)
-- Configuration files are stored in `./config/`
+- Configuration lives in `./config/app.conf` (created on first start; edit it or
+  use the web UI's Settings page — scan subnets, schedules, notifications)
 - Database files are stored in `./db/`
 - Uses host networking for comprehensive network scanning
-
-### Configuration Template (In Git)
-- **`netalertx.conf`**: Default configuration template with optimized settings
-- Contains network scanning parameters, notification settings, and security options
-- Automatically loaded on container startup
-- Customize scan frequency, subnets, and alert preferences
 
 ## Features
 

@@ -1,5 +1,6 @@
 """Reddit RSS client: polls the public Atom feeds — no API credentials needed."""
 
+import asyncio
 import html
 import os
 import re
@@ -73,7 +74,8 @@ class RedditFeed:
                 if resp.status != 200:
                     raise FeedError(f"HTTP {resp.status} for {path}")
                 return await resp.text()
-        except aiohttp.ClientError as e:
+        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+            # ClientTimeout expiry raises TimeoutError, not ClientError.
             raise FeedError(f"fetch failed for {path}: {e!r}") from e
 
 

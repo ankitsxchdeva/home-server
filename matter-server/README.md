@@ -8,7 +8,7 @@ The Matter Server is an officially certified Software Component that creates a M
 
 ## Configuration
 
-- **Container**: `ghcr.io/matter-js/python-matter-server:latest`
+- **Container**: `ghcr.io/home-assistant-libs/python-matter-server:stable`
 - **Port**: 5580 (WebSocket API)
 - **Data Directory**: `./data` (persistent storage for Matter fabric data)
 - **Network Mode**: Host (required for Matter device discovery)
@@ -35,6 +35,6 @@ The container runs with:
 
 ## Links
 
-- [GitHub Repository](https://github.com/matter-js/python-matter-server)
+- [GitHub Repository](https://github.com/home-assistant-libs/python-matter-server)
 - [Matter Specification](https://csa-iot.org/all-solutions/matter/)
 - [Home Assistant Matter Integration](https://www.home-assistant.io/integrations/matter/)

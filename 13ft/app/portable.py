@@ -40,7 +40,7 @@ def bypass_paywall(url):
     Bypass paywall for a given url
     """
     if url.startswith("http"):
-        response = requests.get(url, headers=googlebot_headers)
+        response = requests.get(url, headers=googlebot_headers, timeout=60)
         response.encoding = response.apparent_encoding
         return add_base_tag(response.text, response.url)
 

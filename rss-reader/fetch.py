@@ -91,7 +91,11 @@ def entry_to_raw(entry) -> dict:
 async def _get(client: httpx.AsyncClient, url: str, source: dict) -> httpx.Response:
     proxy = os.environ.get("PAYWALL_PROXY")
     if source.get("paywall") and proxy:
-        url = f"{proxy.rstrip('/')}/{url}"
+        proxy = proxy.rstrip("/")
+        # discover.remember() may have cached an already-proxied URL; don't
+        # wrap it a second time.
+        if not url.startswith(f"{proxy}/"):
+            url = f"{proxy}/{url}"
     resp = await client.get(url)
     resp.raise_for_status()
     return resp
