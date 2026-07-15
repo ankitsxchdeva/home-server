@@ -56,6 +56,13 @@ Subnet routes / exit node must be approved in the Tailscale admin console after 
 
 Retired 2026-07-11: the Cloudflare DDNS cron and the homepage IP-monitor timer (both in `deprecated/`) — both obsolete now that the dashboard links use the stable Tailscale IP and nothing is served over the public internet.
 
+## Disaster Recovery
+
+[RESTORE.md](./RESTORE.md) is the bare-SD-card-to-running rebuild runbook.
+[`scripts/backup.sh`](./scripts/backup.sh) bundles the parts git can't hold
+(`.env` secrets, Zigbee/Matter pairings, HA config, monitor/subscription DBs) —
+run it on the Pi and keep the tarball somewhere off the SD card.
+
 ## Quick Start
 
 1. **Setup environment files:**
