@@ -9,7 +9,7 @@ import json
 import logging
 import os
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -96,10 +96,15 @@ async def build_once(client: httpx.AsyncClient) -> None:
         )
 
     # Only items published today make the digest: since midnight in DIGEST_TZ.
+    # A source with min_today tops up from yesterday when today runs short —
+    # e.g. HN in the morning, before today's posts have earned front-page votes.
     midnight = datetime.now(ZoneInfo(DIGEST_TZ)).replace(
         hour=0, minute=0, second=0, microsecond=0
     )
     cutoff = midnight.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    day_before = (midnight - timedelta(days=1)).astimezone(timezone.utc).strftime(
+        "%Y-%m-%dT%H:%M:%SZ"
+    )
     items, seen = [], set()
     # Origin feeds claim their articles before aggregators (HN) can: an item
     # on both HN and the author's own feed belongs to the author's source.
@@ -108,6 +113,8 @@ async def build_once(client: httpx.AsyncClient) -> None:
         key=lambda r: bool(sources_by_name.get(r["name"], {}).get("aggregator")),
     )
     for result in dedup_order:
+        min_today = int(sources_by_name.get(result["name"], {}).get("min_today") or 0)
+        todays, backfill = [], []
         for item in last_items.get(result["name"], []):
             if item["id"] in seen:
                 continue
@@ -118,7 +125,14 @@ async def build_once(client: httpx.AsyncClient) -> None:
                     prev["published"] if prev and prev["published"] else now_iso()
                 )
             if item["published"] >= cutoff:
-                items.append(item)
+                todays.append(item)
+            elif item["published"] >= day_before:
+                backfill.append(item)
+        items.extend(todays)
+        # Feed order is the source's own ranking (points, for HN), so the
+        # best of yesterday fills in first.
+        if len(todays) < min_today:
+            items.extend(backfill[: min_today - len(todays)])
     items.sort(key=lambda i: i["published"], reverse=True)
 
     payload = {"generated_at": now_iso(), "sources": source_meta, "items": items}

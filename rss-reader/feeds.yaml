@@ -11,8 +11,11 @@
 #   scrape: module_name     # genuinely feedless site → scrapers/module_name.py
 #   aggregator: true        # links out to other sites; when the same article
 #                           # appears in an origin feed too, the origin wins
+#   min_today: 8            # if today has fewer items than this, top up with
+#                           # yesterday's (in feed order) until it's met
 #
-# Only items published today (since midnight, DIGEST_TZ) make the digest.
+# Only items published today (since midnight, DIGEST_TZ) make the digest,
+# except min_today backfill, which may reach one day further back.
 
 sources:
   - name: Hacker News
@@ -22,6 +25,8 @@ sources:
     tags: [hn]
     limit: 10
     aggregator: true
+    min_today: 8                         # mornings: yesterday's top posts fill in
+                                         # until today's earn front-page votes
 
   - name: MacroFactor
     url: https://macrofactor.com/articles/feed/
