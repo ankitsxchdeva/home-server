@@ -35,6 +35,11 @@ FORMS_PATTERN = re.compile(
 # Skip Google branding/logo images
 SKIP_HOSTS = ("gstatic.com",)
 
+# Hard cap on one form's end-to-end processing. Playwright launch/connect
+# hangs have no timeout of their own (a dead driver wedged the handler on
+# 2026-07-20), so the whole fetch is raced against this.
+HANDLE_FORM_TIMEOUT_S = 120
+
 # Collect every image URL on the page: <img src> plus CSS background-image,
 # which is how Google Forms renders some uploaded images.
 _COLLECT_IMAGE_URLS_JS = r"""() => {
@@ -156,10 +161,20 @@ class FormImageBot(discord.Client):
 
     async def _safe_reply(self, message: discord.Message, text: str):
         """Reply without letting a Discord error crash message handling."""
-        try:
-            await message.reply(text, mention_author=False)
-        except discord.HTTPException as exc:
-            print(f"[error] Could not send reply: {exc}", file=sys.stderr)
+        for attempt in (1, 2):
+            try:
+                await message.reply(text, mention_author=False)
+                return
+            except discord.HTTPException as exc:
+                print(
+                    f"[error] Could not send reply (attempt {attempt}): {exc}",
+                    file=sys.stderr,
+                )
+                # One retry, for transient server-side errors only
+                if attempt == 1 and exc.status >= 500:
+                    await asyncio.sleep(2)
+                else:
+                    return
 
     async def _handle_form(self, message: discord.Message, form_url: str):
         print(
@@ -167,58 +182,83 @@ class FormImageBot(discord.Client):
             f"in #{message.channel}",
             file=sys.stderr,
         )
-        async with message.channel.typing():
-            try:
-                result = await fetch_form_images(form_url)
-            except Exception as exc:
-                print(f"[error] Failed to process {form_url}: {exc}", file=sys.stderr)
+        try:
+            async with message.channel.typing():
+                result = await asyncio.wait_for(
+                    fetch_form_images(form_url), timeout=HANDLE_FORM_TIMEOUT_S
+                )
+        except TimeoutError:
+            print(
+                f"[error] Timed out after {HANDLE_FORM_TIMEOUT_S}s on {form_url}",
+                file=sys.stderr,
+            )
+            await self._safe_reply(
+                message,
+                "⚠️ Timed out extracting images from that form — "
+                "try posting it again.",
+            )
+            return
+        except discord.HTTPException as exc:
+            # Even the typing indicator can fail on a Discord blip (503 seen
+            # 2026-07-21); make it a visible reply instead of a silent log line.
+            print(
+                f"[error] Discord API error while processing {form_url}: {exc}",
+                file=sys.stderr,
+            )
+            await self._safe_reply(
+                message,
+                "⚠️ Discord hiccuped while I was reading that form — "
+                "try posting it again.",
+            )
+            return
+        except Exception as exc:
+            print(f"[error] Failed to process {form_url}: {exc}", file=sys.stderr)
+            await self._safe_reply(
+                message,
+                "⚠️ Couldn't open that Google Form — it may be private, "
+                "deleted, or unreachable.",
+            )
+            return
+
+        if not result.images:
+            if result.candidates:
+                # Found images but every download failed — that's a real error.
+                print(
+                    f"[error] Found {result.candidates} image(s) but none "
+                    f"downloaded for {form_url}",
+                    file=sys.stderr,
+                )
                 await self._safe_reply(
                     message,
-                    "⚠️ Couldn't open that Google Form — it may be private, "
-                    "deleted, or unreachable.",
+                    f"⚠️ Found {result.candidates} image(s) in that form but "
+                    "couldn't download them.",
+                )
+            else:
+                # Form genuinely has no images — stay silent, just log.
+                print(f"[info] No images found for {form_url}", file=sys.stderr)
+            return
+
+        # Discord allows up to 10 files per message; split into batches
+        batch_size = 10
+        for i in range(0, len(result.images), batch_size):
+            batch = result.images[i : i + batch_size]
+            files = [
+                discord.File(io.BytesIO(data), filename=name)
+                for data, name in batch
+            ]
+            try:
+                if i == 0:
+                    await message.reply(files=files, mention_author=False)
+                else:
+                    await message.channel.send(files=files)
+            except discord.HTTPException as exc:
+                print(f"[error] Discord upload failed: {exc}", file=sys.stderr)
+                await self._safe_reply(
+                    message,
+                    "⚠️ Found images but Discord rejected the upload "
+                    "(they may be too large).",
                 )
                 return
-
-            if not result.images:
-                if result.candidates:
-                    # Found images but every download failed — that's a real error.
-                    print(
-                        f"[error] Found {result.candidates} image(s) but none "
-                        f"downloaded for {form_url}",
-                        file=sys.stderr,
-                    )
-                    await self._safe_reply(
-                        message,
-                        f"⚠️ Found {result.candidates} image(s) in that form but "
-                        "couldn't download them.",
-                    )
-                else:
-                    # Form genuinely has no images — stay silent, just log.
-                    print(f"[info] No images found for {form_url}", file=sys.stderr)
-                return
-
-            # Discord allows up to 10 files per message; split into batches
-            batch_size = 10
-            for i in range(0, len(result.images), batch_size):
-                batch = result.images[i : i + batch_size]
-                files = [
-                    discord.File(io.BytesIO(data), filename=name)
-                    for data, name in batch
-                ]
-                try:
-                    if i == 0:
-                        await message.reply(files=files, mention_author=False)
-                    else:
-                        await message.channel.send(files=files)
-                except discord.HTTPException as exc:
-                    print(f"[error] Discord upload failed: {exc}", file=sys.stderr)
-                    await self._safe_reply(
-                        message,
-                        "⚠️ Found images but Discord rejected the upload "
-                        "(they may be too large).",
-                    )
-                    return
-
 
 def main():
     token = _require_token()

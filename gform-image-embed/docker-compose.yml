@@ -3,5 +3,7 @@ services:
     build: .
     container_name: gform-image-embed
     restart: unless-stopped
+    # reap zombie chromium/node children left by per-request Playwright launches
+    init: true
     env_file:
       - .env
