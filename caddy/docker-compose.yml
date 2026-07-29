@@ -6,7 +6,7 @@ services:
     # --watch auto-reloads on Caddyfile changes. Paired with the directory
     # bind-mount below, this survives git's inode swap on deploy (a single-file
     # mount would pin the old inode and serve stale config).
-    command: ["run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile", "--watch"]
+    command: ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile", "--watch"]
     # host resolv.conf points at Tailscale MagicDNS, unreachable from
     # bridge containers — ACME needs working external DNS
     dns:
