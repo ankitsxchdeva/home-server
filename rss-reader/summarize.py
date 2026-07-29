@@ -22,7 +22,7 @@ log = logging.getLogger(__name__)
 
 OLLAMA_URL = (os.environ.get("OLLAMA_URL") or "http://ollama:11434").rstrip("/")
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL") or "qwen2.5:3b"
-OLLAMA_TIMEOUT = float(os.environ.get("OLLAMA_TIMEOUT") or 20)
+OLLAMA_TIMEOUT = float(os.environ.get("OLLAMA_TIMEOUT") or 90)
 KEEP_ALIVE = os.environ.get("OLLAMA_KEEP_ALIVE") or "10m"
 ENABLED = (os.environ.get("SUMMARY_ENABLED") or "1").lower() not in ("0", "false", "no", "")
 MAX_PER_CYCLE = int(os.environ.get("SUMMARY_MAX_PER_CYCLE") or 50)
