@@ -1,0 +1,14 @@
+[Unit]
+Description=Printer (CUPS/avahi) watchdog + uptime-kuma heartbeat
+After=network-online.target avahi-daemon.service docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/ankit/home-server
+ExecStart=/home/ankit/home-server/scripts/printer-watchdog.sh
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

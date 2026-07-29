@@ -1,0 +1,12 @@
+[Unit]
+Description=Run the printer watchdog every 5 minutes
+Requires=printer-watchdog.service
+
+[Timer]
+# Catches the nightly ~04:00 Watchtower recreate of the cups container within 5 min.
+OnBootSec=3min
+OnUnitActiveSec=5min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

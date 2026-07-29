@@ -90,3 +90,7 @@ caddy/config/
 
 # Home Assistant - stock blueprints regenerated on every start
 home-assistant/config/blueprints/
+
+# printer-watchdog: local-only push token + runtime log
+scripts/printer-watchdog.env
+scripts/printer-watchdog.log
