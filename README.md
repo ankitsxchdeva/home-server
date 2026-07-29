@@ -23,6 +23,7 @@ A complete home server setup running on Raspberry Pi with Docker containers.
 - **[CUPS](./cups/)** - Print server (port 631, host network)
 - **[13ft](./13ft/)** - Paywall bypass reader proxy (port 5001)
 - **[RSS Reader](./rss-reader/)** - RSS digest service for lede (port 8000, JSON API; served publicly via Tailscale Funnel :8443 for ankitsachdeva.com/lede)
+- **[Ollama](./ollama/)** - Shared local LLM (internal `http://ollama:11434`, no exposed port); rss-reader uses it to summarize items and write a daily themes overview
 
 ### Discord Bots
 - **[Commute Bot](./commute-bot/)** - Commute time lookup via Google Maps

@@ -1,0 +1,38 @@
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    # No published ports on purpose: reachable only on the internal compose
+    # network as http://ollama:11434. Never exposed to the LAN, Tailscale, or
+    # the funnel. Watchtower keeps the engine patched; models live in the volume.
+    volumes:
+      - ollama_models:/root/.ollama
+    environment:
+      # Unload a model 10m after its last use so idle RAM returns to the Pi.
+      - OLLAMA_KEEP_ALIVE=10m
+      # One model resident at a time — this is a shared, memory-constrained Pi.
+      - OLLAMA_MAX_LOADED_MODELS=1
+
+  # One-shot: pulls the model into the volume on first boot, then exits.
+  # Cheap to re-run — an already-present model is a no-op. Restarts (and the
+  # weekly prune) never touch the named volume, so the model is downloaded once.
+  ollama-init:
+    image: ollama/ollama:latest
+    container_name: ollama-init
+    depends_on:
+      - ollama
+    restart: "no"
+    environment:
+      - OLLAMA_HOST=ollama:11434
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        until ollama list >/dev/null 2>&1; do echo "waiting for ollama..."; sleep 2; done
+        ollama pull qwen2.5:1.5b
+    labels:
+      # Exited one-shot; keep Watchtower from fussing over it.
+      - com.centurylinklabs.watchtower.enable=false
+
+volumes:
+  ollama_models:
