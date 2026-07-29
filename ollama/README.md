@@ -16,7 +16,7 @@ API; add Caddy basic-auth on `ollama.ankit.casa` if you want more than that.
 
 | Model | Used by | Notes |
 |---|---|---|
-| `qwen2.5:1.5b` | rss-reader | Per-item summaries + daily themes overview |
+| `qwen2.5:3b` | rss-reader | Per-item summaries + daily themes overview |
 
 `ollama-init` pulls the model into the `ollama_models` volume on first boot and
 then exits. The volume survives restarts, recreations, and the weekly
@@ -29,14 +29,14 @@ Any container on the compose network can call it. Point the service at
 
 ```
 POST http://ollama:11434/api/generate
-{"model": "qwen2.5:1.5b", "prompt": "...", "stream": false}
+{"model": "qwen2.5:3b", "prompt": "...", "stream": false}
 ```
 
 rss-reader (`rss-reader/summarize.py`) is the first consumer and shows the
 pattern: new-items-only, cached, with a graceful fallback when Ollama is down.
 
 From a tailnet device (laptop, phone) point any OpenAI-compatible client at
-`https://ollama.ankit.casa/v1` (model `qwen2.5:1.5b`, no API key). No SSH tunnel
+`https://ollama.ankit.casa/v1` (model `qwen2.5:3b`, no API key). No SSH tunnel
 needed once the Caddy route is deployed.
 
 ## Adding a model

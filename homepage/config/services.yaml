@@ -50,7 +50,7 @@
     - Ollama:
         icon: ollama.png
         href: https://ollama.ankit.casa
-        description: Local LLM (qwen2.5:1.5b) — shared API
+        description: Local LLM (qwen2.5:3b) — shared API
         server: pi
         container: ollama
         widget:

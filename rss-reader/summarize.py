@@ -21,7 +21,7 @@ from backoff import retry_fib
 log = logging.getLogger(__name__)
 
 OLLAMA_URL = (os.environ.get("OLLAMA_URL") or "http://ollama:11434").rstrip("/")
-OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL") or "qwen2.5:1.5b"
+OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL") or "qwen2.5:3b"
 OLLAMA_TIMEOUT = float(os.environ.get("OLLAMA_TIMEOUT") or 20)
 KEEP_ALIVE = os.environ.get("OLLAMA_KEEP_ALIVE") or "10m"
 ENABLED = (os.environ.get("SUMMARY_ENABLED") or "1").lower() not in ("0", "false", "no", "")
@@ -40,7 +40,7 @@ ITEM_PROMPT = (
 )
 
 # A small model will happily restate every headline as a list unless told not
-# to, in strong terms — this phrasing was validated on qwen2.5:1.5b on the Pi.
+# to, in strong terms — this phrasing was validated on the Pi's local qwen2.5.
 THEME_PROMPT = (
     "You are writing the one-paragraph intro to a daily tech-news digest. Do "
     "NOT list, number, or restate the individual headlines. In 2-3 flowing "
