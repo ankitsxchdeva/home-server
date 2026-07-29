@@ -47,3 +47,31 @@
       brightness_pct: 100
       color_temp_kelvin: 2700
   mode: single
+- id: '1785291854907'
+  alias: Living Room Lights Off
+  description: Turn off the living room lights at 10:30 PM
+  triggers:
+  - at: '22:30:00'
+    trigger: time
+  conditions: []
+  actions:
+  - action: light.turn_off
+    target:
+      entity_id:
+      - light.ikea_of_sweden_tradfri_bulb_e26_ww_globe_800lm
+      - light.ikea_of_sweden_tradfri_bulb_e26_ww_globe_800lm_2
+  mode: single
+- id: '1785291854939'
+  alias: Bedroom Lights Off
+  description: Turn off the bedroom lights at 7:30 AM
+  triggers:
+  - at: '07:30:00'
+    trigger: time
+  conditions: []
+  actions:
+  - action: light.turn_off
+    target:
+      entity_id:
+      - light.h600b
+      - light.h600b_2
+  mode: single
