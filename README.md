@@ -54,6 +54,7 @@ Subnet routes / exit node must be approved in the Tailscale admin console after 
 | GitOps deploy (`crontab -l`) | every 5 min | `git fetch`; if `origin/main` changed: `git pull && docker compose up -d --build`. Push to main = deploy. |
 | Docker prune (`crontab -l`) | Sun 04:30 | `docker system prune -af --filter "until=168h"` — clears week-old unused images and build cache from GitOps builds |
 | Watchtower | daily ~04:00 UTC | Auto-pulls new images and recreates containers (skips locally-built images). Runs the maintained fork `nickfedor/watchtower` (original containrrr project is unmaintained). |
+| Printer watchdog (`systemd` timer — **host unit, not Docker**) | every 5 min | Re-asserts the CUPS/avahi mDNS fix (the recurring "can't reach printer" bug) and heartbeats uptime-kuma. Units + script live in [`scripts/printer-watchdog.*`](./scripts/printer-watchdog.md); installed manually on the host, so it must be re-installed on a rebuild (not covered by GitOps). |
 
 Retired 2026-07-11: the Cloudflare DDNS cron and the homepage IP-monitor timer (both in `deprecated/`) — both obsolete now that the dashboard links use the stable Tailscale IP and nothing is served over the public internet.
 
@@ -106,5 +107,6 @@ All served HTTPS by Caddy (http redirects to https):
 - **13ft Reader**: https://13ft.ankit.casa
 - **RSS Reader**: https://rss.ankit.casa/docs (JSON API; Swagger UI)
 - **Dozzle**: https://logs.ankit.casa
+- **Ollama**: https://ollama.ankit.casa (OpenAI-compatible LLM API at `/v1`; no web UI — for API clients on the tailnet. No exposed host port.)
 
-Direct `http://<pi>:<port>` access still works on the LAN/tailnet (3000, 8123, 3001, 61208, 20211, 631, 5001, 8000, 8080).
+Direct `http://<pi>:<port>` access still works on the LAN/tailnet (3000, 8123, 3001, 61208, 20211, 631, 5001, 8000, 8080). Ollama is the exception: no host port, reachable only in-cluster (`http://ollama:11434`) or via `ollama.ankit.casa`.
