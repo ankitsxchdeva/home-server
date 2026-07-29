@@ -46,6 +46,17 @@
         server: pi
         container: netalertx
 
+- AI:
+    - Ollama:
+        icon: ollama.png
+        href: https://ollama.ankit.casa
+        description: Local LLM (qwen2.5:1.5b) — shared API
+        server: pi
+        container: ollama
+        widget:
+            type: ollama
+            url: http://ollama:11434
+
 - Utilities:
     - CUPS Print Server:
         icon: mdi-printer

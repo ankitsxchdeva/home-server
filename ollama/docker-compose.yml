@@ -3,9 +3,10 @@ services:
     image: ollama/ollama:latest
     container_name: ollama
     restart: unless-stopped
-    # No published ports on purpose: reachable only on the internal compose
-    # network as http://ollama:11434. Never exposed to the LAN, Tailscale, or
-    # the funnel. Watchtower keeps the engine patched; models live in the volume.
+    # No published host port: off the LAN and off the funnel. Reachable
+    # in-network as http://ollama:11434, and to tailnet devices via Caddy at
+    # https://ollama.ankit.casa. Watchtower keeps the engine patched; models
+    # live in the volume.
     volumes:
       - ollama_models:/root/.ollama
     environment:

@@ -51,6 +51,13 @@ ankit.casa, *.ankit.casa {
 		reverse_proxy dozzle:8080
 	}
 
+	# Ollama has no auth of its own; the tailnet (ankit.casa -> Tailscale IP)
+	# is the boundary. OpenAI-compatible API lives under /v1.
+	@ollama host ollama.ankit.casa
+	handle @ollama {
+		reverse_proxy ollama:11434
+	}
+
 	# default: the dashboard
 	handle {
 		reverse_proxy homepage:3000

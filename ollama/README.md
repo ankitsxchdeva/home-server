@@ -4,9 +4,13 @@ Shared local LLM service. Runs the [Ollama](https://ollama.com) engine and
 serves models over HTTP on the internal compose network at
 `http://ollama:11434`.
 
-**Not exposed anywhere.** No published host port, no Caddy route, no Tailscale
-Funnel — only other containers on the compose network can reach it. Ollama has
-no authentication, so it is deliberately kept off the LAN and tailnet.
+**No host port; tailnet-only.** No published host port and no Tailscale Funnel,
+so it is off the LAN and off the public internet. Other containers reach it
+in-network at `http://ollama:11434`; tailnet devices reach it through Caddy at
+`https://ollama.ankit.casa` (wildcard cert, resolves to the Pi's Tailscale IP).
+Ollama has no authentication of its own — the tailnet is the security boundary.
+Any tailnet device (or process) can therefore use *and manage* models via the
+API; add Caddy basic-auth on `ollama.ankit.casa` if you want more than that.
 
 ## Models
 
@@ -30,6 +34,10 @@ POST http://ollama:11434/api/generate
 
 rss-reader (`rss-reader/summarize.py`) is the first consumer and shows the
 pattern: new-items-only, cached, with a graceful fallback when Ollama is down.
+
+From a tailnet device (laptop, phone) point any OpenAI-compatible client at
+`https://ollama.ankit.casa/v1` (model `qwen2.5:1.5b`, no API key). No SSH tunnel
+needed once the Caddy route is deployed.
 
 ## Adding a model
 
