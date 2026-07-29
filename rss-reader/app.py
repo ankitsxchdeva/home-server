@@ -24,6 +24,7 @@ from pydantic import BaseModel, Field
 
 import db
 import fetch
+import summarize
 
 load_dotenv()
 logging.basicConfig(
@@ -44,6 +45,8 @@ CONCURRENCY = 8
 
 # Last good items per source, so one bad cycle never blanks a source out.
 last_items: dict[str, list[dict]] = {}
+
+summarizer = summarize.Summarizer()
 
 
 def now_iso() -> str:
@@ -135,7 +138,14 @@ async def build_once(client: httpx.AsyncClient) -> None:
             items.extend(backfill[: min_today - len(todays)])
     items.sort(key=lambda i: i["published"], reverse=True)
 
+    # LLM enrichment: rewrite new items' summaries and add a themes overview.
+    # Degrades to the feed's own truncated summaries if Ollama is unavailable.
+    await summarizer.summarize_items(client, items)
+    themes = await summarizer.themes(client, items)
+
     payload = {"generated_at": now_iso(), "sources": source_meta, "items": items}
+    if themes:
+        payload["themes"] = themes
     DATA_FILE.parent.mkdir(exist_ok=True)
     tmp = DATA_FILE.with_suffix(".tmp")
     tmp.write_text(json.dumps(payload, ensure_ascii=False))
