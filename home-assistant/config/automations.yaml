@@ -15,27 +15,35 @@
     data:
       brightness_pct: 80
   - action: light.turn_on
-    target:
-      device_id:
-      - e209b58eac25e36ca86ec61c2f1c9c81
-      - 937a69fc55efe9077168dd25a87a1d6d
     data:
       brightness_pct: 25
-      kelvin: 2700
+      color_temp_kelvin: 2700
+    target:
+      entity_id:
+      - light.h600b
+      - light.h600b_2
   mode: single
 - id: '1758031929542'
   alias: Sunrise Alarm Clock
   description: Turn lights on at 6:45 AM at full brightness (warm sunrise tone)
   triggers:
-  - at: 06:43:00
+  - at: 06:45:00
     trigger: time
+    weekday:
+    - sun
+    - mon
+    - tue
+    - wed
+    - thu
+    - fri
+    - sat
   actions:
   - action: light.turn_on
     target:
-      device_id:
-      - e209b58eac25e36ca86ec61c2f1c9c81
-      - 937a69fc55efe9077168dd25a87a1d6d
+      entity_id:
+      - light.h600b_2
+      - light.h600b
     data:
       brightness_pct: 100
-      color_temp: 370
+      color_temp_kelvin: 2700
   mode: single
