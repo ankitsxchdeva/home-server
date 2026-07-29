@@ -1,0 +1,25 @@
+name: validate-compose
+
+# The Pi's GitOps cron auto-deploys origin/main every 5 min. A malformed compose
+# file would break the running stack on the next tick, so validate the merged
+# config (root docker-compose.yml + every include) on each push and PR.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  compose-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create placeholder .env files
+        # Services reference `env_file: .env` (gitignored secrets). They don't
+        # exist in CI, and `docker compose config` errors on a missing env_file.
+        # Empty placeholders let it parse; unset ${VARS} just interpolate to "".
+        run: find . -name docker-compose.yml -execdir touch .env \;
+
+      - name: Validate merged compose
+        run: docker compose config -q
