@@ -3,6 +3,7 @@ services:
     image: ollama/ollama:latest
     container_name: ollama
     restart: unless-stopped
+    cpus: "3.0"        # Pi 5 has 4 cores; leave one for Home Assistant et al. during inference
     # No published host port: off the LAN and off the funnel. Reachable
     # in-network as http://ollama:11434, and to tailnet devices via Caddy at
     # https://ollama.ankit.casa. Watchtower keeps the engine patched; models

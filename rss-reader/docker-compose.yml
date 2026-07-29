@@ -3,6 +3,7 @@ services:
     build: .
     container_name: rss-reader
     restart: unless-stopped
+    cpus: "1.5"        # background digest builder; cap so build cycles can't hog the Pi
     ports:
       - "8000:8000"          # tailscale funnel points here
     volumes:
