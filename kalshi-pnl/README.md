@@ -4,16 +4,21 @@ Lifetime Kalshi profit/loss as one number. Mirrors
 [ankitsxchdeva/kalshi-pnl](https://github.com/ankitsxchdeva/kalshi-pnl).
 
 `GET /pnl` computes `account_value + withdrawals − deposits` from Kalshi's
-trade API (RSA-PSS signed requests) and returns it with the deposit history:
+trade API (RSA-PSS signed requests) and returns ONLY the net number —
+deposit history, totals, and account value are deliberately kept off the
+wire because this service is public:
 
 ```json
-{"pnl": -267.52, "total_deposits": 375.0, "total_withdrawals": 0.0,
- "account_value": 107.48, "deposits": [...]}
+{"pnl": -267.52}
 ```
 
-Tailnet-only at https://kalshi.ankit.casa/pnl (via Caddy). No auth — do not
-expose publicly. `GET /` serves a big-number display page (same page is on
-GitHub Pages, but it can only fetch data from inside the tailnet).
+`GET /` serves a big-number display page (also on GitHub Pages at
+https://ankitsachdeva.com/kalshi-pnl/).
+
+Reachable at:
+- https://kalshi.ankit.casa (tailnet, via Caddy)
+- https://raspberrypi.tail9476fb.ts.net:10000 (PUBLIC, via Tailscale Funnel
+  → host port 8001 — anything this app serves is visible to the internet)
 
 ## Secrets (not in git)
 

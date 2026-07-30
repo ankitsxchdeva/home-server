@@ -7,7 +7,6 @@ Then: curl http://localhost:8000/pnl
 import base64
 import os
 import time
-from datetime import datetime, timezone
 from decimal import Decimal
 
 import httpx
@@ -103,21 +102,9 @@ def fetch_pnl() -> dict:
     # portfolio_value = cash + market value of open positions
     account_value = _dollars(balance, "portfolio_value_dollars", "portfolio_value")
 
-    return {
-        "pnl": float(account_value + withdrawn - deposited),
-        "total_deposits": float(deposited),
-        "total_withdrawals": float(withdrawn),
-        "account_value": float(account_value),
-        "deposits": [
-            {
-                "date": datetime.fromtimestamp(d["created_ts"], tz=timezone.utc).date().isoformat(),
-                "amount": d["amount_cents"] / 100,
-                "type": d.get("type"),
-                "status": d.get("status"),
-            }
-            for d in sorted(deposits, key=lambda d: d["created_ts"])
-        ],
-    }
+    # Public response (Tailscale Funnel): the net number only. Deposit history,
+    # totals, and account value stay off the wire.
+    return {"pnl": float(account_value + withdrawn - deposited)}
 
 
 @app.get("/pnl")

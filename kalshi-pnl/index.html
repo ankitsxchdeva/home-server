@@ -40,16 +40,28 @@
     font-size: 0.9rem;
     display: none;
   }
+  #referral {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    color: #666;
+    font-size: 0.9rem;
+    text-decoration: underline;
+  }
+  #referral:hover { color: #000; }
 </style>
 </head>
 <body>
   <div id="label">Ankit has&hellip;</div>
   <div id="value">&hellip;</div>
   <div id="error"></div>
+  <a id="referral" target="_blank" rel="noopener"
+     href="https://kalshi.com/sign-up/?referral=f7ff57b6-5297-4bab-8482-c3f54fba833f&m=true&utm_source=mobile_app&utm_medium=copy&utm_campaign=referral&utm_content=referral_qr_sheet">
+    Sign up with my link to give me more money to burn &rarr;</a>
   <script>
-    const API = location.hostname.endsWith("ankit.casa")
+    const API = location.hostname.endsWith("ankit.casa") || location.hostname.endsWith("ts.net")
       ? "/pnl"
-      : "https://kalshi.ankit.casa/pnl";
+      : "https://raspberrypi.tail9476fb.ts.net:10000/pnl";
 
     const fmt = n => "$" + Math.abs(n).toLocaleString("en-US",
       { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -70,7 +82,7 @@
       } catch (e) {
         value.textContent = "—";
         value.className = "";
-        error.textContent = "Couldn't reach the PnL API — this page only works on Ankit's tailnet.";
+        error.textContent = "Couldn't reach the PnL API.";
         error.style.display = "block";
       }
     }
