@@ -12,7 +12,8 @@ trade API (RSA-PSS signed requests) and returns it with the deposit history:
 ```
 
 Tailnet-only at https://kalshi.ankit.casa/pnl (via Caddy). No auth — do not
-expose publicly.
+expose publicly. `GET /` serves a big-number display page (same page is on
+GitHub Pages, but it can only fetch data from inside the tailnet).
 
 ## Secrets (not in git)
 

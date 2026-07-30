@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kalshi PnL</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #label {
+    position: fixed;
+    top: 2rem;
+    left: 2rem;
+    color: #000;
+    font-size: clamp(1.1rem, 3vw, 1.8rem);
+    font-weight: 600;
+  }
+  #value {
+    font-size: clamp(4rem, 18vw, 16rem);
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.03em;
+    color: #999;
+  }
+  #value.gain { color: #0a8f3c; }
+  #value.loss { color: #d21f1f; }
+  #error {
+    position: fixed;
+    bottom: 2rem;
+    left: 0; right: 0;
+    text-align: center;
+    color: #888;
+    font-size: 0.9rem;
+    display: none;
+  }
+</style>
+</head>
+<body>
+  <div id="label">Ankit has&hellip;</div>
+  <div id="value">&hellip;</div>
+  <div id="error"></div>
+  <script>
+    const API = location.hostname.endsWith("ankit.casa")
+      ? "/pnl"
+      : "https://kalshi.ankit.casa/pnl";
+
+    const fmt = n => "$" + Math.abs(n).toLocaleString("en-US",
+      { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    async function load() {
+      const label = document.getElementById("label");
+      const value = document.getElementById("value");
+      const error = document.getElementById("error");
+      try {
+        const res = await fetch(API);
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        const pnl = data.pnl;
+        label.textContent = pnl >= 0 ? "Ankit has made" : "Ankit has lost";
+        value.textContent = fmt(pnl);
+        value.className = pnl >= 0 ? "gain" : "loss";
+        error.style.display = "none";
+      } catch (e) {
+        value.textContent = "—";
+        value.className = "";
+        error.textContent = "Couldn't reach the PnL API — this page only works on Ankit's tailnet.";
+        error.style.display = "block";
+      }
+    }
+    load();
+    setInterval(load, 60_000);
+  </script>
+</body>
+</html>

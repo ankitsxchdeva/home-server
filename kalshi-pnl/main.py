@@ -15,6 +15,8 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 load_dotenv()
 
@@ -23,6 +25,9 @@ API_KEY_ID = os.getenv("KALSHI_API_KEY_ID")
 PRIVATE_KEY_PATH = os.getenv("KALSHI_PRIVATE_KEY_PATH", "kalshi_private_key.pem")
 
 app = FastAPI(title="Kalshi PnL")
+# The GitHub Pages frontend fetches /pnl cross-origin; reachability
+# (tailnet-only) is the access boundary, not CORS.
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET"])
 
 
 def _load_private_key():
@@ -118,3 +123,8 @@ def fetch_pnl() -> dict:
 @app.get("/pnl")
 def get_pnl():
     return fetch_pnl()
+
+
+@app.get("/")
+def index():
+    return FileResponse(os.path.join(os.path.dirname(__file__), "index.html"))
