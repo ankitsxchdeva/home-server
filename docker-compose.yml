@@ -17,5 +17,6 @@ include:
   - 13ft/docker-compose.yml
   - ollama/docker-compose.yml
   - rss-reader/docker-compose.yml
+  - kalshi-pnl/docker-compose.yml
   - watchtower/docker-compose.yml
   - caddy/docker-compose.yml

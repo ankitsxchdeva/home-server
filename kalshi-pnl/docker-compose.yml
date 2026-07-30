@@ -1,0 +1,10 @@
+services:
+  kalshi-pnl:
+    build: .
+    container_name: kalshi-pnl
+    restart: unless-stopped
+    # no host port: tailnet-only via Caddy (kalshi.ankit.casa -> kalshi-pnl:8000)
+    volumes:
+      - ./kalshi_private_key.pem:/app/kalshi_private_key.pem:ro
+    env_file:
+      - .env

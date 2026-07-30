@@ -79,6 +79,13 @@
         server: pi
         container: rss-reader
 
+    - Kalshi PnL:
+        icon: mdi-chart-line
+        href: https://kalshi.ankit.casa/pnl
+        description: Lifetime Kalshi profit/loss (JSON API)
+        server: pi
+        container: kalshi-pnl
+
 - Discord Bots:
     - Commute Bot:
         icon: mdi-bus-clock
