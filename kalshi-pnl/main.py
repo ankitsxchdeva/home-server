@@ -91,6 +91,11 @@ def fetch_pnl() -> dict:
             raise HTTPException(502, f"Kalshi API error {resp.status_code}: {resp.text}")
         balance = resp.json()
 
+        # Perps (margin) wallet is separate from the event-contract portfolio.
+        path = "/trade-api/v2/margin/balance"
+        resp = client.get(path, headers=_auth_headers("GET", path))
+        perps = resp.json() if resp.status_code == 200 else {}
+
     deposited = sum(
         Decimal(d["amount_cents"]) / 100 for d in deposits if d.get("status") == "applied"
     )
@@ -99,8 +104,14 @@ def fetch_pnl() -> dict:
         for w in withdrawals
         if w.get("status") in ("applied", "completed", "finalized")
     )
-    # portfolio_value = cash + market value of open positions
-    account_value = _dollars(balance, "portfolio_value_dollars", "portfolio_value")
+    # portfolio_value is open positions only; cash balance is separate.
+    account_value = _dollars(balance, "balance_dollars", "balance") + _dollars(
+        balance, "portfolio_value_dollars", "portfolio_value"
+    )
+    account_value += Decimal(str(perps.get("settled_funds", 0))) + sum(
+        Decimal(str(s.get("account_equity", 0)))
+        for s in perps.get("subaccount_balances") or []
+    )
 
     # Public response (Tailscale Funnel): the net number only. Deposit history,
     # totals, and account value stay off the wire.
