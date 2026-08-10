@@ -5,7 +5,7 @@ Serves `POST /api/run` (LLM-compiled strategy -> backtest) and `POST /api/arb`
 (Kalshi multi-leg parlay scan).
 
 The UI is a static export on GitHub Pages at
-https://ankitsxchdeva.github.io/quantlab/ and calls this box for everything.
+https://ankitsachdeva.com/quantlab/ and calls this box for everything.
 Pages can only serve static files, so the split is: UI there, compute here.
 
 ## Reachable at

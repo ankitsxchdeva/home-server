@@ -14,7 +14,12 @@ services:
     environment:
       # CORS allowlist. The static UI is served from GitHub Pages, so its origin
       # has to be named here or the browser discards every response.
-      - ALLOWED_ORIGINS=https://ankitsxchdeva.github.io
+      #
+      # Both entries are load-bearing: the github.io user site carries the
+      # custom domain ankitsachdeva.com, so project sites are served from
+      # ankitsachdeva.com/quantlab/ and THAT is the Origin browsers send.
+      # github.io stays listed because it still resolves and redirects.
+      - ALLOWED_ORIGINS=https://ankitsachdeva.com,https://ankitsxchdeva.github.io
     # No env_file: this app holds no secrets. LLM keys are entered in the
     # browser and forwarded per-request; Kalshi market data is public.
     #

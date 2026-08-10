@@ -24,7 +24,7 @@ A complete home server setup running on Raspberry Pi with Docker containers.
 - **[13ft](./13ft/)** - Paywall bypass reader proxy (port 5001)
 - **[RSS Reader](./rss-reader/)** - RSS digest service for lede (port 8000, JSON API; served publicly via Tailscale Funnel :8443 for ankitsachdeva.com/lede)
 - **[Kalshi PnL](./kalshi-pnl/)** - Lifetime Kalshi profit/loss JSON API (host port 8001; served publicly via Tailscale Funnel :10000 for ankitsachdeva.com/kalshi — response is the net number only; secrets scp'd by hand, see its README)
-- **[Quantlab](./quantlab/)** - Backtest + Kalshi arbitrage API (host port 8002; served publicly via Tailscale Funnel :10000 under the `/quantlab` path for ankitsxchdeva.github.io/quantlab — shares the funnel port with kalshi-pnl, see its README)
+- **[Quantlab](./quantlab/)** - Backtest + Kalshi arbitrage API (host port 8002; served publicly via Tailscale Funnel :10000 under the `/quantlab` path for ankitsachdeva.com/quantlab — shares the funnel port with kalshi-pnl, see its README)
 - **[Ollama](./ollama/)** - Shared local LLM (internal `http://ollama:11434`, no exposed port); rss-reader uses it to summarize items and write a daily themes overview
 
 ### Discord Bots
