@@ -24,6 +24,7 @@ A complete home server setup running on Raspberry Pi with Docker containers.
 - **[13ft](./13ft/)** - Paywall bypass reader proxy (port 5001)
 - **[RSS Reader](./rss-reader/)** - RSS digest service for lede (port 8000, JSON API; served publicly via Tailscale Funnel :8443 for ankitsachdeva.com/lede)
 - **[Kalshi PnL](./kalshi-pnl/)** - Lifetime Kalshi profit/loss JSON API (host port 8001; served publicly via Tailscale Funnel :10000 for ankitsachdeva.com/kalshi — response is the net number only; secrets scp'd by hand, see its README)
+- **[Quantlab](./quantlab/)** - Backtest + Kalshi arbitrage API (host port 8002; served publicly via Tailscale Funnel :10000 under the `/quantlab` path for ankitsxchdeva.github.io/quantlab — shares the funnel port with kalshi-pnl, see its README)
 - **[Ollama](./ollama/)** - Shared local LLM (internal `http://ollama:11434`, no exposed port); rss-reader uses it to summarize items and write a daily themes overview
 
 ### Discord Bots
@@ -45,6 +46,16 @@ The Pi is on the tailnet (`raspberrypi`, MagicDNS enabled) and is configured as:
 - **Exit node** (optional full-tunnel routing)
 
 Subnet routes / exit node must be approved in the Tailscale admin console after (re)advertising. Tailscale Funnels publicly serve the rss-reader on https://raspberrypi.tail9476fb.ts.net:8443 (feeds ankitsachdeva.com/lede, github.com/ankitsxchdeva/lede) and kalshi-pnl on https://raspberrypi.tail9476fb.ts.net:10000 (feeds ankitsachdeva.com/kalshi, github.com/ankitsxchdeva/kalshi) — do not remove either. Port 443 belongs to Caddy.
+
+Funnel supports only ports 443, 8443 and 10000. 8443 and 10000 are the two funnels above; 443 cannot be funneled at all because Caddy already binds `0.0.0.0:443`, which covers the tailnet address tailscaled would need. So there are no free funnel ports, and anything else needing public exposure must **path-mount onto an existing one**:
+
+```bash
+sudo tailscale funnel --bg --https=10000 --set-path=/quantlab http://127.0.0.1:8002
+```
+
+[quantlab](./quantlab/) does this, sharing :10000 with kalshi-pnl (`/` stays kalshi-pnl, `/quantlab` is the new mount). The mount **strips its prefix** before proxying, so the backend sees `/api/run`, not `/quantlab/api/run`.
+
+Funnel mounts are host state, not Docker state — like the printer watchdog, they survive `docker compose down` but must be re-created on a rebuild. See [RESTORE.md](./RESTORE.md).
 
 `ankit.casa` and `*.ankit.casa` resolve (unproxied Cloudflare DNS) to the Pi's Tailscale IP, so every URL below works from any tailnet device anywhere, with a real Let's Encrypt certificate, and is unreachable from the public internet.
 
@@ -108,7 +119,8 @@ All served HTTPS by Caddy (http redirects to https):
 - **13ft Reader**: https://13ft.ankit.casa
 - **RSS Reader**: https://rss.ankit.casa/docs (JSON API; Swagger UI)
 - **Kalshi PnL**: https://kalshi.ankit.casa/pnl (JSON API; host port 8001, also public via Funnel :10000)
+- **Quantlab**: https://quantlab.ankit.casa (full UI + API; host port 8002. Also public at https://raspberrypi.tail9476fb.ts.net:10000/quantlab via Funnel)
 - **Dozzle**: https://logs.ankit.casa
 - **Ollama**: https://ollama.ankit.casa (OpenAI-compatible LLM API at `/v1`; no web UI — for API clients on the tailnet. No exposed host port.)
 
-Direct `http://<pi>:<port>` access still works on the LAN/tailnet (3000, 8123, 3001, 61208, 20211, 631, 5001, 8000, 8001, 8080). Ollama is the exception: no host port, reachable only in-cluster (`http://ollama:11434`) or via `ollama.ankit.casa`.
+Direct `http://<pi>:<port>` access still works on the LAN/tailnet (3000, 8123, 3001, 61208, 20211, 631, 5001, 8000, 8001, 8002, 8080). Ollama is the exception: no host port, reachable only in-cluster (`http://ollama:11434`) or via `ollama.ankit.casa`.

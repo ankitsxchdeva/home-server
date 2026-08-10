@@ -1,0 +1,24 @@
+services:
+  quantlab:
+    # Built straight from the app repo so the source lives in exactly one place.
+    # Note this pins to main: a push to quantlab does NOT redeploy on its own,
+    # because the GitOps cron only rebuilds when THIS repo changes. To pick up
+    # an app change: `docker compose up -d --build quantlab`.
+    build:
+      context: https://github.com/ankitsxchdeva/quantlab.git#main
+    container_name: quantlab
+    restart: unless-stopped
+    cpus: "2.0"        # backtests are CPU-bound; cap so a big run can't stall the Pi
+    ports:
+      - "8002:3000"    # host 8002 -> Next on 3000 (3000 belongs to homepage)
+    environment:
+      # CORS allowlist. The static UI is served from GitHub Pages, so its origin
+      # has to be named here or the browser discards every response.
+      - ALLOWED_ORIGINS=https://ankitsxchdeva.github.io
+    # No env_file: this app holds no secrets. LLM keys are entered in the
+    # browser and forwarded per-request; Kalshi market data is public.
+    #
+    # Public exposure is NOT a container. It is a Tailscale Funnel path mounted
+    # on the host, which survives independently of this compose file:
+    #   tailscale funnel --bg --set-path /quantlab http://127.0.0.1:8002
+    # See README.md — it is host state, so a rebuild must re-run it.

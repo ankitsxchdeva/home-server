@@ -51,6 +51,13 @@ ankit.casa, *.ankit.casa {
 		reverse_proxy kalshi-pnl:8000
 	}
 
+	# Tailnet-only name for the same container the Cloudflare tunnel publishes
+	# at quantlab-api.ankit.casa. This one serves the bundled UI as well.
+	@quantlab host quantlab.ankit.casa
+	handle @quantlab {
+		reverse_proxy quantlab:3000
+	}
+
 	@dozzle host logs.ankit.casa
 	handle @dozzle {
 		reverse_proxy dozzle:8080
