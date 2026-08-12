@@ -1,0 +1,13 @@
+[Unit]
+Description=Run the matter-server watchdog every 5 minutes
+Requires=matter-watchdog.service
+
+[Timer]
+# OnBootSec is generous: matter-server needs ~20s to subscribe to its nodes,
+# and the container healthcheck has a 90s start_period. Don't probe into that.
+OnBootSec=5min
+OnUnitActiveSec=5min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

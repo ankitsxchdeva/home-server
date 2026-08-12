@@ -1,0 +1,14 @@
+[Unit]
+Description=matter-server watchdog + uptime-kuma heartbeat
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/ankit/home-server
+ExecStart=/home/ankit/home-server/scripts/matter-watchdog.sh
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

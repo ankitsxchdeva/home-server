@@ -8,7 +8,18 @@ services:
     volumes:
       - ./data:/data
       - /run/dbus:/run/dbus:ro
+      - ./healthcheck.py:/healthcheck.py:ro
     network_mode: host
+    healthcheck:
+      # Node availability, NOT liveness: /info and the container's "Up" state
+      # both stay green while every Matter node is dead. See healthcheck.py.
+      # Reporting only — nothing auto-restarts on this; scripts/matter-watchdog.sh
+      # owns remediation because it can gate on LAN state and rate-limit.
+      test: ["CMD", "python3", "/healthcheck.py"]
+      interval: 2m
+      timeout: 20s
+      start_period: 90s
+      retries: 3
     environment:
       - MATTER_SERVER__INSTANCE_PATH=/data
       - MATTER_SERVER__PORT=5580

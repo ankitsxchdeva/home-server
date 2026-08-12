@@ -94,3 +94,8 @@ home-assistant/config/blueprints/
 # printer-watchdog: local-only push token + runtime log
 scripts/printer-watchdog.env
 scripts/printer-watchdog.log
+
+# matter-watchdog: local-only push token + runtime log/state
+scripts/matter-watchdog.env
+scripts/matter-watchdog.log
+scripts/matter-watchdog.state
