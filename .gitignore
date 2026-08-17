@@ -99,3 +99,6 @@ scripts/printer-watchdog.log
 scripts/matter-watchdog.env
 scripts/matter-watchdog.log
 scripts/matter-watchdog.state
+
+# Playwright MCP browser-tool session artifacts
+.playwright-mcp/
