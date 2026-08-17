@@ -15,10 +15,6 @@ print("Environment variables loaded", flush=True)
 
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 
-# Check for required environment variables
-if not DISCORD_TOKEN:
-    raise ValueError("DISCORD_TOKEN environment variable is required. Please check your .env file.")
-
 # VRR Parking configuration
 VRR_URL = "https://app.vrrparking.com/visitors"
 APARTMENT_NAME = os.getenv("APARTMENT_NAME", "Bishop Momo")
@@ -171,18 +167,22 @@ async def register_visitor_parking(
                 else:
                     raise VRRError(f"Apartment requires access code but ACCESS_CODE is not set in .env")
             
-            # Click the Next/Continue button
-            try:
-                next_button = page.locator('button:has-text("Next"), button:has-text("Continue"), button[type="submit"]').first
-                if await next_button.count() > 0:
-                    await next_button.click()
-                    print("Clicked Next button", flush=True)
-                else:
-                    raise VRRError("Could not find Next button on apartment selection page")
-            except VRRError:
-                raise
-            except Exception as e:
-                raise VRRError(f"Failed to proceed to form page") from e
+            # Click Next/Continue unless the form is already open (some
+            # properties, e.g. Matador, go straight from selection to the form)
+            if await page.locator('input[placeholder="e.g. XXXX"]').count() == 0:
+                try:
+                    next_button = page.locator('button:has-text("Next"), button:has-text("Continue"), button[type="submit"]').first
+                    if await next_button.count() > 0:
+                        await next_button.click()
+                        print("Clicked Next button", flush=True)
+                    else:
+                        raise VRRError("Could not find Next button on apartment selection page")
+                except VRRError:
+                    raise
+                except Exception as e:
+                    raise VRRError(f"Failed to proceed to form page") from e
+            else:
+                print("Form opened directly after apartment selection - no Next step", flush=True)
             
             await page.wait_for_timeout(2000)
             await page.wait_for_load_state("networkidle")
@@ -312,84 +312,110 @@ async def register_visitor_parking(
             except:
                 pass  # Screenshot failure is not critical
             
-            # ==================== PROCEED TO AGREEMENT PAGE ====================
-            try:
-                print("Proceeding to agreement page...", flush=True)
-                next_button = page.locator('button:has-text("Next"), button:has-text("Submit"), button:has-text("Continue"), button[type="submit"]').first
-                if await next_button.count() == 0:
-                    raise VRRError("Could not find button to proceed to agreement page")
-                await next_button.click()
-                print("Clicked to proceed to agreement page", flush=True)
-            except VRRError:
-                raise
-            except Exception as e:
-                raise VRRError(f"Failed to proceed to agreement page") from e
-            
-            await page.wait_for_timeout(2000)
-            await page.wait_for_load_state("networkidle")
-            
-            # ==================== AGREEMENT PAGE ====================
-            print("Checking agreement page...", flush=True)
-            
-            try:
-                await page.screenshot(path="/app/agreement_page.png")
-            except:
-                pass
-            
-            # Verify total is $0.00
-            try:
-                total_element = page.locator('text="Total amount" >> .. >> span').last
-                total_text = None
-                
-                if await total_element.count() > 0:
-                    total_text = await total_element.text_content()
-                else:
-                    total_section = page.locator('.font-bold:has-text("Total amount")')
-                    if await total_section.count() > 0:
-                        total_span = total_section.locator('span').last
-                        if await total_span.count() > 0:
-                            total_text = await total_span.text_content()
-                
-                if total_text:
-                    print(f"Total amount: {total_text}", flush=True)
-                    if "$0.00" not in total_text:
-                        raise VRRError(f"Total amount is {total_text} - expected $0.00. Registration aborted for safety.")
-                    print("✓ Total is $0.00 - safe to proceed", flush=True)
-                else:
-                    # If the page markup changed and the total can't be read,
-                    # never submit blind — that's the whole point of this check.
-                    raise VRRError("Could not find total amount element - cannot confirm $0.00. Registration aborted for safety.")
-            except VRRError:
-                raise
-            except Exception as e:
-                raise VRRError(f"Failed to verify total amount") from e
-            
-            # Click the agreement checkbox
-            try:
-                print("Clicking agreement checkbox...", flush=True)
-                checkbox = page.locator('input[type="checkbox"]').first
-                if await checkbox.count() == 0:
-                    raise VRRError("Agreement checkbox not found")
-                await checkbox.click()
-                print("✓ Checkbox clicked", flush=True)
-                await page.wait_for_timeout(300)
-            except VRRError:
-                raise
-            except Exception as e:
-                raise VRRError(f"Failed to click agreement checkbox") from e
-            
-            # ==================== FINAL SUBMIT ====================
-            try:
-                print("Looking for final Submit button...", flush=True)
-                submit_button = page.locator('button:has-text("Submit"):not([disabled])').first
-                if await submit_button.count() == 0:
-                    raise VRRError("Submit button not found or still disabled - form may be incomplete")
-                await submit_button.click()
-                print("✓ Form submitted!", flush=True)
-            except VRRError:
-                raise
-            except Exception as e:
-                raise VRRError(f"Failed to submit form") from e
+            # ==================== SUBMIT ====================
+            # Two variants: a separate agreement page (Next/Continue -> verify
+            # $0.00 total -> checkbox -> Submit) or direct submit from the form
+            # page ("Submit request", terms inline, e.g. Matador).
+            agreement_next = page.locator('button:has-text("Next"), button:has-text("Continue")').first
+
+            if await agreement_next.count() > 0:
+                # ---- Variant 1: separate agreement page ----
+                try:
+                    print("Proceeding to agreement page...", flush=True)
+                    await agreement_next.click()
+                    print("Clicked to proceed to agreement page", flush=True)
+                except Exception as e:
+                    raise VRRError(f"Failed to proceed to agreement page") from e
+
+                await page.wait_for_timeout(2000)
+                await page.wait_for_load_state("networkidle")
+
+                # ==================== AGREEMENT PAGE ====================
+                print("Checking agreement page...", flush=True)
+
+                try:
+                    await page.screenshot(path="/app/agreement_page.png")
+                except:
+                    pass
+
+                # Verify total is $0.00
+                try:
+                    total_element = page.locator('text="Total amount" >> .. >> span').last
+                    total_text = None
+
+                    if await total_element.count() > 0:
+                        total_text = await total_element.text_content()
+                    else:
+                        total_section = page.locator('.font-bold:has-text("Total amount")')
+                        if await total_section.count() > 0:
+                            total_span = total_section.locator('span').last
+                            if await total_span.count() > 0:
+                                total_text = await total_span.text_content()
+
+                    if total_text:
+                        print(f"Total amount: {total_text}", flush=True)
+                        if "$0.00" not in total_text:
+                            raise VRRError(f"Total amount is {total_text} - expected $0.00. Registration aborted for safety.")
+                        print("✓ Total is $0.00 - safe to proceed", flush=True)
+                    else:
+                        # If the page markup changed and the total can't be read,
+                        # never submit blind — that's the whole point of this check.
+                        raise VRRError("Could not find total amount element - cannot confirm $0.00. Registration aborted for safety.")
+                except VRRError:
+                    raise
+                except Exception as e:
+                    raise VRRError(f"Failed to verify total amount") from e
+
+                # Click the agreement checkbox
+                try:
+                    print("Clicking agreement checkbox...", flush=True)
+                    checkbox = page.locator('input[type="checkbox"]').first
+                    if await checkbox.count() == 0:
+                        raise VRRError("Agreement checkbox not found")
+                    await checkbox.click()
+                    print("✓ Checkbox clicked", flush=True)
+                    await page.wait_for_timeout(300)
+                except VRRError:
+                    raise
+                except Exception as e:
+                    raise VRRError(f"Failed to click agreement checkbox") from e
+
+                # ==================== FINAL SUBMIT ====================
+                try:
+                    print("Looking for final Submit button...", flush=True)
+                    submit_button = page.locator('button:has-text("Submit"):not([disabled])').first
+                    if await submit_button.count() == 0:
+                        raise VRRError("Submit button not found or still disabled - form may be incomplete")
+                    await submit_button.click()
+                    print("✓ Form submitted!", flush=True)
+                except VRRError:
+                    raise
+                except Exception as e:
+                    raise VRRError(f"Failed to submit form") from e
+            else:
+                # ---- Variant 2: direct submit from the form page ----
+                # Safety: this variant has no total element to verify, so scan the
+                # whole page for any non-zero dollar amount and abort if found.
+                print("No agreement page - direct submit flow", flush=True)
+                body_text = await page.inner_text("body")
+                amounts = re.findall(r"\$[\d,]+(?:\.\d+)?", body_text)
+                nonzero = [a for a in amounts if a.replace(",", "") not in ("$0", "$0.0", "$0.00")]
+                if nonzero:
+                    raise VRRError(f"Page shows a charge of {nonzero[0]} - registration aborted for safety.")
+                print("No charges displayed on page - safe to submit", flush=True)
+
+                try:
+                    submit_button = page.locator('button:has-text("Submit request")').first
+                    if await submit_button.count() == 0:
+                        raise VRRError("Submit request button not found")
+                    if await submit_button.is_disabled():
+                        raise VRRError("Submit request button still disabled - form may be incomplete")
+                    await submit_button.click()
+                    print("✓ Form submitted!", flush=True)
+                except VRRError:
+                    raise
+                except Exception as e:
+                    raise VRRError(f"Failed to submit form") from e
             
             await page.wait_for_timeout(3000)
             
@@ -548,5 +574,8 @@ async def quickpark(interaction: discord.Interaction):
 
 print("Commands defined, registering with tree...", flush=True)
 
-print("Starting Discord client...", flush=True)
-client.run(DISCORD_TOKEN)
+if __name__ == "__main__":
+    if not DISCORD_TOKEN:
+        raise ValueError("DISCORD_TOKEN environment variable is required. Please check your .env file.")
+    print("Starting Discord client...", flush=True)
+    client.run(DISCORD_TOKEN)
