@@ -102,3 +102,7 @@ scripts/matter-watchdog.state
 
 # Playwright MCP browser-tool session artifacts
 .playwright-mcp/
+
+# autovrr local test screenshots (contain form PII)
+autovrr/test-shots/
+autovrr/test-*.png
