@@ -27,7 +27,7 @@
   alias: Sunrise Alarm Clock
   description: Turn lights on at 6:45 AM at full brightness (warm sunrise tone)
   triggers:
-  - at: 06:45:00
+  - at: 06:15:00
     trigger: time
     weekday:
     - sun
@@ -65,7 +65,7 @@
   alias: Bedroom Lights Off
   description: Turn off the bedroom lights at 7:30 AM
   triggers:
-  - at: '07:30:00'
+  - at: 07:30:00
     trigger: time
   conditions: []
   actions:
@@ -75,3 +75,45 @@
       - light.h600b
       - light.h600b_2
   mode: single
+- id: rodret_living_room_cycle
+  alias: 'RODRET: cycle living room lights'
+  description: Top button cycles Living Room lights off -> 30% -> 60% -> 100% -> off; bottom button turns them off.
+  mode: single
+  triggers:
+  - trigger: event
+    event_type: zha_event
+    event_data:
+      device_ieee: ec:f6:4c:ff:fe:1e:02:61
+      command: 'on'
+    id: cycle
+  - trigger: event
+    event_type: zha_event
+    event_data:
+      device_ieee: ec:f6:4c:ff:fe:1e:02:61
+      command: 'off'
+    id: 'off'
+  actions:
+  - choose:
+    - conditions: '{{ trigger.id == ''off'' }}'
+      sequence:
+      - action: light.turn_off
+        target:
+          area_id: living_room
+    default:
+    - variables:
+        next_pct: >-
+          {% set lights = area_entities('living_room') | select('match', '^light\.') | list %}
+          {% set brightest = lights | map('state_attr', 'brightness') | select('number') | max(default=0) %}
+          {% if brightest == 0 %}30{% elif brightest <= 115 %}60{% elif brightest <= 204 %}100{% else %}0{% endif %}
+    - choose:
+      - conditions: '{{ next_pct | int == 0 }}'
+        sequence:
+        - action: light.turn_off
+          target:
+            area_id: living_room
+      default:
+      - action: light.turn_on
+        target:
+          area_id: living_room
+        data:
+          brightness_pct: '{{ next_pct | int }}'
