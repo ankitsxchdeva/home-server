@@ -333,12 +333,12 @@ form.addEventListener("submit", async (e) => {
   };
 
   try {
-    const res = await fetch("/register", {
+    const res = await fetch("register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
-    if (res.status === 401) { window.location.href = "/login"; return; }
+    if (res.status === 401) { window.location.href = "login"; return; }
     const data = await res.json().catch(() => ({}));
     if (res.ok && data.success) {
       result.className = "show ok";

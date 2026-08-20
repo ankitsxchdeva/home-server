@@ -69,7 +69,7 @@ def require_auth(request: Request):
     if not _valid_session(request):
         if request.url.path == "/register":
             raise HTTPException(status_code=401, detail="Session expired. Reload the page.")
-        raise HTTPException(status_code=303, headers={"Location": "/login"}, detail="login")
+        raise HTTPException(status_code=303, headers={"Location": "login"}, detail="login")
 
 
 @app.exception_handler(303)
@@ -94,7 +94,7 @@ async def healthz():
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request, error: str = ""):
     if _valid_session(request):
-        return RedirectResponse("/", status_code=303)
+        return RedirectResponse(".", status_code=303)
     html = (_STATIC / "login.html").read_text()
     return HTMLResponse(html.replace("{{ERROR}}", "show" if error else ""))
 
@@ -111,19 +111,19 @@ async def login_submit(request: Request):
     form = await request.form()
     password = str(form.get("password", ""))
     if PARK_PASSWORD and hmac.compare_digest(password, PARK_PASSWORD):
-        response = RedirectResponse("/", status_code=303)
+        response = RedirectResponse(".", status_code=303)
         response.set_cookie(
             SESSION_COOKIE, _session_token(),
             max_age=SESSION_MAX_AGE, httponly=True, secure=True, samesite="lax",
         )
         return response
     await asyncio.sleep(1)  # slow down online guessing
-    return RedirectResponse("/login?error=1", status_code=303)
+    return RedirectResponse("login?error=1", status_code=303)
 
 
 @app.get("/logout")
 async def logout():
-    response = RedirectResponse("/login", status_code=303)
+    response = RedirectResponse("login", status_code=303)
     response.delete_cookie(SESSION_COOKIE)
     return response
 
