@@ -10,6 +10,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN playwright install --with-deps chromium
 
 COPY bot.py .
+COPY vrr.py .
 
 CMD ["python", "-u", "bot.py"]
 

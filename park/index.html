@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Guest Parking</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🅿️</text></svg>">
+<style>
+  :root {
+    --bg: oklch(0.972 0.005 100);
+    --surface: oklch(0.995 0.002 100);
+    --ink: oklch(0.27 0.02 165);
+    --muted: oklch(0.52 0.015 165);
+    --border: oklch(0.885 0.012 165);
+    --accent: oklch(0.46 0.09 165);
+    --accent-ink: oklch(0.985 0.005 165);
+    --accent-soft: oklch(0.94 0.03 165);
+    --error: oklch(0.5 0.15 25);
+    --error-soft: oklch(0.94 0.03 25);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.45;
+    min-height: 100dvh;
+    display: grid;
+    place-items: center;
+    padding: 24px 16px 48px;
+  }
+  main { width: 100%; max-width: 400px; }
+
+  header { margin-bottom: 28px; }
+  h1 { font-size: 1.65rem; font-weight: 700; letter-spacing: -0.02em; }
+  header p { color: var(--muted); font-size: 0.95rem; margin-top: 6px; }
+
+  form { display: grid; gap: 18px; }
+  .field { display: grid; gap: 6px; }
+  label { font-size: 0.85rem; font-weight: 600; }
+  label .opt { color: var(--muted); font-weight: 500; }
+  input {
+    width: 100%;
+    font: inherit;
+    font-size: 1rem; /* 16px: no iOS zoom-on-focus */
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    transition: border-color 0.15s ease-out, box-shadow 0.15s ease-out;
+  }
+  input::placeholder { color: var(--muted); opacity: 0.75; }
+  input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  #plate { text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+
+  fieldset {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    display: grid;
+    gap: 14px;
+    background: color-mix(in oklch, var(--surface) 55%, var(--bg));
+  }
+  legend {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--muted);
+    padding: 0 6px;
+  }
+
+  button[type="submit"] {
+    font: inherit;
+    font-size: 1.02rem;
+    font-weight: 650;
+    color: var(--accent-ink);
+    background: var(--accent);
+    border: none;
+    border-radius: 10px;
+    padding: 14px;
+    cursor: pointer;
+    transition: filter 0.15s ease-out, transform 0.1s ease-out;
+  }
+  button[type="submit"]:hover { filter: brightness(1.07); }
+  button[type="submit"]:active { transform: scale(0.985); }
+  button[type="submit"]:disabled { opacity: 0.55; cursor: wait; }
+
+  #result {
+    display: none;
+    border-radius: 12px;
+    padding: 16px;
+    font-size: 0.95rem;
+    margin-top: 22px;
+  }
+  #result.show { display: block; }
+  #result.ok { background: var(--accent-soft); }
+  #result.err { background: var(--error-soft); }
+  #result strong { display: block; margin-bottom: 4px; font-size: 1rem; }
+  #result .detail { color: var(--ink); opacity: 0.85; }
+
+  #overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: color-mix(in oklch, var(--bg) 82%, transparent);
+    place-items: center;
+    z-index: 10;
+  }
+  #overlay.show { display: grid; }
+  .spinner-box { text-align: center; }
+  .spinner {
+    width: 44px; height: 44px;
+    margin: 0 auto 16px;
+    border-radius: 50%;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner-box p { font-weight: 600; }
+  .spinner-box small { color: var(--muted); display: block; margin-top: 4px; }
+
+  footer { margin-top: 28px; color: var(--muted); font-size: 0.8rem; text-align: center; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Guest parking</h1>
+    <p>Register your car for visitor parking. Takes about 30 seconds.</p>
+  </header>
+
+  <form id="park-form" autocomplete="on">
+    <div class="field">
+      <label for="plate">License plate</label>
+      <input id="plate" name="plate" required maxlength="10"
+             placeholder="ABC1234" autocapitalize="characters" spellcheck="false">
+    </div>
+
+    <div class="field">
+      <label for="make">Vehicle make</label>
+      <input id="make" name="make" list="makes" required maxlength="40" placeholder="Honda">
+      <datalist id="makes"></datalist>
+    </div>
+
+    <div class="field">
+      <label for="model">Vehicle model</label>
+      <input id="model" name="model" list="models" required maxlength="40" placeholder="CR-V">
+      <datalist id="models"></datalist>
+    </div>
+
+    <fieldset>
+      <legend>About you — optional</legend>
+      <div class="field">
+        <label for="vname">Name</label>
+        <input id="vname" name="vname" maxlength="80" placeholder="{{GUEST_NAME}}">
+      </div>
+      <div class="field">
+        <label for="vphone">Phone</label>
+        <input id="vphone" name="vphone" type="tel" maxlength="20" placeholder="{{GUEST_PHONE}}">
+      </div>
+      <div class="field">
+        <label for="vemail">Email</label>
+        <input id="vemail" name="vemail" type="email" maxlength="80" placeholder="{{GUEST_EMAIL}}">
+      </div>
+    </fieldset>
+
+    <button type="submit" id="submit">Register parking</button>
+  </form>
+
+  <div id="result" role="status"></div>
+
+  <footer>Passes are valid 24 hours.</footer>
+</main>
+
+<div id="overlay">
+  <div class="spinner-box">
+    <div class="spinner"></div>
+    <p>Registering with VRR Parking</p>
+    <small>Usually 20&ndash;40 seconds. Don&rsquo;t close this page.</small>
+  </div>
+</div>
+
+<script>
+const MAKES = ["Acura","Audi","BMW","Buick","Cadillac","Chevrolet","Chrysler","Dodge","Ford","Genesis","GMC","Honda","Hyundai","Infiniti","Jeep","Kia","Lexus","Lincoln","Mazda","Mercedes-Benz","Mini","Mitsubishi","Nissan","Polestar","Porsche","Ram","Rivian","Subaru","Tesla","Toyota","Volkswagen","Volvo"];
+const MODELS = {
+  Honda: ["Accord","Civic","CR-V","HR-V","Pilot","Odyssey","Ridgeline","Passport"],
+  Toyota: ["Camry","Corolla","RAV4","Highlander","Tacoma","Tundra","Prius","4Runner","Sienna"],
+  Tesla: ["Model 3","Model Y","Model S","Model X","Cybertruck"],
+  Ford: ["F-150","Escape","Explorer","Mustang","Edge","Bronco","Maverick","Fusion"],
+  Chevrolet: ["Silverado","Equinox","Malibu","Tahoe","Traverse","Bolt","Colorado"],
+  Nissan: ["Altima","Sentra","Rogue","Pathfinder","Frontier","Versa","Kicks"],
+  BMW: ["3 Series","5 Series","X1","X3","X5","4 Series","i4"],
+  "Mercedes-Benz": ["C-Class","E-Class","GLC","GLE","A-Class","GLA"],
+  Hyundai: ["Elantra","Sonata","Tucson","Santa Fe","Kona","Palisade","Ioniq 5"],
+  Kia: ["Forte","K5","Sportage","Sorento","Telluride","Soul","EV6"],
+  Subaru: ["Outback","Forester","Crosstrek","Impreza","Legacy","Ascent"],
+  Mazda: ["Mazda3","Mazda6","CX-5","CX-30","CX-50","CX-9"],
+  Jeep: ["Wrangler","Grand Cherokee","Cherokee","Compass","Gladiator"],
+  Audi: ["A3","A4","A6","Q3","Q5","Q7"],
+  Lexus: ["ES","IS","RX","NX","GX"],
+  Volkswagen: ["Jetta","Golf","Tiguan","Atlas","Passat","ID.4"]
+};
+
+const makesList = document.getElementById("makes");
+MAKES.forEach(m => {
+  const o = document.createElement("option");
+  o.value = m;
+  makesList.appendChild(o);
+});
+
+const makeInput = document.getElementById("make");
+const modelsList = document.getElementById("models");
+function refreshModels() {
+  modelsList.replaceChildren();
+  const norm = makeInput.value.trim().toLowerCase();
+  const key = Object.keys(MODELS).find(k => k.toLowerCase() === norm);
+  (key ? MODELS[key] : []).forEach(m => {
+    const o = document.createElement("option");
+    o.value = m;
+    modelsList.appendChild(o);
+  });
+}
+makeInput.addEventListener("input", refreshModels);
+makeInput.addEventListener("change", refreshModels);
+
+const form = document.getElementById("park-form");
+const overlay = document.getElementById("overlay");
+const result = document.getElementById("result");
+const submitBtn = document.getElementById("submit");
+
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  result.className = "";
+  overlay.classList.add("show");
+  submitBtn.disabled = true;
+
+  const payload = {
+    license_plate: document.getElementById("plate").value,
+    vehicle_make: makeInput.value,
+    vehicle_model: document.getElementById("model").value,
+    visitor_name: document.getElementById("vname").value,
+    visitor_phone: document.getElementById("vphone").value,
+    visitor_email: document.getElementById("vemail").value
+  };
+
+  try {
+    const res = await fetch("/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.success) {
+      result.className = "show ok";
+      result.innerHTML = "<strong>You&rsquo;re registered.</strong><span class='detail'>" +
+        payload.license_plate.toUpperCase() + " is approved for 24 hours. You can park in any guest space.</span>";
+      form.reset();
+    } else {
+      result.className = "show err";
+      result.innerHTML = "<strong>Something didn&rsquo;t work.</strong><span class='detail'>" +
+        (data.message || data.detail || "Please try again, or text the host.") + "</span>";
+    }
+  } catch (err) {
+    result.className = "show err";
+    result.innerHTML = "<strong>Network error.</strong><span class='detail'>Check your connection and try again.</span>";
+  } finally {
+    overlay.classList.remove("show");
+    submitBtn.disabled = false;
+    result.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+});
+</script>
+</body>
+</html>

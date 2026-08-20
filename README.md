@@ -24,6 +24,7 @@ A complete home server setup running on Raspberry Pi with Docker containers.
 - **[13ft](./13ft/)** - Paywall bypass reader proxy (port 5001)
 - **[RSS Reader](./rss-reader/)** - RSS digest service for lede (port 8000, JSON API; served publicly via Tailscale Funnel :8443 for ankitsachdeva.com/lede)
 - **[Kalshi PnL](./kalshi-pnl/)** - Lifetime Kalshi profit/loss JSON API (host port 8001; served publicly via Tailscale Funnel :10000 for ankitsachdeva.com/kalshi — response is the net number only; secrets scp'd by hand, see its README)
+- **[Park](./park/)** - Guest parking registration page for the autovrr VRR flow (host port 8003, Basic auth; tailnet at park.ankit.casa, public via a Funnel :10000 path-mount — the path is intentionally unguessable and stored only on the Pi, see `park/.env` there)
 - **[Quantlab](./quantlab/)** - Backtest + Kalshi arbitrage API (host port 8002; served publicly via Tailscale Funnel :10000 under the `/quantlab` path for ankitsachdeva.com/quantlab — shares the funnel port with kalshi-pnl, see its README)
 - **[Ollama](./ollama/)** - Shared local LLM (internal `http://ollama:11434`, no exposed port); rss-reader uses it to summarize items and write a daily themes overview
 
@@ -119,6 +120,7 @@ All served HTTPS by Caddy (http redirects to https):
 - **CUPS Print Server**: https://cups.ankit.casa
 - **13ft Reader**: https://13ft.ankit.casa
 - **RSS Reader**: https://rss.ankit.casa/docs (JSON API; Swagger UI)
+- **Guest Parking**: https://park.ankit.casa (Basic auth; also public via a Funnel :10000 path-mount — unguessable path, stored only on the Pi)
 - **Kalshi PnL**: https://kalshi.ankit.casa/pnl (JSON API; host port 8001, also public via Funnel :10000)
 - **Quantlab**: https://quantlab.ankit.casa (full UI + API; host port 8002. Also public at https://raspberrypi.tail9476fb.ts.net:10000/quantlab via Funnel)
 - **Dozzle**: https://logs.ankit.casa

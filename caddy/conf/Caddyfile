@@ -70,6 +70,11 @@ ankit.casa, *.ankit.casa {
 		reverse_proxy ollama:11434
 	}
 
+	@park host park.ankit.casa
+	handle @park {
+		reverse_proxy park:8003
+	}
+
 	# default: the dashboard
 	handle {
 		reverse_proxy homepage:3000

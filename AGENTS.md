@@ -13,7 +13,7 @@ Human-facing docs: [README.md](./README.md) (services, URLs, automation), [RESTO
 
 Changes to these are invisible to GitOps and must be re-applied on rebuild (RESTORE.md):
 
-1. **Tailscale Funnel mounts** — `:8443` → rss-reader (lede), `:10000` → kalshi-pnl at `/` + quantlab at `/quantlab` (prefix stripped). Never remove either.
+1. **Tailscale Funnel mounts** — `:8443` → rss-reader (lede), `:10000` → kalshi-pnl at `/` + quantlab at `/quantlab` + the park page at an unguessable path (all prefixes stripped). Never remove any of them.
 2. **systemd watchdogs** — printer-watchdog and matter-watchdog (`scripts/*watchdog.*`, install instructions in the matching `.md`).
 3. **Crontab** and **`/etc/docker/daemon.json`** — versioned snapshots live in `scripts/`; after changing the live ones, re-export into `scripts/`.
 4. **Secrets/state** — restored only from `scripts/backup.sh` tarballs.

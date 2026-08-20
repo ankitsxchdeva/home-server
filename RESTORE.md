@@ -42,6 +42,9 @@ the SD card.
 curl -fsSL https://tailscale.com/install.sh | sh
 sudo tailscale up --advertise-routes=192.168.1.0/24 --advertise-exit-node
 sudo tailscale funnel --bg --https=8443 http://127.0.0.1:8000   # rss-reader → lede
+# kalshi-pnl (/) and quantlab (/quantlab) mounts on :10000 — see README.md.
+# The park page's :10000 path-mount uses an intentionally unguessable path;
+# the exact command lives in park/.env on the Pi (restored by backup tarball).
 ```
 
 Then in the [admin console](https://login.tailscale.com/admin/machines):

@@ -1,0 +1,11 @@
+services:
+  park:
+    container_name: park
+    build:
+      context: ..
+      dockerfile: park/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "8003:8003"
