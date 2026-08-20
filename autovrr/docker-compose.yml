@@ -5,4 +5,7 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-
+    ports:
+      # Guest parking web page (web.py) — tailnet via park.ankit.casa,
+      # public via the Tailscale Funnel :10000 path-mount (path in .env)
+      - "8003:8003"

@@ -9,8 +9,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # packages itself, so no manual apt-get list is needed (works on AMD64 and ARM64).
 RUN playwright install --with-deps chromium
 
-COPY bot.py .
 COPY vrr.py .
+COPY bot.py .
+COPY web.py .
+COPY index.html .
+COPY launcher.py .
 
-CMD ["python", "-u", "bot.py"]
-
+CMD ["python", "-u", "launcher.py"]

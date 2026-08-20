@@ -72,7 +72,7 @@ ankit.casa, *.ankit.casa {
 
 	@park host park.ankit.casa
 	handle @park {
-		reverse_proxy park:8003
+		reverse_proxy autovrr:8003
 	}
 
 	# default: the dashboard

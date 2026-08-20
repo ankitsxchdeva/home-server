@@ -17,7 +17,6 @@ include:
   - 13ft/docker-compose.yml
   - ollama/docker-compose.yml
   - rss-reader/docker-compose.yml
-  - park/docker-compose.yml
   - kalshi-pnl/docker-compose.yml
   - quantlab/docker-compose.yml
   - watchtower/docker-compose.yml
