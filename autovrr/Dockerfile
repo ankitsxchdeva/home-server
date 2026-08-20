@@ -13,6 +13,7 @@ COPY vrr.py .
 COPY bot.py .
 COPY web.py .
 COPY index.html .
+COPY login.html .
 COPY launcher.py .
 
 CMD ["python", "-u", "launcher.py"]

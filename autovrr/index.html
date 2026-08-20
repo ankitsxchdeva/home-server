@@ -33,14 +33,13 @@
   }
   main { width: 100%; max-width: 400px; }
 
-  header { margin-bottom: 28px; }
+  header { margin-bottom: 24px; }
   h1 { font-size: 1.65rem; font-weight: 700; letter-spacing: -0.02em; }
-  header p { color: var(--muted); font-size: 0.95rem; margin-top: 6px; }
 
   form { display: grid; gap: 18px; }
   .field { display: grid; gap: 6px; }
+  .field.combo { position: relative; }
   label { font-size: 0.85rem; font-weight: 600; }
-  label .opt { color: var(--muted); font-weight: 500; }
   input {
     width: 100%;
     font: inherit;
@@ -59,6 +58,30 @@
     box-shadow: 0 0 0 3px var(--accent-soft);
   }
   #plate { text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+
+  .combo-list {
+    position: absolute;
+    top: 100%;
+    left: 0; right: 0;
+    margin-top: 6px;
+    padding: 4px;
+    list-style: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px oklch(0.27 0.02 165 / 0.12);
+    max-height: 232px;
+    overflow-y: auto;
+    z-index: 5;
+  }
+  .combo-list li {
+    padding: 10px 12px;
+    border-radius: 7px;
+    font-size: 0.97rem;
+    cursor: pointer;
+  }
+  .combo-list li.active { background: var(--accent-soft); }
+  .combo-list li .hint { color: var(--muted); font-size: 0.85rem; }
 
   fieldset {
     border: 1px solid var(--border);
@@ -135,23 +158,25 @@
     <h1>Parking</h1>
   </header>
 
-  <form id="park-form" autocomplete="on">
+  <form id="park-form" autocomplete="off">
     <div class="field">
       <label for="plate">License plate</label>
       <input id="plate" name="plate" required maxlength="10"
              placeholder="ABC1234" autocapitalize="characters" spellcheck="false">
     </div>
 
-    <div class="field">
+    <div class="field combo">
       <label for="make">Vehicle make</label>
-      <input id="make" name="make" list="makes" required maxlength="40" placeholder="Honda">
-      <datalist id="makes"></datalist>
+      <input id="make" name="make" required maxlength="40" placeholder="Start typing…"
+             role="combobox" aria-expanded="false" aria-controls="make-list" spellcheck="false">
+      <ul id="make-list" class="combo-list" role="listbox" hidden></ul>
     </div>
 
-    <div class="field">
+    <div class="field combo">
       <label for="model">Vehicle model</label>
-      <input id="model" name="model" list="models" required maxlength="40" placeholder="CR-V">
-      <datalist id="models"></datalist>
+      <input id="model" name="model" required maxlength="40" placeholder="Start typing…"
+             role="combobox" aria-expanded="false" aria-controls="model-list" spellcheck="false">
+      <ul id="model-list" class="combo-list" role="listbox" hidden></ul>
     </div>
 
     <fieldset>
@@ -189,45 +214,103 @@
 <script>
 const MAKES = ["Acura","Audi","BMW","Buick","Cadillac","Chevrolet","Chrysler","Dodge","Ford","Genesis","GMC","Honda","Hyundai","Infiniti","Jeep","Kia","Lexus","Lincoln","Mazda","Mercedes-Benz","Mini","Mitsubishi","Nissan","Polestar","Porsche","Ram","Rivian","Subaru","Tesla","Toyota","Volkswagen","Volvo"];
 const MODELS = {
-  Honda: ["Accord","Civic","CR-V","HR-V","Pilot","Odyssey","Ridgeline","Passport"],
-  Toyota: ["Camry","Corolla","RAV4","Highlander","Tacoma","Tundra","Prius","4Runner","Sienna"],
+  Acura: ["Integra","TLX","RDX","MDX"],
+  Audi: ["A3","A4","A6","Q3","Q5","Q7","e-tron"],
+  BMW: ["2 Series","3 Series","4 Series","5 Series","X1","X3","X5","i4","iX"],
+  Buick: ["Encore","Encore GX","Envision","Enclave"],
+  Cadillac: ["CT4","CT5","XT4","XT5","Escalade","Lyriq"],
+  Chevrolet: ["Silverado","Equinox","Malibu","Traverse","Tahoe","Suburban","Colorado","Bolt","Blazer"],
+  Chrysler: ["300","Pacifica","Voyager"],
+  Dodge: ["Charger","Challenger","Durango","Hornet"],
+  Ford: ["F-150","Mustang","Escape","Explorer","Edge","Bronco","Maverick","Fusion","Ranger"],
+  Genesis: ["G70","G80","G90","GV70","GV80"],
+  GMC: ["Sierra","Yukon","Acadia","Terrain","Canyon"],
+  Honda: ["Civic","Accord","CR-V","HR-V","Pilot","Odyssey","Ridgeline","Passport"],
+  Hyundai: ["Elantra","Sonata","Tucson","Santa Fe","Kona","Palisade","Ioniq 5","Ioniq 6"],
+  Infiniti: ["Q50","Q60","QX50","QX55","QX60","QX80"],
+  Jeep: ["Wrangler","Grand Cherokee","Cherokee","Compass","Gladiator","Wagoneer"],
+  Kia: ["Forte","K5","Sportage","Sorento","Telluride","Soul","EV6","Seltos"],
+  Lexus: ["IS","ES","LS","NX","RX","GX","LX"],
+  Lincoln: ["Corsair","Nautilus","Aviator","Navigator"],
+  Mazda: ["Mazda3","Mazda6","CX-30","CX-5","CX-50","CX-90"],
+  "Mercedes-Benz": ["A-Class","C-Class","E-Class","S-Class","GLA","GLC","GLE","GLS","EQS"],
+  Mini: ["Cooper","Cooper S","Countryman","Clubman"],
+  Mitsubishi: ["Outlander","Outlander Sport","Eclipse Cross","Mirage"],
+  Nissan: ["Sentra","Altima","Maxima","Rogue","Pathfinder","Frontier","Kicks","Leaf","Ariya"],
+  Polestar: ["Polestar 2","Polestar 3","Polestar 4"],
+  Porsche: ["911","718","Taycan","Panamera","Macan","Cayenne"],
+  Ram: ["1500","2500","ProMaster"],
+  Rivian: ["R1T","R1S"],
+  Subaru: ["Impreza","Legacy","Crosstrek","Forester","Outback","Ascent","WRX","BRZ"],
   Tesla: ["Model 3","Model Y","Model S","Model X","Cybertruck"],
-  Ford: ["F-150","Escape","Explorer","Mustang","Edge","Bronco","Maverick","Fusion"],
-  Chevrolet: ["Silverado","Equinox","Malibu","Tahoe","Traverse","Bolt","Colorado"],
-  Nissan: ["Altima","Sentra","Rogue","Pathfinder","Frontier","Versa","Kicks"],
-  BMW: ["3 Series","5 Series","X1","X3","X5","4 Series","i4"],
-  "Mercedes-Benz": ["C-Class","E-Class","GLC","GLE","A-Class","GLA"],
-  Hyundai: ["Elantra","Sonata","Tucson","Santa Fe","Kona","Palisade","Ioniq 5"],
-  Kia: ["Forte","K5","Sportage","Sorento","Telluride","Soul","EV6"],
-  Subaru: ["Outback","Forester","Crosstrek","Impreza","Legacy","Ascent"],
-  Mazda: ["Mazda3","Mazda6","CX-5","CX-30","CX-50","CX-9"],
-  Jeep: ["Wrangler","Grand Cherokee","Cherokee","Compass","Gladiator"],
-  Audi: ["A3","A4","A6","Q3","Q5","Q7"],
-  Lexus: ["ES","IS","RX","NX","GX"],
-  Volkswagen: ["Jetta","Golf","Tiguan","Atlas","Passat","ID.4"]
+  Toyota: ["Corolla","Camry","RAV4","Highlander","Tacoma","Tundra","Prius","4Runner","Sienna","Corolla Cross","GR86"],
+  Volkswagen: ["Jetta","Golf","GTI","Taos","Tiguan","Atlas","ID.4"],
+  Volvo: ["S60","S90","XC40","XC60","XC90","EX30","EX90"]
 };
 
-const makesList = document.getElementById("makes");
-MAKES.forEach(m => {
-  const o = document.createElement("option");
-  o.value = m;
-  makesList.appendChild(o);
-});
+// Lightweight combobox: opens on focus, live-filters, tap/arrow+enter to
+// pick, freeform text always allowed.
+function combobox(input, listEl, getOptions) {
+  let options = [], active = -1;
+
+  function render() {
+    const q = input.value.trim().toLowerCase();
+    options = getOptions().filter(o => !q || o.toLowerCase().includes(q)).slice(0, 8);
+    listEl.replaceChildren();
+    active = -1;
+    if (!options.length) { close(); return; }
+    options.forEach((o, i) => {
+      const li = document.createElement("li");
+      li.textContent = o;
+      li.setAttribute("role", "option");
+      li.addEventListener("pointerdown", (e) => { e.preventDefault(); pick(o); });
+      li.addEventListener("pointerenter", () => setActive(i));
+      listEl.appendChild(li);
+    });
+    listEl.hidden = false;
+    input.setAttribute("aria-expanded", "true");
+  }
+  function close() {
+    listEl.hidden = true;
+    input.setAttribute("aria-expanded", "false");
+    active = -1;
+  }
+  function pick(value) {
+    input.value = value;
+    close();
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+  function setActive(i) {
+    active = i;
+    [...listEl.children].forEach((li, j) => li.classList.toggle("active", j === i));
+  }
+
+  input.addEventListener("focus", render);
+  input.addEventListener("input", render);
+  input.addEventListener("blur", () => setTimeout(close, 120));
+  input.addEventListener("keydown", (e) => {
+    if (listEl.hidden) {
+      if (e.key === "ArrowDown") { e.preventDefault(); render(); }
+      return;
+    }
+    if (e.key === "ArrowDown") { e.preventDefault(); setActive(Math.min(active + 1, options.length - 1)); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setActive(Math.max(active - 1, 0)); }
+    else if (e.key === "Enter" && active >= 0) { e.preventDefault(); pick(options[active]); }
+    else if (e.key === "Escape") { close(); }
+  });
+  return { refresh: render, close };
+}
 
 const makeInput = document.getElementById("make");
-const modelsList = document.getElementById("models");
-function refreshModels() {
-  modelsList.replaceChildren();
+const modelInput = document.getElementById("model");
+const makeCombo = combobox(makeInput, document.getElementById("make-list"), () => MAKES);
+const modelCombo = combobox(modelInput, document.getElementById("model-list"), () => {
   const norm = makeInput.value.trim().toLowerCase();
   const key = Object.keys(MODELS).find(k => k.toLowerCase() === norm);
-  (key ? MODELS[key] : []).forEach(m => {
-    const o = document.createElement("option");
-    o.value = m;
-    modelsList.appendChild(o);
-  });
-}
-makeInput.addEventListener("input", refreshModels);
-makeInput.addEventListener("change", refreshModels);
+  return key ? MODELS[key] : [];
+});
+makeInput.addEventListener("change", () => { modelInput.value = ""; });
 
 const form = document.getElementById("park-form");
 const overlay = document.getElementById("overlay");
@@ -243,7 +326,7 @@ form.addEventListener("submit", async (e) => {
   const payload = {
     license_plate: document.getElementById("plate").value,
     vehicle_make: makeInput.value,
-    vehicle_model: document.getElementById("model").value,
+    vehicle_model: modelInput.value,
     visitor_name: document.getElementById("vname").value,
     visitor_phone: document.getElementById("vphone").value,
     visitor_email: document.getElementById("vemail").value
@@ -255,6 +338,7 @@ form.addEventListener("submit", async (e) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
+    if (res.status === 401) { window.location.href = "/login"; return; }
     const data = await res.json().catch(() => ({}));
     if (res.ok && data.success) {
       result.className = "show ok";

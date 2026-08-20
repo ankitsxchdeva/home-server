@@ -1,13 +1,17 @@
 """Guest parking registration page for VRR (park.ankit.casa).
 
 Serves a single-page form and runs the same registration flow as the
-autovrr Discord bot (autovrr/vrr.py, copied in at image build time).
+Discord bot (vrr.py in this directory).
 
-Auth: HTTP Basic on every route. The password lives only in .env on the
-Pi (gitignored) — this repo is public, so no secrets in code.
+Auth: password-only login page -> signed session cookie (7 days).
+The password lives only in .env on the Pi (gitignored) — this repo is
+public, so no secrets in code. /healthz is intentionally public so
+uptime-kuma can monitor without credentials.
 """
 
 import asyncio
+import hashlib
+import hmac
 import os
 import re
 import time
@@ -16,9 +20,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
-import secrets as secrets_mod
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
 from vrr import register_visitor_parking
 
@@ -29,32 +31,50 @@ GUEST_NAME = os.getenv("GUEST_NAME", "")
 GUEST_PHONE = os.getenv("GUEST_PHONE", "")
 GUEST_EMAIL = os.getenv("GUEST_EMAIL", "")
 
-# Rate limit registrations: per-IP, per rolling window. Generous for a
-# household, useless for abuse.
+SESSION_COOKIE = "park_session"
+SESSION_MAX_AGE = 7 * 24 * 3600  # 7 days
+
+# Rate limits: registrations per hour, login attempts per 5 min — per IP,
+# in-memory. Generous for a household, useless for abuse.
 RATE_LIMIT = 5
-RATE_WINDOW = 3600  # seconds
+RATE_WINDOW = 3600
+LOGIN_RATE_LIMIT = 10
+LOGIN_RATE_WINDOW = 300
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
-security = HTTPBasic()
 
 _rate_log = defaultdict(list)
+_login_log = defaultdict(list)
 _run_lock = asyncio.Lock()
 
 PLATE_RE = re.compile(r"^[A-NP-Z0-9 ]{1,10}$", re.IGNORECASE)  # VRR forbids O
 
+_STATIC = Path(__file__).parent
 
-def require_auth(credentials: HTTPBasicCredentials = Depends(security)):
-    # Username is ignored; only the password matters. Constant-time compare,
-    # and fail closed if the password was never configured.
-    ok = bool(PARK_PASSWORD) and secrets_mod.compare_digest(
-        credentials.password, PARK_PASSWORD
-    )
-    if not ok:
-        raise HTTPException(
-            status_code=401,
-            detail="Unauthorized",
-            headers={"WWW-Authenticate": "Basic"},
-        )
+
+def _session_token() -> str:
+    # Deterministic token keyed on the password: stable across restarts,
+    # unforgeable without the password, invalidated by changing it.
+    return hmac.new(PARK_PASSWORD.encode(), b"parking-session-v1", hashlib.sha256).hexdigest()
+
+
+def _valid_session(request: Request) -> bool:
+    if not PARK_PASSWORD:
+        return False  # fail closed when unconfigured
+    token = request.cookies.get(SESSION_COOKIE, "")
+    return hmac.compare_digest(token, _session_token())
+
+
+def require_auth(request: Request):
+    if not _valid_session(request):
+        if request.url.path == "/register":
+            raise HTTPException(status_code=401, detail="Session expired. Reload the page.")
+        raise HTTPException(status_code=303, headers={"Location": "/login"}, detail="login")
+
+
+@app.exception_handler(303)
+async def redirect_to_login(request: Request, exc: HTTPException):
+    return RedirectResponse(exc.headers["Location"], status_code=303)
 
 
 @app.middleware("http")
@@ -66,9 +86,51 @@ async def security_headers(request: Request, call_next):
     return response
 
 
+@app.get("/healthz")
+async def healthz():
+    return {"ok": True}
+
+
+@app.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request, error: str = ""):
+    if _valid_session(request):
+        return RedirectResponse("/", status_code=303)
+    html = (_STATIC / "login.html").read_text()
+    return HTMLResponse(html.replace("{{ERROR}}", "show" if error else ""))
+
+
+@app.post("/login")
+async def login_submit(request: Request):
+    ip = request.client.host if request.client else "unknown"
+    now = time.time()
+    _login_log[ip] = [t for t in _login_log[ip] if now - t < LOGIN_RATE_WINDOW]
+    if len(_login_log[ip]) >= LOGIN_RATE_LIMIT:
+        raise HTTPException(status_code=429, detail="Too many attempts. Try again in a few minutes.")
+    _login_log[ip].append(now)
+
+    form = await request.form()
+    password = str(form.get("password", ""))
+    if PARK_PASSWORD and hmac.compare_digest(password, PARK_PASSWORD):
+        response = RedirectResponse("/", status_code=303)
+        response.set_cookie(
+            SESSION_COOKIE, _session_token(),
+            max_age=SESSION_MAX_AGE, httponly=True, secure=True, samesite="lax",
+        )
+        return response
+    await asyncio.sleep(1)  # slow down online guessing
+    return RedirectResponse("/login?error=1", status_code=303)
+
+
+@app.get("/logout")
+async def logout():
+    response = RedirectResponse("/login", status_code=303)
+    response.delete_cookie(SESSION_COOKIE)
+    return response
+
+
 @app.get("/", response_class=HTMLResponse)
 async def index(_=Depends(require_auth)):
-    html = Path(__file__).with_name("index.html").read_text()
+    html = (_STATIC / "index.html").read_text()
     # Placeholders show the server-side defaults without exposing them in source.
     return html.replace("{{GUEST_NAME}}", GUEST_NAME) \
                .replace("{{GUEST_PHONE}}", GUEST_PHONE) \
