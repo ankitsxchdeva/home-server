@@ -99,6 +99,13 @@
         server: pi
         container: autovrr
 
+    - Guest Parking:
+        icon: mdi-parking
+        href: https://park.ankit.casa
+        description: Guest parking page (password-protected)
+        server: pi
+        container: autovrr
+
     - GForm Image Embed:
         icon: mdi-image
         description: Google Forms image extractor
