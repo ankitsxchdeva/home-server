@@ -61,15 +61,28 @@ _COLLECT_IMAGE_URLS_JS = r"""() => {
 }"""
 
 
-# Collage layout: square grid of fixed-size cells, dark background to blend
-# with Discord's dark theme.
+# Collage layout: near-square grid of fixed-width cells. Tiles are
+# cover-cropped (scale to fill, crop the overflow) so no background shows.
 COLLAGE_CELL_PX = 512
 COLLAGE_BG = (30, 30, 30)
 
 
+def _cover_crop(img: Image.Image, target_w: int, target_h: int) -> Image.Image:
+    """Scale img to completely fill target_w x target_h, center-cropping the overflow."""
+    scale = max(target_w / img.width, target_h / img.height)
+    w = max(target_w, math.ceil(img.width * scale))
+    h = max(target_h, math.ceil(img.height * scale))
+    img = img.resize((w, h), Image.LANCZOS)
+    left = (w - target_w) // 2
+    top = (h - target_h) // 2
+    return img.crop((left, top, left + target_w, top + target_h))
+
+
 def build_collage(images: list[tuple[bytes, str]]) -> bytes | None:
     """
-    Stitch images into a single square-grid collage, returned as JPEG bytes.
+    Stitch images into a single grid collage, returned as JPEG bytes.
+    Every cell is filled by its image (cover-crop) and the last row is
+    stretched to span the full width, so no empty background shows.
     Undecodable images are skipped; returns None if nothing usable remains.
     """
     tiles: list[Image.Image] = []
@@ -91,14 +104,31 @@ def build_collage(images: list[tuple[bytes, str]]) -> bytes | None:
     if not tiles:
         return None
 
-    cols = math.ceil(math.sqrt(len(tiles)))
-    rows = math.ceil(len(tiles) / cols)
-    collage = Image.new("RGB", (cols * COLLAGE_CELL_PX, rows * COLLAGE_CELL_PX), COLLAGE_BG)
+    n = len(tiles)
+    # Cell aspect follows the median tile (clamped near-square) so
+    # cover-crops lose as little of the typical image as possible.
+    aspects = sorted(t.width / t.height for t in tiles)
+    aspect = min(max(aspects[n // 2], 0.75), 1.33)
+    cell_w = COLLAGE_CELL_PX
+    cell_h = round(cell_w / aspect)
+
+    cols = math.ceil(math.sqrt(n))
+    rows = math.ceil(n / cols)
+    width, height = cols * cell_w, rows * cell_h
+    collage = Image.new("RGB", (width, height), COLLAGE_BG)
+
+    last_row = rows - 1
+    last_row_tiles = n - cols * last_row
     for idx, img in enumerate(tiles):
-        img.thumbnail((COLLAGE_CELL_PX, COLLAGE_CELL_PX))
-        x = (idx % cols) * COLLAGE_CELL_PX + (COLLAGE_CELL_PX - img.width) // 2
-        y = (idx // cols) * COLLAGE_CELL_PX + (COLLAGE_CELL_PX - img.height) // 2
-        collage.paste(img, (x, y))
+        r, c = divmod(idx, cols)
+        if r == last_row:
+            # Stretch the short last row across the full collage width
+            cw = width // last_row_tiles
+            x = c * cw
+            w = width - x if c == last_row_tiles - 1 else cw
+        else:
+            x, w = c * cell_w, cell_w
+        collage.paste(_cover_crop(img, w, cell_h), (x, r * cell_h))
 
     buf = io.BytesIO()
     collage.save(buf, format="JPEG", quality=88)
