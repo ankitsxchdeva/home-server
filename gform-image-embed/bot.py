@@ -1,23 +1,29 @@
 """
 Discord bot that detects Google Forms links in a channel,
 extracts embedded images, and replies with those images.
+
+Image extraction runs in a `--worker` child process: a wedged Playwright
+driver ignores asyncio cancellation, so an in-process wait_for timeout
+can't actually stop it (the handler hung forever on 2026-07-20 and again
+on 2026-08-26). A child process group can simply be SIGKILLed on timeout.
 """
 
 import asyncio
 import io
+import json
 import math
 import os
+import shutil
+import signal
 import sys
 import re
+import tempfile
+import traceback
 from typing import NamedTuple
 
 import discord
 from PIL import Image
 from dotenv import load_dotenv
-from playwright.async_api import (
-    async_playwright,
-    TimeoutError as PlaywrightTimeoutError,
-)
 
 load_dotenv()
 
@@ -37,9 +43,8 @@ FORMS_PATTERN = re.compile(
 # Skip Google branding/logo images
 SKIP_HOSTS = ("gstatic.com",)
 
-# Hard cap on one form's end-to-end processing. Playwright launch/connect
-# hangs have no timeout of their own (a dead driver wedged the handler on
-# 2026-07-20), so the whole fetch is raced against this.
+# Hard cap on one form's end-to-end processing, enforced by SIGKILLing the
+# worker's whole process group (see fetch_form_images).
 HANDLE_FORM_TIMEOUT_S = 120
 
 # Collect every image URL on the page: <img src> plus CSS background-image,
@@ -114,62 +119,129 @@ class FormResult(NamedTuple):
     candidates: int                  # how many non-skipped image URLs were found
 
 
-async def fetch_form_images(url: str) -> FormResult:
+def _worker_fetch(url: str, outdir: str) -> None:
     """
-    Open the Google Form in a headless browser and return its embedded
-    user-uploaded images as (data, filename) pairs.
+    Child-process entry point (`python bot.py --worker <url> <outdir>`).
+
+    Opens the form in headless Chromium (sync Playwright API), downloads
+    every embedded user image into outdir, and prints a JSON summary as the
+    LAST stdout line — {"candidates": N, "files": [...]} on success or
+    {"fatal": "..."} on navigation-level failure. The parent only trusts
+    files listed in that final line (it is printed after all writes).
 
     Images are fetched *through the browser context* (page.request) so that
     Google's session-scoped image URLs (docs.google.com/forms-images-rt/...)
     resolve correctly — fetching them with a cookie-less HTTP client returns
     HTTP 400 and the image is lost.
-
-    Raises on genuine navigation failures (bad domain, unreachable form) so
-    the caller can surface an error to the user.
     """
-    async with async_playwright() as pw:
-        browser = await pw.chromium.launch(headless=True)
-        try:
-            page = await browser.new_page()
+    from playwright.sync_api import (
+        sync_playwright,
+        TimeoutError as PlaywrightTimeoutError,
+    )
+
+    files: list[str] = []
+    candidates = 0
+    try:
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch(headless=True)
             try:
-                await page.goto(url, wait_until="networkidle", timeout=30_000)
-            except PlaywrightTimeoutError:
-                # networkidle can hang on Forms' long-poll; DOM-ready is enough.
-                await page.wait_for_load_state("domcontentloaded")
-
-            raw_urls = await page.evaluate(_COLLECT_IMAGE_URLS_JS)
-
-            seen: set[str] = set()
-            images: list[tuple[bytes, str]] = []
-            candidates = 0
-            for src in raw_urls:
-                if not src or src.startswith("data:"):
-                    continue
-                if any(host in src for host in SKIP_HOSTS):
-                    continue
-                if src in seen:
-                    continue
-                seen.add(src)
-                candidates += 1
-
+                page = browser.new_page()
                 try:
-                    resp = await page.request.get(src, timeout=20_000)
-                except Exception as exc:
-                    print(f"[warn] request error for {src[:90]}: {exc}", file=sys.stderr)
-                    continue
-                if not resp.ok:
-                    print(f"[warn] HTTP {resp.status} for {src[:90]}", file=sys.stderr)
-                    continue
+                    page.goto(url, wait_until="networkidle", timeout=30_000)
+                except PlaywrightTimeoutError:
+                    # networkidle can hang on Forms' long-poll; DOM-ready is enough.
+                    page.wait_for_load_state("domcontentloaded")
 
-                data = await resp.body()
-                if not data:
-                    continue
-                ct = resp.headers.get("content-type", "image/png")
-                images.append((data, f"image_{len(images) + 1}{_extension_for(ct)}"))
+                raw_urls = page.evaluate(_COLLECT_IMAGE_URLS_JS)
 
-            return FormResult(images=images, candidates=candidates)
-        finally:
-            await browser.close()
+                seen: set[str] = set()
+                for src in raw_urls:
+                    if not src or src.startswith("data:"):
+                        continue
+                    if any(host in src for host in SKIP_HOSTS):
+                        continue
+                    if src in seen:
+                        continue
+                    seen.add(src)
+                    candidates += 1
+
+                    try:
+                        resp = page.request.get(src, timeout=20_000)
+                    except Exception as exc:
+                        print(f"[warn] request error for {src[:90]}: {exc}", file=sys.stderr)
+                        continue
+                    if not resp.ok:
+                        print(f"[warn] HTTP {resp.status} for {src[:90]}", file=sys.stderr)
+                        continue
+
+                    data = resp.body()
+                    if not data:
+                        continue
+                    ct = resp.headers.get("content-type", "image/png")
+                    name = f"image_{len(files) + 1}{_extension_for(ct)}"
+                    with open(os.path.join(outdir, name), "wb") as fh:
+                        fh.write(data)
+                    files.append(name)
+            finally:
+                browser.close()
+    except Exception as exc:
+        traceback.print_exc()  # stderr → inherited → docker logs
+        print(json.dumps({"fatal": f"{type(exc).__name__}: {exc}"}))
+        return
+    print(json.dumps({"candidates": candidates, "files": files}))
+
+
+async def fetch_form_images(url: str) -> FormResult:
+    """
+    Fetch a form's embedded images via a `--worker` child process.
+
+    A wedged Playwright driver ignores asyncio cancellation, so the fetch
+    runs out-of-process: on timeout the whole process group (python + node
+    driver + chromium) is SIGKILLed, which needs no cooperation from the
+    wedged driver.
+
+    Raises TimeoutError on timeout and RuntimeError on worker failure, so
+    the caller can surface the right error to the user.
+    """
+    outdir = tempfile.mkdtemp(prefix="gform-")
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            sys.executable, "-u", os.path.abspath(__file__), "--worker", url, outdir,
+            stdout=asyncio.subprocess.PIPE,
+            # stderr is inherited: worker [warn]/traceback lines land in
+            # docker logs directly.
+            start_new_session=True,  # process-group leader, so killpg works
+        )
+        try:
+            stdout, _ = await asyncio.wait_for(
+                proc.communicate(), timeout=HANDLE_FORM_TIMEOUT_S
+            )
+        except TimeoutError:
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)  # proc.pid == pgid
+            except ProcessLookupError:
+                pass  # exited in the race window
+            await proc.wait()  # reap
+            raise
+
+        lines = stdout.decode(errors="replace").strip().splitlines()
+        summary = None
+        if lines:
+            try:
+                summary = json.loads(lines[-1])
+            except json.JSONDecodeError:
+                summary = None
+        if summary is None or "fatal" in summary:
+            detail = summary["fatal"] if summary else f"exit code {proc.returncode}"
+            raise RuntimeError(f"worker failed: {detail}")
+
+        images: list[tuple[bytes, str]] = []
+        for name in summary["files"]:
+            with open(os.path.join(outdir, name), "rb") as fh:
+                images.append((fh.read(), name))
+        return FormResult(images=images, candidates=summary["candidates"])
+    finally:
+        shutil.rmtree(outdir, ignore_errors=True)
 
 
 class FormImageBot(discord.Client):
@@ -230,9 +302,7 @@ class FormImageBot(discord.Client):
         )
         try:
             async with message.channel.typing():
-                result = await asyncio.wait_for(
-                    fetch_form_images(form_url), timeout=HANDLE_FORM_TIMEOUT_S
-                )
+                result = await fetch_form_images(form_url)
         except TimeoutError:
             print(
                 f"[error] Timed out after {HANDLE_FORM_TIMEOUT_S}s on {form_url}",
@@ -266,22 +336,21 @@ class FormImageBot(discord.Client):
             )
             return
 
+        print(
+            f"[info] Fetched {len(result.images)} image(s) "
+            f"({result.candidates} candidates) from {form_url}",
+            file=sys.stderr,
+        )
+
         if not result.images:
             if result.candidates:
                 # Found images but every download failed — that's a real error.
-                print(
-                    f"[error] Found {result.candidates} image(s) but none "
-                    f"downloaded for {form_url}",
-                    file=sys.stderr,
-                )
                 await self._safe_reply(
                     message,
                     f"⚠️ Found {result.candidates} image(s) in that form but "
                     "couldn't download them.",
                 )
-            else:
-                # Form genuinely has no images — stay silent, just log.
-                print(f"[info] No images found for {form_url}", file=sys.stderr)
+            # Form with no images at all: stay silent.
             return
 
         # Discord allows up to 10 files per message. Beyond 10 images, put
@@ -293,6 +362,11 @@ class FormImageBot(discord.Client):
             collage = build_collage(images[9:])
             if collage is not None:
                 images = images[:9] + [(collage, "collage.jpg")]
+                print(
+                    f"[info] Built collage of {len(result.images) - 9} image(s) "
+                    f"({len(collage) // 1024}KB) for {form_url}",
+                    file=sys.stderr,
+                )
             else:
                 print(
                     f"[warn] Collage failed for {form_url}; "
@@ -303,7 +377,6 @@ class FormImageBot(discord.Client):
         batch_size = 10
         for i in range(0, len(images), batch_size):
             batch = images[i : i + batch_size]
-            batch = result.images[i : i + batch_size]
             files = [
                 discord.File(io.BytesIO(data), filename=name)
                 for data, name in batch
@@ -321,8 +394,17 @@ class FormImageBot(discord.Client):
                     "(they may be too large).",
                 )
                 return
+            print(
+                f"[info] Posted {len(files)} attachment(s) "
+                f"({'reply' if i == 0 else 'follow-up'}) for {form_url}",
+                file=sys.stderr,
+            )
+
 
 def main():
+    if len(sys.argv) == 4 and sys.argv[1] == "--worker":
+        _worker_fetch(sys.argv[2], sys.argv[3])
+        return
     token = _require_token()
     bot = FormImageBot()
     bot.run(token)
