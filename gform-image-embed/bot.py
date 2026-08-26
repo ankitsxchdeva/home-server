@@ -5,12 +5,14 @@ extracts embedded images, and replies with those images.
 
 import asyncio
 import io
+import math
 import os
 import sys
 import re
 from typing import NamedTuple
 
 import discord
+from PIL import Image
 from dotenv import load_dotenv
 from playwright.async_api import (
     async_playwright,
@@ -52,6 +54,50 @@ _COLLECT_IMAGE_URLS_JS = r"""() => {
     });
     return out;
 }"""
+
+
+# Collage layout: square grid of fixed-size cells, dark background to blend
+# with Discord's dark theme.
+COLLAGE_CELL_PX = 512
+COLLAGE_BG = (30, 30, 30)
+
+
+def build_collage(images: list[tuple[bytes, str]]) -> bytes | None:
+    """
+    Stitch images into a single square-grid collage, returned as JPEG bytes.
+    Undecodable images are skipped; returns None if nothing usable remains.
+    """
+    tiles: list[Image.Image] = []
+    for data, name in images:
+        try:
+            img = Image.open(io.BytesIO(data))
+            img.load()
+        except Exception as exc:
+            print(f"[warn] skipping undecodable image {name}: {exc}", file=sys.stderr)
+            continue
+        if img.mode != "RGB":
+            # Flatten alpha/palette onto the background color
+            rgba = img.convert("RGBA")
+            flat = Image.new("RGB", rgba.size, COLLAGE_BG)
+            flat.paste(rgba, mask=rgba.split()[-1])
+            img = flat
+        tiles.append(img)
+
+    if not tiles:
+        return None
+
+    cols = math.ceil(math.sqrt(len(tiles)))
+    rows = math.ceil(len(tiles) / cols)
+    collage = Image.new("RGB", (cols * COLLAGE_CELL_PX, rows * COLLAGE_CELL_PX), COLLAGE_BG)
+    for idx, img in enumerate(tiles):
+        img.thumbnail((COLLAGE_CELL_PX, COLLAGE_CELL_PX))
+        x = (idx % cols) * COLLAGE_CELL_PX + (COLLAGE_CELL_PX - img.width) // 2
+        y = (idx // cols) * COLLAGE_CELL_PX + (COLLAGE_CELL_PX - img.height) // 2
+        collage.paste(img, (x, y))
+
+    buf = io.BytesIO()
+    collage.save(buf, format="JPEG", quality=88)
+    return buf.getvalue()
 
 
 def _extension_for(content_type: str) -> str:
@@ -238,9 +284,25 @@ class FormImageBot(discord.Client):
                 print(f"[info] No images found for {form_url}", file=sys.stderr)
             return
 
-        # Discord allows up to 10 files per message; split into batches
+        # Discord allows up to 10 files per message. Beyond 10 images, put
+        # the first 9 up as-is and make the 10th a collage of the rest, so
+        # everything stays in a single reply. If the collage fails, fall
+        # back to batched follow-up messages.
+        images = result.images
+        if len(images) > 10:
+            collage = build_collage(images[9:])
+            if collage is not None:
+                images = images[:9] + [(collage, "collage.jpg")]
+            else:
+                print(
+                    f"[warn] Collage failed for {form_url}; "
+                    "falling back to batched posts",
+                    file=sys.stderr,
+                )
+
         batch_size = 10
-        for i in range(0, len(result.images), batch_size):
+        for i in range(0, len(images), batch_size):
+            batch = images[i : i + batch_size]
             batch = result.images[i : i + batch_size]
             files = [
                 discord.File(io.BytesIO(data), filename=name)
