@@ -45,6 +45,61 @@ Everything below is deployed by GitOps — push to `main` and the Pi pulls and r
 
 ```mermaid
 flowchart LR
+    subgraph Internet["Public Internet"]
+        guests["Guest browsers"]
+        site["ankitsachdeva.com"]
+        apis["Discord · Google · Reddit · Kalshi · RSS · VRR portal"]
+    end
+
+    gh["GitHub — home-server repo"]
+
+    subgraph TN["Tailscale tailnet"]
+        you["Your devices — laptop, phone"]
+
+        subgraph PI["Raspberry Pi 5 — the hub"]
+            funnel["Funnel :8443 / :10000"]
+            caddy["Caddy — *.ankit.casa"]
+            apps["12 web apps<br/>dashboards · APIs · parking page"]
+            bots["4 Discord bots"]
+            ha["Home Assistant"]
+            chores["cron + watchdogs<br/>deploys · updates · backups"]
+        end
+
+        subgraph STUDIO["Mac Studio — headless, ethernet"]
+            ollama["Ollama — 27B local LLM"]
+            backups[("pi-backups")]
+        end
+    end
+
+    subgraph HOME["Home devices"]
+        lights["Lights — Zigbee + Matter"]
+        t6["Thermostat"]
+        apple["Apple Home"]
+        printer["Printer"]
+    end
+
+    site -.->|"redirects"| guests
+    guests -->|"two funnel ports only"| funnel
+    funnel --> apps
+    gh -->|"push to main → deploy in 5 min"| chores
+    you -->|"https://*.ankit.casa"| caddy
+    caddy --> apps
+    caddy -->|"ollama.ankit.casa"| ollama
+    apps -->|"rss summaries"| ollama
+    apps --> printer
+    bots --> apis
+    apps --> apis
+    chores -.->|"weekly tarball"| backups
+    ha --> lights
+    ha --> t6
+    ha --> apple
+```
+
+<details>
+<summary>Full detail — every service, port, and flow</summary>
+
+```mermaid
+flowchart LR
     subgraph PUBLIC["Public Internet"]
         guests["Guest browsers"]
         site["ankitsachdeva.com — GitHub Pages"]
@@ -158,6 +213,8 @@ flowchart LR
     ha --> applehome
     cups --> printer
 ```
+
+</details>
 
 How it fits together:
 - **Ingress:** Caddy serves `*.ankit.casa` (tailnet-only DNS) with a real wildcard cert. The public internet only ever reaches the Pi through two Tailscale Funnel ports (8443, 10000) — path-mounts share them.
