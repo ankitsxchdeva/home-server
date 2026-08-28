@@ -1,0 +1,14 @@
+- id: "1764000000001"
+  name: Counter + Lamp
+  entities:
+    light.h6006:
+      state: on
+      brightness_pct: 65
+      color_temp_kelvin: 2700
+    light.living_room_counter:
+      state: on
+      brightness_pct: 65
+      color_temp_kelvin: 2700
+    light.ikea_of_sweden_tradfri_bulb_e26_ww_globe_800lm_2:
+      state: on
+      brightness_pct: 80
