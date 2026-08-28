@@ -1,3 +1,11 @@
+# Ollama (RETIRED from the Pi)
+
+> Moved 2026-08-28: Ollama now runs natively on the Mac Studio (Metal GPU).
+> Setup + architecture live in the [studio-llm](https://github.com/ankitsxchdeva/studio-llm) repo.
+> Kept here for reference only — not included in the root compose file.
+
+---
+
 # Ollama
 
 Shared local LLM service. Runs the [Ollama](https://ollama.com) engine and

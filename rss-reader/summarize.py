@@ -5,8 +5,8 @@ summarized exactly once. If Ollama is down or slow, or the per-cycle failure
 budget trips the breaker, we leave the feed's own (truncated) summary in place —
 the digest is never worse than it was without the LLM.
 
-Reachable only on the internal compose network (http://ollama:11434); never
-exposed to the LAN, Tailscale, or the funnel.
+Ollama runs natively on the Mac Studio (Metal); reached via Caddy at
+https://ollama.ankit.casa. Tailnet-only — never on the LAN or the funnel.
 """
 
 import hashlib

@@ -22,7 +22,7 @@ Changes to these are invisible to GitOps and must be re-applied on rebuild (REST
 
 - Funnel supports only ports **443, 8443, 10000**. 8443 and 10000 are taken; **443 can never be funneled** (Caddy binds `0.0.0.0:443`). New public exposure ⇒ path-mount onto an existing funnel port (see README for the exact command). 
 - Caddy serves `ankit.casa` / `*.ankit.casa` (DNS → Tailscale IP, tailnet-only) with a wildcard LE cert via Cloudflare DNS-01 (`caddy/.env` `CF_API_TOKEN`).
-- Ollama has **no host port** — in-cluster `http://ollama:11434` or `ollama.ankit.casa` only.
+- Ollama runs **natively on the Mac Studio** (Metal GPU — not on the Pi, never in Mac Docker). Caddy proxies `ollama.ankit.casa` → `{$OLLAMA_UPSTREAM}` = the Studio's Tailscale IP:11434, set in the Pi's `caddy/.env`. Setup/runbook: the `studio-llm` repo.
 - GitOps builds run **on the Pi** (aarch64, slow) — keep Dockerfiles lean.
 
 ## Repo layout

@@ -25,7 +25,7 @@ A complete home server setup running on Raspberry Pi with Docker containers.
 - **[RSS Reader](./rss-reader/)** - RSS digest service for lede (port 8000, JSON API; served publicly via Tailscale Funnel :8443 for ankitsachdeva.com/lede)
 - **[Kalshi PnL](./kalshi-pnl/)** - Lifetime Kalshi profit/loss JSON API (host port 8001; served publicly via Tailscale Funnel :10000 for ankitsachdeva.com/kalshi — response is the net number only; secrets scp'd by hand, see its README)
 - **[Quantlab](./quantlab/)** - Backtest + Kalshi arbitrage API (host port 8002; served publicly via Tailscale Funnel :10000 under the `/quantlab` path for ankitsachdeva.com/quantlab — shares the funnel port with kalshi-pnl, see its README)
-- **[Ollama](./ollama/)** - Shared local LLM (internal `http://ollama:11434`, no exposed port); rss-reader uses it to summarize items and write a daily themes overview
+- **Ollama** (moved off the Pi — see the [studio-llm](https://github.com/ankitsxchdeva/studio-llm) repo) - Local LLM running natively on a Mac Studio (Metal GPU); consumers reach it at `https://ollama.ankit.casa` via Caddy over the tailnet. rss-reader uses it to summarize items and write a daily themes overview
 
 ### Discord Bots
 - **[Commute Bot](./commute-bot/)** - Commute time lookup via Google Maps
@@ -123,6 +123,6 @@ All served HTTPS by Caddy (http redirects to https):
 - **Kalshi PnL**: https://kalshi.ankit.casa/pnl (JSON API; host port 8001, also public via Funnel :10000)
 - **Quantlab**: https://quantlab.ankit.casa (full UI + API; host port 8002. Also public at https://raspberrypi.tail9476fb.ts.net:10000/quantlab via Funnel)
 - **Dozzle**: https://logs.ankit.casa
-- **Ollama**: https://ollama.ankit.casa (OpenAI-compatible LLM API at `/v1`; no web UI — for API clients on the tailnet. No exposed host port.)
+- **Ollama**: https://ollama.ankit.casa (OpenAI-compatible LLM API at `/v1`; served natively by the Mac Studio over the tailnet — no web UI, no host port on the Pi.)
 
-Direct `http://<pi>:<port>` access still works on the LAN/tailnet (3000, 8123, 3001, 61208, 20211, 631, 5001, 8000, 8001, 8002, 8080). Ollama is the exception: no host port, reachable only in-cluster (`http://ollama:11434`) or via `ollama.ankit.casa`.
+Direct `http://<pi>:<port>` access still works on the LAN/tailnet (3000, 8123, 3001, 61208, 20211, 631, 5001, 8000, 8001, 8002, 8080). Ollama is the exception: it isn't on the Pi at all — native on the Mac Studio, reachable only via `ollama.ankit.casa`.

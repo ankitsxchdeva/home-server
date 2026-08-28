@@ -15,7 +15,6 @@ include:
   - glances/docker-compose.yml
   - dozzle/docker-compose.yml
   - 13ft/docker-compose.yml
-  - ollama/docker-compose.yml
   - rss-reader/docker-compose.yml
   - kalshi-pnl/docker-compose.yml
   - quantlab/docker-compose.yml
