@@ -2,7 +2,9 @@
 
 Runbook: bare SD card → all services running. Everything not in this repo comes
 from a backup tarball made by [`scripts/backup.sh`](./scripts/backup.sh)
-(secrets + stateful data). Without a tarball the rebuild still works, but every
+(secrets + stateful data). Tarballs live in `/home/ankit/backups` on the Pi and
+off-box at `~/pi-backups` on the Mac Studio (`scp ankit@studio:~/pi-backups/\*.tar.gz .`).
+Without a tarball the rebuild still works, but every
 token gets re-entered by hand and every Zigbee/Matter device re-paired.
 
 Reference system (last verified 2026-07-15): Raspberry Pi, Debian 12 (bookworm)

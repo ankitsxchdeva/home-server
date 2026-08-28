@@ -4,3 +4,6 @@
 */5 * * * * cd ~/home-server && flock -n /tmp/home-server-deploy.lock -c 'git fetch && git diff --quiet HEAD origin/main || (git pull && docker compose up -d --build)'
 
 30 4 * * 0 docker system prune -af --filter "until=168h" >> /home/ankit/home-server/scripts/docker-prune.log 2>&1
+
+# Weekly backup (Sun 03:00) — tarball on the Pi + off-box copy on the Mac Studio
+0 3 * * 0 sudo /home/ankit/home-server/scripts/backup.sh >> /home/ankit/home-server/scripts/backup.log 2>&1
