@@ -39,6 +39,132 @@ Retired services live in [`deprecated/`](./deprecated/) and are excluded from th
 - **Traefik** - reverse proxy; only ever routed the wg-easy UI, otherwise served internet scanners
 - **wg-easy (WireGuard)** - never worked externally: UDP 51820 was not forwarded and `vpn.ankit.casa` was Cloudflare-proxied (Cloudflare doesn't carry WireGuard UDP). Replaced by Tailscale.
 
+## Architecture
+
+Everything below is deployed by GitOps — push to `main` and the Pi pulls and rebuilds within 5 minutes.
+
+```mermaid
+flowchart LR
+    subgraph PUBLIC["Public Internet"]
+        guests["Guest browsers"]
+        site["ankitsachdeva.com — GitHub Pages"]
+        discord["Discord API"]
+        google["Google Forms / Maps"]
+        reddit["Reddit API"]
+        kalshiapi["Kalshi API"]
+        vrr["City VRR parking portal"]
+        feeds["RSS feeds"]
+    end
+
+    subgraph GH["GitHub"]
+        repo["home-server repo — push to main = deploy"]
+        llmrepo["studio-llm repo — docs + runbook"]
+    end
+
+    subgraph TN["Tailscale tailnet — WireGuard + MagicDNS"]
+        laptop["MacBook Air"]
+        phone["Phone + other tailnet devices"]
+
+        subgraph PI["Raspberry Pi 5 — 'raspberrypi' — subnet router 192.168.1.0/24 + exit node"]
+            funnel["Tailscale Funnel — :8443 and :10000 only"]
+            caddy["Caddy :80/:443 — ankit.casa + *.ankit.casa — wildcard LE cert via Cloudflare DNS-01"]
+
+            subgraph WEB["Web services — all https://name.ankit.casa via Caddy"]
+                homepage["homepage — ankit.casa — dashboard"]
+                ha["Home Assistant — ha.ankit.casa"]
+                kuma["uptime-kuma — kuma.ankit.casa — monitoring"]
+                glances["glances — glances.ankit.casa — resources"]
+                netalertx["netalertx — netalertx.ankit.casa — LAN scanner"]
+                cups["CUPS — cups.ankit.casa — print server"]
+                f13ft["13ft — 13ft.ankit.casa — reader proxy"]
+                rssr["rss-reader — rss.ankit.casa — lede digest API"]
+                park["guest parking page — park.ankit.casa — Basic auth"]
+                kalshipnl["kalshi-pnl — kalshi.ankit.casa"]
+                quantlab["quantlab — quantlab.ankit.casa"]
+                dozzle["dozzle — logs.ankit.casa — container logs"]
+            end
+
+            subgraph BOTS["Discord bots"]
+                commute["commute-bot — commute times"]
+                autovrr["autovrr — guest parking registration, hosts the park page"]
+                gform["gform-image-embed — form images + pears gag"]
+                swap["reddit-swap-notifier — keyword pings"]
+            end
+
+            matter["python-matter-server — Matter bridge"]
+            watchtower["watchtower — daily image auto-updates"]
+            cron["ankit crontab — GitOps deploy every 5m · docker prune Sun 04:30 · backup Sun 03:00"]
+            wd["systemd watchdogs — printer + matter — host units, not Docker"]
+            backup["scripts/backup.sh — secrets + state tarball"]
+        end
+
+        subgraph STUDIO["Mac Studio — 'studio' — ethernet, headless"]
+            ollama["Ollama :11434 — native macOS, Metal GPU — qwen3.8:27b"]
+            pibackups[("pi-backups — newest 12 tarballs")]
+        end
+    end
+
+    subgraph HOME["Home — LAN 192.168.1.0/24"]
+        zigbee["Zigbee mesh — TRADFRI shelf + lamp, H6006 counter lights x2"]
+        stick["EZSP Zigbee coordinator — /dev/ttyUSB0"]
+        rodret["RODRET dimmer — pending re-pair"]
+        govee["Govee H600B lamps x2 — Matter over mDNS"]
+        t6["Honeywell T6 thermostat — HomeKit"]
+        applehome["Apple Home — via HASS Bridge :21064"]
+        printer["Network printer — AirPrint"]
+    end
+
+    site -.->|"redirects /lede /kalshi /quantlab"| funnel
+    guests -->|"HTTPS :8443 / :10000"| funnel
+    funnel --> rssr
+    funnel --> kalshipnl
+    funnel -->|"path-mount /quantlab"| quantlab
+    funnel -->|"path-mount /gp-… unguessable"| park
+
+    repo -->|"cron every 5 min: git pull + compose up -d --build"| cron
+    llmrepo -.->|"setup docs, read by agent on the machine"| ollama
+
+    laptop -->|"ssh — key mesh all 4 legs"| PI
+    laptop -->|"ssh"| ollama
+    laptop -->|"https://*.ankit.casa"| caddy
+    phone --> caddy
+
+    caddy -->|"ollama.ankit.casa → OLLAMA_UPSTREAM = studio:11434"| ollama
+    rssr -->|"summaries via OLLAMA_URL = ollama.ankit.casa"| ollama
+
+    cron --> backup
+    backup -->|"scp weekly — newest 4 stay on the Pi"| pibackups
+    wd -.->|"restart on wedge + kuma heartbeat"| matter
+    wd -.->|"re-assert mDNS fix"| cups
+
+    commute -->|"websocket"| discord
+    autovrr --> discord
+    gform --> discord
+    swap --> discord
+    commute --> google
+    gform -->|"Playwright"| google
+    autovrr -->|"Playwright"| vrr
+    swap --> reddit
+    rssr --> feeds
+    kalshipnl --> kalshiapi
+    quantlab --> kalshiapi
+    netalertx -.->|"arp scan"| printer
+
+    ha -->|"ZHA"| stick
+    stick --> zigbee
+    rodret -.-> zigbee
+    matter --> govee
+    ha -->|"homekit_controller"| t6
+    ha --> applehome
+    cups --> printer
+```
+
+How it fits together:
+- **Ingress:** Caddy serves `*.ankit.casa` (tailnet-only DNS) with a real wildcard cert. The public internet only ever reaches the Pi through two Tailscale Funnel ports (8443, 10000) — path-mounts share them.
+- **Compute split:** the Pi runs every service except inference. The Mac Studio runs Ollama natively (Metal GPU) behind `ollama.ankit.casa` and holds the off-box backup tarballs.
+- **Smart home:** HA talks Zigbee (EZSP USB stick, ZHA), Matter (mDNS via matter-server), and HomeKit (thermostat in, HASS Bridge out to Apple Home). Two host-level systemd watchdogs keep printer discovery and Matter nodes alive.
+- **Safety net:** weekly backup tarballs land on the Studio (`~/pi-backups`); RESTORE.md rebuilds the Pi from bare SD + tarball.
+
 ## Remote Access (Tailscale)
 
 The Pi is on the tailnet (`raspberrypi`, MagicDNS enabled) and is configured as:
@@ -65,6 +191,7 @@ Funnel mounts are host state, not Docker state — like the printer watchdog, th
 |---|---|---|
 | GitOps deploy (`crontab -l`) | every 5 min | `git fetch`; if `origin/main` changed: `git pull && docker compose up -d --build`. Push to main = deploy. |
 | Docker prune (`crontab -l`) | Sun 04:30 | `docker system prune -af --filter "until=168h"` — clears week-old unused images and build cache from GitOps builds |
+| Backup (`crontab -l`) | Sun 03:00 | `sudo scripts/backup.sh` — secrets+state tarball to `/home/ankit/backups` (newest 4) + scp copy to the Mac Studio `~/pi-backups` (newest 12). Log: `scripts/backup.log` |
 | Watchtower | daily ~04:00 UTC | Auto-pulls new images and recreates containers (skips locally-built images). Runs the maintained fork `nickfedor/watchtower` (original containrrr project is unmaintained). |
 | Printer watchdog (`systemd` timer — **host unit, not Docker**) | every 5 min | Re-asserts the CUPS/avahi mDNS fix (the recurring "can't reach printer" bug) and heartbeats uptime-kuma. Units + script live in [`scripts/printer-watchdog.*`](./scripts/printer-watchdog.md); installed manually on the host, so it must be re-installed on a rebuild (not covered by GitOps). |
 | Matter watchdog (`systemd` timer — **host unit, not Docker**) | every 5 min | matter-server stops retrying its nodes after a network outage and never recovers, while the container still reports `Up` and `/info` still returns 200. Checks real node availability and restarts the container — gated on LAN-up, 3 consecutive failures, and max 1 restart/hr — then heartbeats uptime-kuma. See [`scripts/matter-watchdog.*`](./scripts/matter-watchdog.md); host install, so re-install on a rebuild. The matching container healthcheck *is* GitOps-covered. |
@@ -76,7 +203,8 @@ Retired 2026-07-11: the Cloudflare DDNS cron and the homepage IP-monitor timer (
 [RESTORE.md](./RESTORE.md) is the bare-SD-card-to-running rebuild runbook.
 [`scripts/backup.sh`](./scripts/backup.sh) bundles the parts git can't hold
 (`.env` secrets, Zigbee/Matter pairings, HA config, monitor/subscription DBs) —
-run it on the Pi and keep the tarball somewhere off the SD card.
+runs weekly (Sun 03:00 cron) and pushes a copy off-box to the Mac Studio
+(`~/pi-backups`); manual run: `sudo scripts/backup.sh`.
 
 ## Quick Start
 
