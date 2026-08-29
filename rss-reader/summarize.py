@@ -35,6 +35,9 @@ BREAKER_THRESHOLD = int(os.environ.get("SUMMARY_BREAKER_THRESHOLD") or 3)
 
 # Too little source text to improve on — skip the call, keep what we have.
 MIN_TEXT = 20
+# Extracted text shorter than this is a metadata stub, not an article — the
+# model would narrate the junk instead of summarizing it. Use the blurb.
+MIN_ARTICLE_TEXT = 200
 # Article text is capped well below the model's context so the prompt stays cheap.
 MAX_ARTICLE_CHARS = 6000
 # Extraction runs concurrently; the LLM calls below stay serial (Ollama is).
@@ -44,7 +47,9 @@ THEME_TITLES = 40
 
 ITEM_PROMPT = (
     "Summarize this article in 1-2 clear, factual sentences for a news digest. "
-    "Write the summary only — no preamble, no 'this article', no quotes.\n\n"
+    "Write the summary only — no preamble, no 'this article', no quotes. "
+    "If the text is missing, unusable, or only metadata or navigation, "
+    "reply with exactly: SKIP\n\n"
     "Title: {title}\n\nArticle text: {text}\n\nSummary:"
 )
 
@@ -93,6 +98,21 @@ async def _generate(client: httpx.AsyncClient, prompt: str, num_predict: int) ->
     return await retry_fib(call, tries=3, label="ollama")
 
 
+# Meta-commentary instead of a summary: the model describing its input
+# ("The provided text is a metadata header... does not contain..."). Never
+# cache or serve these — the feed blurb is the better fallback.
+_META_SUBJECTS = ("the provided", "the text", "this text", "the article", "this article", "the given", "the input")
+_META_PHRASES = ("does not contain", "no article", "metadata", "cannot summarize", "unable to summarize", "insufficient", "no factual", "not enough", "only contains")
+
+
+def _is_meta_response(out: str) -> bool:
+    low = out.lower()
+    return low.strip(".! \n") == "skip" or (
+        any(low.startswith(s) for s in _META_SUBJECTS)
+        and any(p in low for p in _META_PHRASES)
+    )
+
+
 class Summarizer:
     """One instance for the app; failure state resets at the start of each cycle."""
 
@@ -124,7 +144,7 @@ class Summarizer:
         # failure and never touches the breaker.
         articles = await asyncio.gather(*(_article_text(client, i) for i in pending))
         for item, article in zip(pending, articles):
-            text = article if len(article) >= MIN_TEXT else (item.get("summary") or "").strip()
+            text = article if len(article) >= MIN_ARTICLE_TEXT else (item.get("summary") or "").strip()
             if len(text) < MIN_TEXT:
                 continue  # no article text and no usable blurb — nothing to improve on
             if self._tripped or self._budget <= 0:
@@ -137,7 +157,9 @@ class Summarizer:
                     num_predict=160,
                 )
                 self._fails = 0
-                if out:
+                if _is_meta_response(out):
+                    log.warning("meta-response for %s rejected; keeping fallback", item["id"])
+                elif out:
                     db.save_summary(item["id"], OLLAMA_MODEL, out)
                     item["summary"] = out
                     item["summarized"] = True
