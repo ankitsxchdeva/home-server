@@ -46,6 +46,13 @@
         server: pi
         container: netalertx
 
+    - Service Map:
+        icon: mdi-map-legend
+        href: https://diagram.ankit.casa
+        description: Interactive architecture diagram
+        server: pi
+        container: diagram
+
 - AI:
     - Ollama:
         icon: ollama.png

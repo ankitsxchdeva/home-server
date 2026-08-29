@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ankit.casa · service map</title>
+  <meta name="description" content="Interactive transit-style map of the home-server stack: every service, port, and data flow on the Pi, the Mac Studio, and the home LAN.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23131210'/%3E%3Cpath d='M6 22 L14 14 L26 14' stroke='%23e85f3c' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3Cpath d='M6 10 L14 18 L26 18' stroke='%234f9cf5' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='6' cy='22' r='3' fill='%23f2ede3'/%3E%3Ccircle cx='6' cy='10' r='3' fill='%23f2ede3'/%3E%3Ccircle cx='26' cy='18' r='3' fill='%23f2ede3'/%3E%3Ccircle cx='26' cy='14' r='3' fill='%23f2ede3'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>ankit.casa <span class="dot">·</span> service map</h1>
+    <span class="sub">every service, port and data flow — click a station for its end-to-end path</span>
+    <button id="legendToggle" class="hbtn">lines</button>
+    <div id="searchWrap">
+      <input id="search" type="text" placeholder="jump to a service…  ( / )" autocomplete="off" spellcheck="false">
+      <div id="searchResults"></div>
+    </div>
+    <button id="resetBtn" class="hbtn">reset view</button>
+    <a class="hbtn" href="https://ankit.casa">&larr; dashboard</a>
+  </header>
+
+  <div id="body">
+    <aside id="legend">
+      <h3>LINES</h3>
+      <div id="legendLines"></div>
+      <div class="hint">
+        <b>Click a station</b> to light its end-to-end path and read the hops.<br>
+        <b>Click a line</b> above to show or hide it.<br>
+        <b>Drag</b> to pan, <b>scroll</b> to zoom, <b>Esc</b> resets.<br><br>
+        Stations with white centers are interchanges — more than one line stops there. Dashed lines are optional, polled, or standby links.
+      </div>
+    </aside>
+
+    <main id="mapwrap">
+      <svg id="map" role="img" aria-label="Interactive map of the home-server stack"></svg>
+    </main>
+  </div>
+
+  <aside id="panel"></aside>
+  <div id="tooltip"></div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+  <script>
+    document.getElementById("legendToggle").onclick = () =>
+      document.getElementById("legend").classList.toggle("open");
+  </script>
+</body>
+</html>

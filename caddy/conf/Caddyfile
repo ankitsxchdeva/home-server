@@ -62,6 +62,11 @@ ankit.casa, *.ankit.casa {
 		reverse_proxy dozzle:8080
 	}
 
+	@diagram host diagram.ankit.casa
+	handle @diagram {
+		reverse_proxy diagram:80
+	}
+
 	# Ollama runs natively on the Mac Studio now (see studio-llm repo) — no
 	# auth of its own; the tailnet (ankit.casa -> Tailscale IP) is the boundary.
 	# OLLAMA_UPSTREAM = the Studio's Tailscale IP:port, set in caddy/.env

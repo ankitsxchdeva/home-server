@@ -14,6 +14,7 @@ A complete home server setup running on Raspberry Pi with Docker containers.
 - **[Uptime Kuma](./uptime-kuma/)** - Service monitoring (https://kuma.ankit.casa; port 3001 bound to localhost for the host watchdogs' heartbeats)
 - **[Glances](./glances/)** - System resource monitoring (https://glances.ankit.casa — Caddy only, no host port)
 - **[Dozzle](./dozzle/)** - Container log viewer (https://logs.ankit.casa — Caddy only, no host port)
+- **[Service Map](./diagram/)** - Interactive transit-style diagram of the whole stack (https://diagram.ankit.casa — static site, nginx; click any service for its end-to-end path)
 
 ### Network
 - **[NetAlertX](./netalertx/)** - Network device scanner (port 20211, host network)
@@ -299,6 +300,7 @@ All served HTTPS by Caddy (http redirects to https):
 - **Kalshi PnL**: https://kalshi.ankit.casa/pnl (JSON API; also public via Funnel :10000)
 - **Quantlab**: https://quantlab.ankit.casa (full UI + API; also public at https://raspberrypi.tail9476fb.ts.net:10000/quantlab via Funnel)
 - **Dozzle**: https://logs.ankit.casa
+- **Service Map**: https://diagram.ankit.casa (interactive architecture diagram — data in `diagram/site/data.js`)
 - **Ollama**: https://ollama.ankit.casa (OpenAI-compatible LLM API at `/v1`; served natively by the Mac Studio over the tailnet — no web UI, no host port on the Pi.)
 
 Direct `http://<pi>:<port>` access remains only where something actually needs it: the host-network services (8123 HA, 20211 NetAlertX, 631 CUPS), uptime-kuma's 3001 bound to localhost for the watchdogs, and caddy's localhost funnel listener (8089). Everything else is Caddy-only — `https://name.ankit.casa` is the single door. Ollama is the exception: it isn't on the Pi at all — native on the Mac Studio, reachable only via `ollama.ankit.casa`.

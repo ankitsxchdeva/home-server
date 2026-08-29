@@ -1,0 +1,11 @@
+services:
+  diagram:
+    container_name: diagram
+    image: nginx:alpine
+    restart: unless-stopped
+    # No published port — reached via https://diagram.ankit.casa (Caddy -> diagram:80)
+    # Static site bind-mounted: content changes go live on the next GitOps pull
+    # with no rebuild (--build is a no-op for this service).
+    volumes:
+      - ./site:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
