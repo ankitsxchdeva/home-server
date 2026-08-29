@@ -5,7 +5,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app.py fetch.py discover.py db.py summarize.py backoff.py ./
+COPY *.py ./
 COPY scrapers ./scrapers
 
 CMD ["python", "-u", "app.py"]
