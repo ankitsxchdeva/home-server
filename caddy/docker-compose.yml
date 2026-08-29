@@ -17,6 +17,11 @@ services:
     ports:
       - "80:80"
       - "443:443"
+      # Public front doors: the two Tailscale Funnel mounts (host state,
+      # static) terminate TLS and proxy here — :8443→8088 (rss-reader),
+      # :10000→8089 (path routing in the Caddyfile). localhost-only.
+      - "127.0.0.1:8088:8088"
+      - "127.0.0.1:8089:8089"
     env_file:
       - .env
     volumes:

@@ -81,3 +81,34 @@ ankit.casa, *.ankit.casa {
 		reverse_proxy homepage:3000
 	}
 }
+
+# ── Public front doors ───────────────────────────────────────────────
+# Tailscale Funnel (host state, static — see RESTORE.md) terminates TLS and
+# proxies here: :8443 → 8088, :10000 → 8089. ALL public routing lives in
+# this file; the funnel mounts never change. Both listeners publish on
+# 127.0.0.1 only (see compose) — unreachable from the LAN.
+
+# Funnel :8443 — rss-reader (lede)
+:8088 {
+	reverse_proxy rss-reader:8000
+}
+
+# Funnel :10000 — path routing. Prefix-stripping happens HERE (handle_path),
+# not in tailscaled, so it is visible and versioned. Matching is by
+# specificity (longest path first), not file order.
+:8089 {
+	# Guest parking page at an unguessable path. PARK_PUBLIC_PATH lives in
+	# caddy/.env (gitignored, backed up); unset → matches nothing (fail-closed).
+	handle_path /{$PARK_PUBLIC_PATH:__unset__}* {
+		reverse_proxy autovrr:8003
+	}
+
+	handle_path /quantlab* {
+		reverse_proxy quantlab:3000
+	}
+
+	# default: kalshi-pnl (public pnl number)
+	handle {
+		reverse_proxy kalshi-pnl:8000
+	}
+}
