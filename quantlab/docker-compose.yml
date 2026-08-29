@@ -3,7 +3,9 @@ services:
     # Built straight from the app repo so the source lives in exactly one place.
     # Note this pins to main: a push to quantlab does NOT redeploy on its own,
     # because the GitOps cron only rebuilds when THIS repo changes. To pick up
-    # an app change: `docker compose up -d --build quantlab`.
+    # an app change: `docker compose build --no-cache quantlab && docker
+    # compose up -d quantlab` — plain `--build` reuses BuildKit's cached git
+    # clone of #main and silently ships stale code (bit us 2026-08-29).
     build:
       context: https://github.com/ankitsxchdeva/quantlab.git#main
     container_name: quantlab
