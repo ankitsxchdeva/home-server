@@ -1,37 +1,30 @@
 # rss-reader
 
-Backend for [lede](https://github.com/ankitsxchdeva/lede) — a personal news
-digest. One container that:
+Deploy config for the **lede** digest API. App code and image CI live in
+[ankitsxchdeva/lede](https://github.com/ankitsxchdeva/lede) (`backend/`) —
+this dir is compose + secrets + live-editable config only.
 
-- rebuilds `data/data.json` from `feeds.yaml` every `POLL_INTERVAL_SECONDS`
-  (feeds + scraped sites, deduped, newest first, trimmed to items published
-  since midnight in `DIGEST_TZ`)
-- serves `GET /data.json` (with CORS for the Pages frontend) and `GET /healthz`
-  on port 8000
+- Image: `ghcr.io/ankitsxchdeva/lede-backend:latest` (linux/arm64, built by
+  lede CI on push to main)
+- `feeds.yaml` — source list, bind-mounted; edit live, the next build cycle
+  picks it up
+- `.env.example` — every knob; the real `.env` is gitignored (`SAVE_TOKEN`,
+  `OLLAMA_*`) and covered by `scripts/backup.sh`
+- `data/` — digest output + `saved.db` read-later state (gitignored)
 
-Tailscale Funnel (`:10000`) proxies to caddy's localhost listener (`:8089`),
-where the `/lede` route serves this container publicly (prefix stripped);
-the static frontend at `ankitsachdeva.com/lede/` fetches `data.json` from there.
+## Reachable at
 
-## Adding a source
+- https://rss.ankit.casa — tailnet, via Caddy
+- https://raspberrypi.tail9476fb.ts.net:10000/lede — **PUBLIC**, via Funnel →
+  Caddy (`/lede` route, prefix stripped)
 
-Edit `feeds.yaml` (bind-mounted; no rebuild needed):
+Container serves `GET /data.json`, the saved-list write endpoints
+(`X-Lede-Token` gated), and `/healthz` on port 8000.
 
-```yaml
-  - name: Some Blog
-    url: https://example.com     # a feed URL, or a page — discovery finds the feed
-```
+## Deploys
 
-A genuinely feedless site gets a small module in `scrapers/` returning
-`{title, url, published?, summary?}` dicts, referenced by `scrape: module_name`.
-
-## Run
-
-```bash
-cp .env.example .env   # defaults are fine
-docker compose up -d --build
-curl localhost:8089/lede/healthz   # through the caddy funnel listener (no host port on 8000)
-```
-
-A failing source is reported as `ok: false` in `data.json` and keeps its last
-good items; it never fails the whole build.
+- **Config changes** (this dir): push to `main` — the GitOps cron recreates
+  the container.
+- **App changes** (lede repo): push to `main` there → CI builds the image →
+  watchtower pulls it (daily 04:00), or immediately on the Pi with
+  `docker compose pull rss-reader && docker compose up -d rss-reader`.

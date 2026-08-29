@@ -23,7 +23,7 @@ A complete home server setup running on Raspberry Pi with Docker containers.
 - **[Caddy](./caddy/)** - HTTPS reverse proxy for ankit.casa + *.ankit.casa (ports 80/443; wildcard Let's Encrypt cert via Cloudflare DNS-01, built from the official image with xcaddy)
 - **[CUPS](./cups/)** - Print server (port 631, host network)
 - **[13ft](./13ft/)** - Paywall bypass reader proxy (https://13ft.ankit.casa — Caddy only, no host port)
-- **[RSS Reader](./rss-reader/)** - RSS digest service for lede (JSON API; public via Funnel :10000 → caddy `/lede` route, feeds ankitsachdeva.com/lede)
+- **[RSS Reader](./rss-reader/)** - Deploy config for the lede digest API — app code + image live in [ankitsxchdeva/lede](https://github.com/ankitsxchdeva/lede) (`backend/`). JSON API; public via Funnel :10000 → caddy `/lede` route, feeds ankitsachdeva.com/lede
 - **[Kalshi PnL](./kalshi-pnl/)** - Lifetime Kalshi profit/loss JSON API (public via Funnel :10000 → caddy `/` route for ankitsachdeva.com/kalshi — response is the net number only; secrets scp'd by hand, see its README)
 - **[Quantlab](./quantlab/)** - Backtest + Kalshi arbitrage API (public via Funnel :10000 → caddy `/quantlab` route for ankitsachdeva.com/quantlab, see its README)
 - **Ollama** (moved off the Pi — see the [studio-llm](https://github.com/ankitsxchdeva/studio-llm) repo) - Local LLM running natively on a Mac Studio (Metal GPU); consumers reach it at `https://ollama.ankit.casa` via Caddy over the tailnet. rss-reader uses it to summarize items and write a daily themes overview; quantlab uses it as the default keyless provider for strategy compilation

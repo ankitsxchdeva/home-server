@@ -1,6 +1,10 @@
 services:
   rss-reader:
-    build: .
+    # App code + Dockerfile live in the lede repo (backend/); CI there builds
+    # and pushes this image on every push to main. App updates arrive via
+    # watchtower (daily 04:00) or immediately with:
+    #   docker compose pull rss-reader && docker compose up -d rss-reader
+    image: ghcr.io/ankitsxchdeva/lede-backend:latest
     container_name: rss-reader
     restart: unless-stopped
     cpus: "1.5"        # background digest builder; cap so build cycles can't hog the Pi
