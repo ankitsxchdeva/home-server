@@ -103,6 +103,12 @@ ankit.casa, *.ankit.casa {
 		reverse_proxy autovrr:8003
 	}
 
+	# rss-reader (lede) — moving here from the :8443 funnel, which retires
+	# once the lede frontend points at :10000/lede.
+	handle_path /lede* {
+		reverse_proxy rss-reader:8000
+	}
+
 	handle_path /quantlab* {
 		reverse_proxy quantlab:3000
 	}
