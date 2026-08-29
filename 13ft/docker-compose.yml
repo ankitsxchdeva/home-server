@@ -1,6 +1,8 @@
 services:
   13ft:
-    build: .
+    # Upstream image (github.com/wasi-master/13ft), multi-arch incl. arm64.
+    # Source was previously vendored in this dir; watchtower keeps it updated.
+    image: wasimaster/13ft:latest
     container_name: 13ft
     restart: unless-stopped
     # No published port — reached via https://13ft.ankit.casa (Caddy -> 13ft:5000)
