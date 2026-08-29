@@ -30,6 +30,7 @@ tar -czf "$OUT" \
   matter-server/data \
   uptime-kuma/data \
   reddit-swap-notifier/data \
+  rss-reader/data \
   netalertx/db \
   cups/config
 
