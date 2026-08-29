@@ -22,6 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 
+import cluster
 import db
 import fetch
 import summarize
@@ -137,6 +138,9 @@ async def build_once(client: httpx.AsyncClient) -> None:
         if len(todays) < min_today:
             items.extend(backfill[: min_today - len(todays)])
     items.sort(key=lambda i: i["published"], reverse=True)
+    # Same story from several sources collapses to one entry (sources listed in
+    # `related`), so the LLM only spends budget on unique stories.
+    items = cluster.cluster_items(items)
 
     # LLM enrichment: rewrite new items' summaries and add a themes overview.
     # Degrades to the feed's own truncated summaries if Ollama is unavailable.
@@ -150,6 +154,8 @@ async def build_once(client: httpx.AsyncClient) -> None:
     tmp = DATA_FILE.with_suffix(".tmp")
     tmp.write_text(json.dumps(payload, ensure_ascii=False))
     os.replace(tmp, DATA_FILE)  # atomic: serving never sees a half-written file
+    # Archive everything just served; re-upserts refresh summaries and tags.
+    db.upsert_items(items)
     ok = sum(1 for s in source_meta if s["ok"])
     log.info("Built digest: %d items from %d/%d sources", len(items), ok, len(source_meta))
     for s in source_meta:
@@ -236,6 +242,15 @@ def saved_add(item: SavedItem, x_lede_token: str | None = Header(default=None)):
 def saved_remove(item_id: str, x_lede_token: str | None = Header(default=None)):
     check_token(x_lede_token)
     return {"ok": True, "removed": db.remove_item(item_id)}
+
+
+@app.get("/items")
+def items_list(days: int = 7):
+    days = max(1, min(30, days))
+    since = (datetime.now(timezone.utc) - timedelta(days=days)).strftime(
+        "%Y-%m-%dT%H:%M:%SZ"
+    )
+    return {"items": db.items_since(since)}
 
 
 @app.get("/healthz")

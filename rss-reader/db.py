@@ -3,6 +3,7 @@
 Lives on the data volume.
 """
 
+import json
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
@@ -49,6 +50,21 @@ def init() -> None:
             created_at TEXT NOT NULL
         )"""
     )
+    # Persistent archive of every digest item; first_seen survives re-upserts.
+    _conn.execute(
+        """CREATE TABLE IF NOT EXISTS items (
+            id TEXT PRIMARY KEY,
+            title TEXT NOT NULL,
+            url TEXT NOT NULL,
+            source TEXT DEFAULT '',
+            category TEXT DEFAULT '',
+            published TEXT DEFAULT '',
+            summary TEXT DEFAULT '',
+            tags TEXT DEFAULT '[]',
+            first_seen TEXT NOT NULL,
+            last_seen TEXT NOT NULL
+        )"""
+    )
     _conn.commit()
 
 
@@ -74,6 +90,61 @@ def remove_item(item_id: str) -> bool:
     cur = _conn.execute("DELETE FROM saved WHERE id = ?", (item_id,))
     _conn.commit()
     return cur.rowcount > 0
+
+
+def upsert_items(items: list[dict]) -> None:
+    """Archive digest items; re-upserts refresh everything but first_seen."""
+    now = _now()
+    _conn.executemany(
+        """INSERT INTO items
+            (id, title, url, source, category, published, summary, tags,
+             first_seen, last_seen)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT(id) DO UPDATE SET
+            title = excluded.title,
+            url = excluded.url,
+            source = excluded.source,
+            category = excluded.category,
+            published = excluded.published,
+            summary = excluded.summary,
+            tags = excluded.tags,
+            last_seen = excluded.last_seen""",
+        [
+            (
+                item["id"],
+                item["title"],
+                item["url"],
+                item.get("source", ""),
+                item.get("category", ""),
+                item.get("published", ""),
+                item.get("summary", ""),
+                json.dumps(item.get("tags") or []),
+                now,
+                now,
+            )
+            for item in items
+        ],
+    )
+    _conn.commit()
+
+
+def items_since(since_iso: str) -> list[dict]:
+    """Archive rows published at/after since_iso, newest first, undated last."""
+    rows = _conn.execute(
+        """SELECT * FROM items
+           WHERE published = '' OR published >= ?
+           ORDER BY CASE WHEN published = '' THEN 1 ELSE 0 END, published DESC""",
+        (since_iso,),
+    ).fetchall()
+    items = []
+    for row in rows:
+        item = dict(row)
+        try:
+            item["tags"] = json.loads(item["tags"] or "[]")
+        except ValueError:
+            item["tags"] = []
+        items.append(item)
+    return items
 
 
 def list_items() -> list[dict]:

@@ -52,3 +52,76 @@ sources:
     category: software
     tags: [ai, finance]
     limit: 5                             # headliners only: top of the stream
+
+  - name: Lobsters
+    url: https://lobste.rs/rss
+    category: software
+    tags: [lobsters, tech]
+    limit: 8
+    aggregator: true
+
+  - name: Simon Willison
+    url: https://simonwillison.net/atom/everything/
+    category: software
+    tags: [ai, tech]
+    limit: 8
+
+  - name: OpenAI
+    url: https://openai.com/news/rss.xml
+    category: software
+    tags: [ai]
+    limit: 4                             # research + product posts, few a week
+
+  - name: selfh.st
+    url: https://selfh.st/rss/
+    category: software
+    tags: [homelab]
+    limit: 4                             # weekly self-hosted software roundup
+
+  - name: Raspberry Pi
+    url: https://www.raspberrypi.com/news/feed/  # news page 403s bots; feed direct
+    category: hardware
+    tags: [sbc]
+    limit: 6
+
+  - name: CNX Software
+    url: https://www.cnx-software.com/feed/
+    category: hardware
+    tags: [sbc, embedded]
+    limit: 5
+
+  - name: Hackaday
+    url: https://hackaday.com/feed/
+    category: hardware
+    tags: [hardware, diy]
+    limit: 4
+
+  - name: Phoronix
+    url: https://www.phoronix.com/rss.php
+    category: hardware
+    tags: [linux, hardware]
+    limit: 4
+
+  - name: Peter Attia
+    url: https://peterattiamd.com/feed/
+    category: health
+    tags: [longevity, fitness]
+    limit: 5
+
+  - name: Outside Online
+    url: https://www.outsideonline.com/feed/
+    category: health
+    tags: [fitness]
+    limit: 4
+
+  - name: NutritionFacts.org
+    url: https://nutritionfacts.org/feed/
+    category: health
+    tags: [nutrition]
+    limit: 4
+
+  - name: Barbell Medicine
+    url: https://www.barbellmedicine.com/feed/
+    category: health
+    tags: [fitness, strength]
+    limit: 4

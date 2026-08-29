@@ -1,27 +1,32 @@
 """LLM enrichment via a local Ollama service, with graceful fallback.
 
 Only new items hit the model; results are cached in SQLite so an item is
-summarized exactly once. If Ollama is down or slow, or the per-cycle failure
-budget trips the breaker, we leave the feed's own (truncated) summary in place —
+summarized exactly once. Summaries are written from the full article text
+(extract.py) when we can get it, else the feed's own (truncated) blurb; items
+with neither are skipped. If Ollama is down or slow, or the per-cycle failure
+budget trips the breaker, we leave the feed's own summary in place —
 the digest is never worse than it was without the LLM.
 
 Ollama runs natively on the Mac Studio (Metal); reached via Caddy at
 https://ollama.ankit.casa. Tailnet-only — never on the LAN or the funnel.
 """
 
+import asyncio
 import hashlib
 import logging
 import os
+import re
 
 import httpx
 
 import db
+import extract
 from backoff import retry_fib
 
 log = logging.getLogger(__name__)
 
 OLLAMA_URL = (os.environ.get("OLLAMA_URL") or "http://ollama:11434").rstrip("/")
-OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL") or "qwen2.5:3b"
+OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL") or "qwen3.8:27b"
 OLLAMA_TIMEOUT = float(os.environ.get("OLLAMA_TIMEOUT") or 90)
 KEEP_ALIVE = os.environ.get("OLLAMA_KEEP_ALIVE") or "10m"
 ENABLED = (os.environ.get("SUMMARY_ENABLED") or "1").lower() not in ("0", "false", "no", "")
@@ -30,13 +35,17 @@ BREAKER_THRESHOLD = int(os.environ.get("SUMMARY_BREAKER_THRESHOLD") or 3)
 
 # Too little source text to improve on — skip the call, keep what we have.
 MIN_TEXT = 20
+# Article text is capped well below the model's context so the prompt stays cheap.
+MAX_ARTICLE_CHARS = 6000
+# Extraction runs concurrently; the LLM calls below stay serial (Ollama is).
+_extract_sem = asyncio.Semaphore(6)
 # How many headlines feed the themes overview.
 THEME_TITLES = 40
 
 ITEM_PROMPT = (
     "Summarize this article in 1-2 clear, factual sentences for a news digest. "
     "Write the summary only — no preamble, no 'this article', no quotes.\n\n"
-    "Title: {title}\n\nText: {text}\n\nSummary:"
+    "Title: {title}\n\nArticle text: {text}\n\nSummary:"
 )
 
 # A small model will happily restate every headline as a list unless told not
@@ -50,6 +59,16 @@ THEME_PROMPT = (
 )
 
 
+async def _article_text(client: httpx.AsyncClient, item: dict) -> str:
+    """Full article text for one item, capped for the prompt; "" on failure."""
+    url = (item.get("url") or "").strip()
+    if not url:
+        return ""
+    async with _extract_sem:
+        text = await extract.extract_text(client, url)
+    return text[:MAX_ARTICLE_CHARS]
+
+
 async def _generate(client: httpx.AsyncClient, prompt: str, num_predict: int) -> str:
     async def call() -> str:
         resp = await client.post(
@@ -59,12 +78,17 @@ async def _generate(client: httpx.AsyncClient, prompt: str, num_predict: int) ->
                 "prompt": prompt,
                 "stream": False,
                 "keep_alive": KEEP_ALIVE,
+                # qwen3.8 is a thinking model; thinking would eat the whole
+                # num_predict budget and return an empty response.
+                "think": False,
                 "options": {"temperature": 0.2, "num_predict": num_predict},
             },
             timeout=OLLAMA_TIMEOUT,
         )
         resp.raise_for_status()
-        return (resp.json().get("response") or "").strip()
+        out = (resp.json().get("response") or "").strip()
+        # Belt-and-suspenders: if thinking ever leaks through anyway, drop it.
+        return re.sub(r"<think>.*?</think>", "", out, flags=re.DOTALL).strip()
 
     return await retry_fib(call, tries=3, label="ollama")
 
@@ -86,15 +110,23 @@ class Summarizer:
             return
         self._fails = 0
         self._budget = MAX_PER_CYCLE
+        pending = []
         for item in items:
             cached = db.get_summary(item["id"], OLLAMA_MODEL)
             if cached:
                 item["summary"] = cached
                 item["summarized"] = True
-                continue
-            text = (item.get("summary") or "").strip()
+            else:
+                pending.append(item)
+        # Fetch article text for all new items up front, concurrently — Ollama
+        # is serial, so extraction is the only stage worth parallelizing. A
+        # failure yields "" and falls back to the blurb; it is not an LLM
+        # failure and never touches the breaker.
+        articles = await asyncio.gather(*(_article_text(client, i) for i in pending))
+        for item, article in zip(pending, articles):
+            text = article if len(article) >= MIN_TEXT else (item.get("summary") or "").strip()
             if len(text) < MIN_TEXT:
-                continue  # link-only item (e.g. HN) — nothing to improve on
+                continue  # no article text and no usable blurb — nothing to improve on
             if self._tripped or self._budget <= 0:
                 continue  # keep the truncated fallback already in place
             self._budget -= 1
@@ -102,7 +134,7 @@ class Summarizer:
                 out = await _generate(
                     client,
                     ITEM_PROMPT.format(title=item["title"], text=text),
-                    num_predict=120,
+                    num_predict=160,
                 )
                 self._fails = 0
                 if out:
