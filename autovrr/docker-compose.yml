@@ -5,7 +5,6 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    ports:
-      # Guest parking web page (web.py) — tailnet via park.ankit.casa,
-      # public via the Tailscale Funnel :10000 path-mount (path in .env)
-      - "8003:8003"
+    # Guest parking web page (web.py) — tailnet via https://park.ankit.casa,
+    # public via funnel :10000 → caddy :8089 (Caddyfile routes
+    # /$PARK_PUBLIC_PATH here; the path lives in caddy/.env). No published port.

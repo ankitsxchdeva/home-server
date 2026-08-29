@@ -18,7 +18,7 @@ https://ankitsachdeva.com/kalshi/).
 Reachable at:
 - https://kalshi.ankit.casa (tailnet, via Caddy)
 - https://raspberrypi.tail9476fb.ts.net:10000 (PUBLIC, via Tailscale Funnel
-  → host port 8001 — anything this app serves is visible to the internet)
+  → caddy :8089 `/` route — anything this app serves is visible to the internet)
 
 ## Secrets (not in git)
 

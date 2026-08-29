@@ -43,10 +43,12 @@ the SD card.
 ```bash
 curl -fsSL https://tailscale.com/install.sh | sh
 sudo tailscale up --advertise-routes=192.168.1.0/24 --advertise-exit-node
-sudo tailscale funnel --bg --https=8443 http://127.0.0.1:8000   # rss-reader → lede
-# kalshi-pnl (/) and quantlab (/quantlab) mounts on :10000 — see README.md.
-# The park page's :10000 path-mount uses an intentionally unguessable path;
-# the exact command lives in autovrr/.env on the Pi (restored by backup tarball).
+sudo tailscale funnel --bg --https=10000 http://127.0.0.1:8089  # → caddy: ALL public traffic
+# This one static mount is the entire funnel config. Every public route
+# (/ → kalshi-pnl, /lede → rss-reader, /quantlab → quantlab, the park page
+# at $PARK_PUBLIC_PATH) lives in caddy/conf/Caddyfile's :8089 block. The park
+# path is restored with caddy/.env from the backup tarball; without it the
+# park route stays fail-closed and everything else works.
 ```
 
 Then in the [admin console](https://login.tailscale.com/admin/machines):
@@ -58,8 +60,8 @@ Then in the [admin console](https://login.tailscale.com/admin/machines):
    `ankit.casa` and `*.ankit.casa` A records in Cloudflare DNS to point at it,
    or nothing behind Caddy resolves.
 
-Verify: `tailscale serve status` shows Funnel on :8443 proxying to
-`http://127.0.0.1:8000`.
+Verify: `tailscale serve status` shows exactly one mount — Funnel :10000
+proxying to `http://127.0.0.1:8089` (caddy).
 
 ## 5. Restore secrets + state
 
@@ -90,8 +92,9 @@ cd ~/home-server && docker compose up -d --build # first build takes a while on 
 - `docker compose ps` — everything Up
 - https://ankit.casa loads (Caddy got its wildcard cert — needs a valid
   `CF_API_TOKEN` in `caddy/.env`)
-- `curl -s http://127.0.0.1:8000/healthz` → `{"ok":true}`, and
-  https://raspberrypi.tail9476fb.ts.net:8443 serves it publicly (lede works)
+- `curl -s http://127.0.0.1:8089/lede/healthz` → `{"ok":true}` (through the
+  caddy funnel listener), and https://raspberrypi.tail9476fb.ts.net:10000/lede/data.json
+  serves it publicly (lede works)
 - Discord bots show online (commute-bot, autovrr, gform-image-embed,
   reddit-swap-notifier)
 - Home Assistant at https://ha.ankit.casa with existing users/devices

@@ -3,8 +3,8 @@ services:
     build: .
     container_name: kalshi-pnl
     restart: unless-stopped
-    ports:
-      - "8001:8000"          # tailscale funnel :10000 points here (public pnl number)
+    # No published port — public via funnel :10000 → caddy :8089 (/ route),
+    # tailnet via https://kalshi.ankit.casa.
     volumes:
       - ./kalshi_private_key.pem:/app/kalshi_private_key.pem:ro
     env_file:

@@ -22,14 +22,14 @@ A complete home server setup running on Raspberry Pi with Docker containers.
 - **[Caddy](./caddy/)** - HTTPS reverse proxy for ankit.casa + *.ankit.casa (ports 80/443; wildcard Let's Encrypt cert via Cloudflare DNS-01, built from the official image with xcaddy)
 - **[CUPS](./cups/)** - Print server (port 631, host network)
 - **[13ft](./13ft/)** - Paywall bypass reader proxy (https://13ft.ankit.casa — Caddy only, no host port)
-- **[RSS Reader](./rss-reader/)** - RSS digest service for lede (port 8000, JSON API; served publicly via Tailscale Funnel :8443 for ankitsachdeva.com/lede)
-- **[Kalshi PnL](./kalshi-pnl/)** - Lifetime Kalshi profit/loss JSON API (host port 8001; served publicly via Tailscale Funnel :10000 for ankitsachdeva.com/kalshi — response is the net number only; secrets scp'd by hand, see its README)
-- **[Quantlab](./quantlab/)** - Backtest + Kalshi arbitrage API (host port 8002; served publicly via Tailscale Funnel :10000 under the `/quantlab` path for ankitsachdeva.com/quantlab — shares the funnel port with kalshi-pnl, see its README)
+- **[RSS Reader](./rss-reader/)** - RSS digest service for lede (JSON API; public via Funnel :10000 → caddy `/lede` route, feeds ankitsachdeva.com/lede)
+- **[Kalshi PnL](./kalshi-pnl/)** - Lifetime Kalshi profit/loss JSON API (public via Funnel :10000 → caddy `/` route for ankitsachdeva.com/kalshi — response is the net number only; secrets scp'd by hand, see its README)
+- **[Quantlab](./quantlab/)** - Backtest + Kalshi arbitrage API (public via Funnel :10000 → caddy `/quantlab` route for ankitsachdeva.com/quantlab, see its README)
 - **Ollama** (moved off the Pi — see the [studio-llm](https://github.com/ankitsxchdeva/studio-llm) repo) - Local LLM running natively on a Mac Studio (Metal GPU); consumers reach it at `https://ollama.ankit.casa` via Caddy over the tailnet. rss-reader uses it to summarize items and write a daily themes overview; quantlab uses it as the default keyless provider for strategy compilation
 
 ### Discord Bots
 - **[Commute Bot](./commute-bot/)** - Commute time lookup via Google Maps
-- **[AutoVRR](./autovrr/)** - Visitor parking registration automation. Also serves the guest parking web page (host port 8003, Basic auth; tailnet at park.ankit.casa, public via a Funnel :10000 path-mount — unguessable path stored only on the Pi; the redirect at ankitsachdeva.com/park is just a shortcut to it)
+- **[AutoVRR](./autovrr/)** - Visitor parking registration automation. Also serves the guest parking web page (tailnet at park.ankit.casa; public via a Funnel :10000 → caddy path route at an unguessable path — PARK_PUBLIC_PATH in caddy/.env)
 - **[Google Form Image Embed](./gform-image-embed/)** - Replies with images extracted from Google Forms links
 - **[Reddit Swap Notifier](./reddit-swap-notifier/)** - Pings you on Discord when new swap-subreddit posts match your keywords
 
@@ -57,7 +57,7 @@ flowchart LR
         you["Your devices — laptop, phone"]
 
         subgraph PI["Raspberry Pi 5 — the hub"]
-            funnel["Funnel :8443 / :10000"]
+            funnel["Funnel :10000"]
             caddy["Caddy — *.ankit.casa"]
             apps["12 web apps<br/>dashboards · APIs · parking page"]
             bots["4 Discord bots"]
@@ -79,8 +79,8 @@ flowchart LR
     end
 
     site -.->|"redirects"| guests
-    guests -->|"two funnel ports only"| funnel
-    funnel --> apps
+    guests -->|"one funnel port"| funnel
+    funnel --> caddy
     gh -->|"push to main → deploy in 5 min"| chores
     you -->|"https://*.ankit.casa"| caddy
     caddy --> apps
@@ -121,7 +121,7 @@ flowchart LR
         phone["Phone + other tailnet devices"]
 
         subgraph PI["Raspberry Pi 5 — 'raspberrypi' — subnet router 192.168.1.0/24 + exit node"]
-            funnel["Tailscale Funnel — :8443 and :10000 only"]
+            funnel["Tailscale Funnel — :10000 only"]
             caddy["Caddy :80/:443 — ankit.casa + *.ankit.casa — wildcard LE cert via Cloudflare DNS-01"]
 
             subgraph WEB["Web services — all https://name.ankit.casa via Caddy"]
@@ -170,11 +170,8 @@ flowchart LR
     end
 
     site -.->|"redirects /lede /kalshi /quantlab"| funnel
-    guests -->|"HTTPS :8443 / :10000"| funnel
-    funnel --> rssr
-    funnel --> kalshipnl
-    funnel -->|"path-mount /quantlab"| quantlab
-    funnel -->|"path-mount /gp-… unguessable"| park
+    guests -->|"HTTPS :10000"| funnel
+    funnel -->|"static mount → caddy :8089"| caddy
 
     repo -->|"cron every 5 min: git pull + compose up -d --build"| cron
     llmrepo -.->|"setup docs, read by agent on the machine"| ollama
@@ -217,7 +214,7 @@ flowchart LR
 </details>
 
 How it fits together:
-- **Ingress:** Caddy serves `*.ankit.casa` (tailnet-only DNS) with a real wildcard cert. The public internet only ever reaches the Pi through two Tailscale Funnel ports (8443, 10000) — path-mounts share them.
+- **Ingress:** Caddy serves `*.ankit.casa` (tailnet-only DNS) with a real wildcard cert. The public internet reaches the Pi through exactly one Tailscale Funnel port (10000), which proxies to a static localhost Caddy listener — every public route lives in the Caddyfile.
 - **Compute split:** the Pi runs every service except inference. The Mac Studio runs Ollama natively (Metal GPU) behind `ollama.ankit.casa` and holds the off-box backup tarballs.
 - **Smart home:** HA talks Zigbee (EZSP USB stick, ZHA), Matter (mDNS via matter-server), and HomeKit (thermostat in, HASS Bridge out to Apple Home). Two host-level systemd watchdogs keep printer discovery and Matter nodes alive.
 - **Safety net:** weekly backup tarballs land on the Studio (`~/pi-backups`); RESTORE.md rebuilds the Pi from bare SD + tarball.
@@ -228,17 +225,11 @@ The Pi is on the tailnet (`raspberrypi`, MagicDNS enabled) and is configured as:
 - **Subnet router** advertising `192.168.1.0/24` - remote devices on the tailnet can reach the whole LAN
 - **Exit node** (optional full-tunnel routing)
 
-Subnet routes / exit node must be approved in the Tailscale admin console after (re)advertising. Tailscale Funnels publicly serve the rss-reader on https://raspberrypi.tail9476fb.ts.net:8443 (feeds ankitsachdeva.com/lede, github.com/ankitsxchdeva/lede) and kalshi-pnl on https://raspberrypi.tail9476fb.ts.net:10000 (feeds ankitsachdeva.com/kalshi, github.com/ankitsxchdeva/kalshi) — do not remove either. Port 443 belongs to Caddy.
+Subnet routes / exit node must be approved in the Tailscale admin console after (re)advertising. One Tailscale Funnel serves all public traffic on https://raspberrypi.tail9476fb.ts.net:10000 — `/` → kalshi-pnl (feeds ankitsachdeva.com/kalshi), `/lede` → rss-reader (feeds ankitsachdeva.com/lede, github.com/ankitsxchdeva/lede), `/quantlab` → quantlab, and the park page at an unguessable path. Do not remove it.
 
-Funnel supports only ports 443, 8443 and 10000. 8443 and 10000 are the two funnels above; 443 cannot be funneled at all because Caddy already binds `0.0.0.0:443`, which covers the tailnet address tailscaled would need. So there are no free funnel ports, and anything else needing public exposure must **path-mount onto an existing one**:
+Funnel supports only ports 443, 8443 and 10000, and 443 cannot be funneled at all because Caddy already binds `0.0.0.0:443`, which covers the tailnet address tailscaled would need. One mount on :10000 is all we need: it proxies to a **static localhost Caddy listener** (`127.0.0.1:8089`), and every public route lives in [`caddy/conf/Caddyfile`](./caddy/conf/Caddyfile)'s `:8089` block. `handle_path` strips each route's prefix before proxying, so the backend sees `/api/run`, not `/quantlab/api/run`. **New public exposure = add a route to the `:8089` block; no host change, no new funnel mount.** The park path is `PARK_PUBLIC_PATH` in `caddy/.env` (fail-closed if unset).
 
-```bash
-sudo tailscale funnel --bg --https=10000 --set-path=/quantlab http://127.0.0.1:8002
-```
-
-[quantlab](./quantlab/) does this, sharing :10000 with kalshi-pnl (`/` stays kalshi-pnl, `/quantlab` is the new mount). The mount **strips its prefix** before proxying, so the backend sees `/api/run`, not `/quantlab/api/run`.
-
-Funnel mounts are host state, not Docker state — like the printer watchdog, they survive `docker compose down` but must be re-created on a rebuild. See [RESTORE.md](./RESTORE.md).
+The funnel mount itself is host state, not Docker state — it survives `docker compose down` but must be re-created on a rebuild (one command; see [RESTORE.md](./RESTORE.md)).
 
 `ankit.casa` and `*.ankit.casa` resolve (unproxied Cloudflare DNS) to the Pi's Tailscale IP, so every URL below works from any tailnet device anywhere, with a real Let's Encrypt certificate, and is unreachable from the public internet.
 
@@ -304,10 +295,10 @@ All served HTTPS by Caddy (http redirects to https):
 - **CUPS Print Server**: https://cups.ankit.casa
 - **13ft Reader**: https://13ft.ankit.casa
 - **RSS Reader**: https://rss.ankit.casa/docs (JSON API; Swagger UI)
-- **Guest Parking**: https://park.ankit.casa (Basic auth; also public via a Funnel :10000 path-mount — unguessable path, stored only on the Pi)
-- **Kalshi PnL**: https://kalshi.ankit.casa/pnl (JSON API; host port 8001, also public via Funnel :10000)
-- **Quantlab**: https://quantlab.ankit.casa (full UI + API; host port 8002. Also public at https://raspberrypi.tail9476fb.ts.net:10000/quantlab via Funnel)
+- **Guest Parking**: https://park.ankit.casa (login page + session cookie; also public via the Funnel :10000 path route at an unguessable path — PARK_PUBLIC_PATH in caddy/.env)
+- **Kalshi PnL**: https://kalshi.ankit.casa/pnl (JSON API; also public via Funnel :10000)
+- **Quantlab**: https://quantlab.ankit.casa (full UI + API; also public at https://raspberrypi.tail9476fb.ts.net:10000/quantlab via Funnel)
 - **Dozzle**: https://logs.ankit.casa
 - **Ollama**: https://ollama.ankit.casa (OpenAI-compatible LLM API at `/v1`; served natively by the Mac Studio over the tailnet — no web UI, no host port on the Pi.)
 
-Direct `http://<pi>:<port>` access remains only where something actually needs it: the host-network services (8123 HA, 20211 NetAlertX, 631 CUPS), the four funnel-target ports (8000-8003), and uptime-kuma's 3001 bound to localhost for the watchdogs. Everything else is Caddy-only — `https://name.ankit.casa` is the single door. Ollama is the exception: it isn't on the Pi at all — native on the Mac Studio, reachable only via `ollama.ankit.casa`.
+Direct `http://<pi>:<port>` access remains only where something actually needs it: the host-network services (8123 HA, 20211 NetAlertX, 631 CUPS), uptime-kuma's 3001 bound to localhost for the watchdogs, and caddy's localhost funnel listener (8089). Everything else is Caddy-only — `https://name.ankit.casa` is the single door. Ollama is the exception: it isn't on the Pi at all — native on the Mac Studio, reachable only via `ollama.ankit.casa`.

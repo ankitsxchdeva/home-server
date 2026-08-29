@@ -82,20 +82,13 @@ ankit.casa, *.ankit.casa {
 	}
 }
 
-# ── Public front doors ───────────────────────────────────────────────
-# Tailscale Funnel (host state, static — see RESTORE.md) terminates TLS and
-# proxies here: :8443 → 8088, :10000 → 8089. ALL public routing lives in
-# this file; the funnel mounts never change. Both listeners publish on
+# ── Public front door ────────────────────────────────────────────────
+# The single Tailscale Funnel mount (host state, static — see RESTORE.md)
+# terminates TLS and proxies :10000 → 8089. ALL public routing lives in this
+# block; the funnel mount never changes. Prefix-stripping happens HERE
+# (handle_path), not in tailscaled, so it is visible and versioned. Matching
+# is by specificity (longest path first), not file order. Published on
 # 127.0.0.1 only (see compose) — unreachable from the LAN.
-
-# Funnel :8443 — rss-reader (lede)
-:8088 {
-	reverse_proxy rss-reader:8000
-}
-
-# Funnel :10000 — path routing. Prefix-stripping happens HERE (handle_path),
-# not in tailscaled, so it is visible and versioned. Matching is by
-# specificity (longest path first), not file order.
 :8089 {
 	# Guest parking page at an unguessable path. PARK_PUBLIC_PATH lives in
 	# caddy/.env (gitignored, backed up); unset → matches nothing (fail-closed).
@@ -103,8 +96,7 @@ ankit.casa, *.ankit.casa {
 		reverse_proxy autovrr:8003
 	}
 
-	# rss-reader (lede) — moving here from the :8443 funnel, which retires
-	# once the lede frontend points at :10000/lede.
+	# rss-reader (lede digest API)
 	handle_path /lede* {
 		reverse_proxy rss-reader:8000
 	}

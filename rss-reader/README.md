@@ -9,8 +9,9 @@ digest. One container that:
 - serves `GET /data.json` (with CORS for the Pages frontend) and `GET /healthz`
   on port 8000
 
-Tailscale Funnel serves port 8000 publicly (on `:8443`); the static frontend at
-`ankitsachdeva.com/lede/` fetches `data.json` from there.
+Tailscale Funnel (`:10000`) proxies to caddy's localhost listener (`:8089`),
+where the `/lede` route serves this container publicly (prefix stripped);
+the static frontend at `ankitsachdeva.com/lede/` fetches `data.json` from there.
 
 ## Adding a source
 
@@ -29,7 +30,7 @@ A genuinely feedless site gets a small module in `scrapers/` returning
 ```bash
 cp .env.example .env   # defaults are fine
 docker compose up -d --build
-curl localhost:8000/healthz
+curl localhost:8089/lede/healthz   # through the caddy funnel listener (no host port on 8000)
 ```
 
 A failing source is reported as `ok: false` in `data.json` and keeps its last

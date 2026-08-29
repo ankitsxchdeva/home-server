@@ -4,8 +4,8 @@ services:
     container_name: rss-reader
     restart: unless-stopped
     cpus: "1.5"        # background digest builder; cap so build cycles can't hog the Pi
-    ports:
-      - "8000:8000"          # tailscale funnel points here
+    # No published port — public via funnel :10000 → caddy :8089 (/lede route),
+    # tailnet via https://rss.ankit.casa.
     volumes:
       - ./data:/app/data     # data.json output
       - ./feeds.yaml:/app/feeds.yaml:ro   # edit live; next cycle picks it up

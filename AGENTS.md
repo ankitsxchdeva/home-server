@@ -13,14 +13,14 @@ Human-facing docs: [README.md](./README.md) (services, URLs, automation), [RESTO
 
 Changes to these are invisible to GitOps and must be re-applied on rebuild (RESTORE.md):
 
-1. **Tailscale Funnel mounts** — `:8443` → rss-reader (lede), `:10000` → kalshi-pnl at `/` + quantlab at `/quantlab` + the park page at an unguessable path (all prefixes stripped). Never remove any of them.
+1. **Tailscale Funnel mount** — exactly one, static: `:10000` → caddy `127.0.0.1:8089`. All public routing (paths, prefix-stripping) lives in `caddy/conf/Caddyfile`. Never remove it.
 2. **systemd watchdogs** — printer-watchdog and matter-watchdog (`scripts/*watchdog.*`, install instructions in the matching `.md`).
 3. **Crontab** and **`/etc/docker/daemon.json`** — versioned snapshots live in `scripts/`; after changing the live ones, re-export into `scripts/`.
 4. **Secrets/state** — restored only from `scripts/backup.sh` tarballs.
 
 ## Hard constraints
 
-- Funnel supports only ports **443, 8443, 10000**. 8443 and 10000 are taken; **443 can never be funneled** (Caddy binds `0.0.0.0:443`). New public exposure ⇒ path-mount onto an existing funnel port (see README for the exact command). 
+- Funnel supports only ports **443, 8443, 10000**; **443 can never be funneled** (Caddy binds `0.0.0.0:443`). We use a single static mount on :10000 → caddy :8089. New public exposure ⇒ add a `handle_path` route to the Caddyfile `:8089` block — no new host state.
 - Caddy serves `ankit.casa` / `*.ankit.casa` (DNS → Tailscale IP, tailnet-only) with a wildcard LE cert via Cloudflare DNS-01 (`caddy/.env` `CF_API_TOKEN`).
 - Ollama runs **natively on the Mac Studio** (Metal GPU — not on the Pi, never in Mac Docker). Caddy proxies `ollama.ankit.casa` → `{$OLLAMA_UPSTREAM}` = the Studio's Tailscale IP:11434, set in the Pi's `caddy/.env`. Setup/runbook: the `studio-llm` repo.
 - GitOps builds run **on the Pi** (aarch64, slow) — keep Dockerfiles lean.
@@ -34,7 +34,7 @@ Changes to these are invisible to GitOps and must be re-applied on rebuild (REST
 ## Service conventions
 
 - **Env:** container config comes from the service's gitignored `.env` via `env_file:` (or literal `environment:` values). **Never `${VAR}`-interpolate a secret in a compose file** — interpolation reads the *root* `.env` (empty by design), and `environment: - X=${X}` silently shadows a good `env_file` value with `""`. This exact bug lived in cups/homepage for months (fixed 2026-08-30). TZ lives in each service's `.env`.
-- **Exposure — pick exactly one:** (1) internal → no ports, no route; (2) tailnet UI → Caddy vhost by container name, no published port; (3) public → keep a published port and path-mount onto funnel :10000 (host state; recreate command documented in the service); (4) needs LAN broadcast/mDNS → host network, Caddy routes via `{$LAN_IP}` in the Caddyfile. Any published host port needs a justifying comment; bind `127.0.0.1:` when only host processes consume it (e.g. uptime-kuma 3001 for the watchdogs).
+- **Exposure — pick exactly one:** (1) internal → no ports, no route; (2) tailnet UI → Caddy vhost by container name, no published port; (3) public → add a `handle_path` route to the Caddyfile `:8089` block (funnel :10000 → caddy); no published port, no host change; (4) needs LAN broadcast/mDNS → host network, Caddy routes via `{$LAN_IP}` in the Caddyfile. Any published host port needs a justifying comment; bind `127.0.0.1:` when only host processes consume it (e.g. uptime-kuma 3001 for the watchdogs).
 
 ## Verification
 

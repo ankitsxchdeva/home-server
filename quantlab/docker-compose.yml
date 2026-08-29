@@ -11,8 +11,6 @@ services:
     container_name: quantlab
     restart: unless-stopped
     cpus: "2.0"        # backtests are CPU-bound; cap so a big run can't stall the Pi
-    ports:
-      - "8002:3000"    # host 8002 -> Next on 3000 (3000 belongs to homepage)
     environment:
       # CORS allowlist. The static UI is served from GitHub Pages, so its origin
       # has to be named here or the browser discards every response.
@@ -27,7 +25,7 @@ services:
     # global, 2 concurrent); visitors can instead paste their own LLM key in the
     # browser, forwarded per-request. Kalshi market data is public.
     #
-    # Public exposure is NOT a container. It is a Tailscale Funnel path mounted
-    # on the host, which survives independently of this compose file:
-    #   tailscale funnel --bg --set-path /quantlab http://127.0.0.1:8002
-    # See README.md — it is host state, so a rebuild must re-run it.
+    # No published port. Public exposure: funnel :10000 → caddy :8089, where
+    # the Caddyfile routes /quantlab* here (handle_path strip — same behavior
+    # as the old tailscaled mount, but versioned in git instead of host state).
+    # Tailnet: https://quantlab.ankit.casa.

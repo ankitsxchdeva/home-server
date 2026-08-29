@@ -11,36 +11,32 @@ Pages can only serve static files, so the split is: UI there, compute here.
 ## Reachable at
 
 - https://quantlab.ankit.casa — tailnet, via Caddy. Serves the full UI too.
-- https://raspberrypi.tail9476fb.ts.net:10000/quantlab — **PUBLIC**, via Funnel.
-- http://raspberrypi:8002 — direct on the LAN.
+- https://raspberrypi.tail9476fb.ts.net:10000/quantlab — **PUBLIC**, via Funnel → Caddy.
 
 ## Ports
 
-Host `8002` -> container `3000`. Port 3000 on the host belongs to homepage.
+No published host port — Caddy proxies to container port `3000` on the
+bridge network.
 
-## The funnel mount (host state — not in this compose file)
+## Public routing (Caddyfile — in git, not host state)
 
 Funnel has no free ports: it supports only 443, 8443 and 10000; 8443 and 10000
 are taken, and 443 cannot be funneled because Caddy binds `0.0.0.0:443`. So
-quantlab **path-mounts onto kalshi-pnl's funnel port**:
+quantlab shares the :10000 funnel via a **route in the Caddyfile's `:8089`
+block** (funnel :10000 → `127.0.0.1:8089` → caddy):
 
-```bash
-sudo tailscale funnel --bg --https=10000 --set-path=/quantlab http://127.0.0.1:8002
+```
+handle_path /quantlab* {
+	reverse_proxy quantlab:3000
+}
 ```
 
-`/` on :10000 stays kalshi-pnl; `/quantlab` is this service. The mount strips
-its own prefix, so the container sees `/api/run` rather than
+`/` on :10000 stays kalshi-pnl; `/quantlab` is this service. `handle_path`
+strips the prefix, so the container sees `/api/run` rather than
 `/quantlab/api/run` — no basePath is needed on the server side.
 
-This lives in tailscaled, not Docker. It survives `docker compose down` but is
-**not** restored by a rebuild — re-run the command above. To remove just this
-mount without disturbing kalshi-pnl:
-
-```bash
-sudo tailscale funnel --https=10000 --set-path=/quantlab off
-```
-
-This is a shared port, so breaking the :10000 funnel breaks
+The funnel mounts themselves are two static lines in tailscaled (on a rebuild,
+re-run the two commands in RESTORE.md). Breaking the :10000 funnel breaks
 ankitsachdeva.com/kalshi too. Check both after touching it.
 
 ## Secrets
