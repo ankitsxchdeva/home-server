@@ -4,7 +4,9 @@ services:
     container_name: uptime-kuma
     restart: unless-stopped
     ports:
-      - "3001:3001"       # Expose web UI on http://<pi_ip>:3001
+      # localhost-only: the host watchdogs (scripts/*watchdog) push heartbeats
+      # to 127.0.0.1:3001. Everyone else uses https://kuma.ankit.casa.
+      - "127.0.0.1:3001:3001"
     volumes:
       - ./data:/app/data  # Persistent data
 

@@ -3,11 +3,10 @@ services:
     image: ghcr.io/ankitsxchdeva/cups:latest
     container_name: cups
     restart: unless-stopped
+    # CUPSADMIN/CUPSPASSWORD/TZ come from cups/.env via env_file. Never
+    # re-set them here via ${VAR} — interpolation reads the (empty) root
+    # .env and silently shadows the env_file values with "".
     network_mode: "host"   # Important: makes CUPS bind directly to Pi's IP for network access
-    environment:
-      - CUPSADMIN=${CUPSADMIN}
-      - CUPSPASSWORD=${CUPSPASSWORD}
-      - TZ=${TZ}
     volumes:
       - ./config:/etc/cups:rw
       - /var/run/dbus:/var/run/dbus

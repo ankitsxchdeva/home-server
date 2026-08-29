@@ -50,12 +50,10 @@
     - Ollama:
         icon: ollama.png
         href: https://ollama.ankit.casa
-        description: Local LLM (qwen2.5:3b) — shared API
-        server: pi
-        container: ollama
+        description: Local LLM (qwen3.8:27b) — runs on the Mac Studio, not a Pi container
         widget:
             type: ollama
-            url: http://ollama:11434
+            url: https://ollama.ankit.casa
 
 - Utilities:
     - CUPS Print Server:

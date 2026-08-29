@@ -10,10 +10,10 @@ A complete home server setup running on Raspberry Pi with Docker containers.
 - **[Matter Server](./matter-server/)** - Matter protocol bridge (internal)
 
 ### Dashboard & Monitoring
-- **[Homepage](./homepage/)** - Dashboard (port 3000)
-- **[Uptime Kuma](./uptime-kuma/)** - Service monitoring (port 3001)
-- **[Glances](./glances/)** - System resource monitoring (port 61208)
-- **[Dozzle](./dozzle/)** - Container log viewer (port 8080, https://logs.ankit.casa)
+- **[Homepage](./homepage/)** - Dashboard (https://ankit.casa — Caddy only, no host port)
+- **[Uptime Kuma](./uptime-kuma/)** - Service monitoring (https://kuma.ankit.casa; port 3001 bound to localhost for the host watchdogs' heartbeats)
+- **[Glances](./glances/)** - System resource monitoring (https://glances.ankit.casa — Caddy only, no host port)
+- **[Dozzle](./dozzle/)** - Container log viewer (https://logs.ankit.casa — Caddy only, no host port)
 
 ### Network
 - **[NetAlertX](./netalertx/)** - Network device scanner (port 20211, host network)
@@ -21,7 +21,7 @@ A complete home server setup running on Raspberry Pi with Docker containers.
 ### Services
 - **[Caddy](./caddy/)** - HTTPS reverse proxy for ankit.casa + *.ankit.casa (ports 80/443; wildcard Let's Encrypt cert via Cloudflare DNS-01, built from the official image with xcaddy)
 - **[CUPS](./cups/)** - Print server (port 631, host network)
-- **[13ft](./13ft/)** - Paywall bypass reader proxy (port 5001)
+- **[13ft](./13ft/)** - Paywall bypass reader proxy (https://13ft.ankit.casa — Caddy only, no host port)
 - **[RSS Reader](./rss-reader/)** - RSS digest service for lede (port 8000, JSON API; served publicly via Tailscale Funnel :8443 for ankitsachdeva.com/lede)
 - **[Kalshi PnL](./kalshi-pnl/)** - Lifetime Kalshi profit/loss JSON API (host port 8001; served publicly via Tailscale Funnel :10000 for ankitsachdeva.com/kalshi — response is the net number only; secrets scp'd by hand, see its README)
 - **[Quantlab](./quantlab/)** - Backtest + Kalshi arbitrage API (host port 8002; served publicly via Tailscale Funnel :10000 under the `/quantlab` path for ankitsachdeva.com/quantlab — shares the funnel port with kalshi-pnl, see its README)
@@ -310,4 +310,4 @@ All served HTTPS by Caddy (http redirects to https):
 - **Dozzle**: https://logs.ankit.casa
 - **Ollama**: https://ollama.ankit.casa (OpenAI-compatible LLM API at `/v1`; served natively by the Mac Studio over the tailnet — no web UI, no host port on the Pi.)
 
-Direct `http://<pi>:<port>` access still works on the LAN/tailnet (3000, 8123, 3001, 61208, 20211, 631, 5001, 8000, 8001, 8002, 8080). Ollama is the exception: it isn't on the Pi at all — native on the Mac Studio, reachable only via `ollama.ankit.casa`.
+Direct `http://<pi>:<port>` access remains only where something actually needs it: the host-network services (8123 HA, 20211 NetAlertX, 631 CUPS), the four funnel-target ports (8000-8003), and uptime-kuma's 3001 bound to localhost for the watchdogs. Everything else is Caddy-only — `https://name.ankit.casa` is the single door. Ollama is the exception: it isn't on the Pi at all — native on the Mac Studio, reachable only via `ollama.ankit.casa`.

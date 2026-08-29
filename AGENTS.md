@@ -31,6 +31,11 @@ Changes to these are invisible to GitOps and must be re-applied on rebuild (REST
 - `deprecated/` is excluded from the compose file.
 - Active vs. retired services, ports, and URLs are all in README.md — read it before adding anything.
 
+## Service conventions
+
+- **Env:** container config comes from the service's gitignored `.env` via `env_file:` (or literal `environment:` values). **Never `${VAR}`-interpolate a secret in a compose file** — interpolation reads the *root* `.env` (empty by design), and `environment: - X=${X}` silently shadows a good `env_file` value with `""`. This exact bug lived in cups/homepage for months (fixed 2026-08-30). TZ lives in each service's `.env`.
+- **Exposure — pick exactly one:** (1) internal → no ports, no route; (2) tailnet UI → Caddy vhost by container name, no published port; (3) public → keep a published port and path-mount onto funnel :10000 (host state; recreate command documented in the service); (4) needs LAN broadcast/mDNS → host network, Caddy routes via `{$LAN_IP}` in the Caddyfile. Any published host port needs a justifying comment; bind `127.0.0.1:` when only host processes consume it (e.g. uptime-kuma 3001 for the watchdogs).
+
 ## Verification
 
 - You can't run the stack here meaningfully (ARM Pi services, missing `.env`s, host network). Verify by: `docker compose config -q` (with placeholder `.env`s), CI green, and per-service `python -m py_compile` / syntax checks where applicable.

@@ -3,5 +3,4 @@ services:
     build: .
     container_name: 13ft
     restart: unless-stopped
-    ports:
-      - "5001:5000"
+    # No published port — reached via https://13ft.ankit.casa (Caddy -> 13ft:5000)

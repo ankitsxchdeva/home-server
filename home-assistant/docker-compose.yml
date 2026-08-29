@@ -9,7 +9,5 @@ services:
     restart: unless-stopped
     privileged: true
     network_mode: host
-    environment:
-      - TZ=${TZ}
     env_file:
-      - .env
+      - .env   # TZ lives here

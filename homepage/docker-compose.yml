@@ -2,8 +2,6 @@ services:
   homepage:
     image: ghcr.io/gethomepage/homepage:latest
     container_name: homepage
-    ports:
-      - "3000:3000"
     volumes:
       - ./config:/app/config
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -13,7 +11,6 @@ services:
       # group_add doesn't work here: the PUID entrypoint drops supp. groups.
       - PGID=991
       - HOMEPAGE_ALLOWED_HOSTS=*
-      - HOMEPAGE_VAR_HOMEASSISTANT_TOKEN=${HOMEASSISTANT_TOKEN}
     env_file:
       - .env
     restart: unless-stopped
