@@ -109,9 +109,9 @@ sources:
     limit: 5
 
   - name: Outside Online
-    url: https://www.outsideonline.com/feed/
-    category: health
-    tags: [fitness]
+    url: https://www.outsideonline.com/health/feed/  # health channel only: the
+    category: health                                 # main feed is mostly gear
+    tags: [fitness]                                  # ads + adventure news
     limit: 4
 
   - name: NutritionFacts.org
