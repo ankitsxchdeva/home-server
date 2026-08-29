@@ -106,3 +106,7 @@ scripts/matter-watchdog.state
 # autovrr local test screenshots (contain form PII)
 autovrr/test-shots/
 autovrr/test-*.png
+
+# Agent context files — local-only, not for the public repo
+/AGENTS.md
+/CLAUDE.md
