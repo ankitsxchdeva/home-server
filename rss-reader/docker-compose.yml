@@ -11,3 +11,11 @@ services:
       - ./feeds.yaml:/app/feeds.yaml:ro   # edit live; next cycle picks it up
     env_file:
       - .env
+    networks:
+      - default
+      - caddy              # caddy reverse-proxies /lede → rss-reader:8000
+
+networks:
+  caddy:
+    external: true         # created by the caddy project
+    name: home-server_default
