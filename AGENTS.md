@@ -5,7 +5,7 @@ Human-facing docs: [README.md](./README.md) (services, URLs, automation), [RESTO
 ## Deployment model (most important)
 
 - This checkout is a **copy on a Mac**. The live system is a **Raspberry Pi** (`raspberrypi`, user `ankit`, `~/home-server`) — nothing you run here touches it.
-- **Deploy = push to `main`.** A cron on the Pi (`scripts/crontab.txt`) runs every 5 min: `git fetch`, and if `origin/main` changed, `git pull && docker compose up -d --build`.
+- **Deploy = push to `main`.** A cron on the Pi (`scripts/crontab.txt`) runs every 5 min: `git fetch`, and if `origin/main` changed, `git pull && docker compose up -d --build` + a graceful caddy reload (caddy `--watch` does not fire on git's inode swap, so Caddyfile-only changes would otherwise never apply).
 - A broken compose file on `main` breaks the running stack on the next tick. CI (`.github/workflows/validate-compose.yml`) runs `docker compose config -q` on every push — keep it green. Locally: `find . -name docker-compose.yml -execdir touch .env \; && docker compose config -q` (compose files require `env_file: .env`, which is gitignored).
 - Never commit secrets. Repo is **public**; all secrets live in gitignored `*/.env` files + `scripts/backup.sh` tarballs (the Kalshi private key is scp'd by hand — `kalshi-pnl/.gitignore` covers it). Don't add new secret-looking files without checking `.gitignore`.
 

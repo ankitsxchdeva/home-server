@@ -3,9 +3,11 @@ services:
     container_name: caddy
     build: .
     restart: unless-stopped
-    # --watch auto-reloads on Caddyfile changes. Paired with the directory
-    # bind-mount below, this survives git's inode swap on deploy (a single-file
-    # mount would pin the old inode and serve stale config).
+    # --watch does NOT survive git's inode swap on deploy (verified 2026-08-30):
+    # the GitOps cron gracefully reloads caddy after each pull instead
+    # (scripts/crontab.txt). The directory bind-mount below is still required:
+    # a single-file mount would pin the old inode and even a manual reload
+    # would read stale config.
     command: ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile", "--watch"]
     # host resolv.conf points at Tailscale MagicDNS, unreachable from
     # bridge containers — ACME needs working external DNS

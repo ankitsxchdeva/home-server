@@ -246,7 +246,7 @@ Funnel mounts are host state, not Docker state — like the printer watchdog, th
 
 | Job | Schedule | What it does |
 |---|---|---|
-| GitOps deploy (`crontab -l`) | every 5 min | `git fetch`; if `origin/main` changed: `git pull && docker compose up -d --build`. Push to main = deploy. |
+| GitOps deploy (`crontab -l`) | every 5 min | `git fetch`; if `origin/main` changed: `git pull && docker compose up -d --build`, then a graceful caddy reload (caddy `--watch` doesn't survive git's inode swap; the reload makes Caddyfile-only changes self-apply). Push to main = deploy. |
 | Docker prune (`crontab -l`) | Sun 04:30 | `docker system prune -af --filter "until=168h"` — clears week-old unused images and build cache from GitOps builds |
 | Backup (`crontab -l`) | Sun 03:00 | `sudo scripts/backup.sh` — secrets+state tarball to `/home/ankit/backups` (newest 4) + scp copy to the Mac Studio `~/pi-backups` (newest 12). Log: `scripts/backup.log` |
 | Watchtower | daily ~04:00 UTC | Auto-pulls new images and recreates containers (skips locally-built images). Runs the maintained fork `nickfedor/watchtower` (original containrrr project is unmaintained). |
