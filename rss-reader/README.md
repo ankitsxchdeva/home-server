@@ -8,8 +8,8 @@ this dir is compose + secrets + live-editable config only.
   lede CI on push to main)
 - `feeds.yaml` — source list, bind-mounted; edit live, the next build cycle
   picks it up
-- `.env.example` — every knob; the real `.env` is gitignored (`SAVE_TOKEN`,
-  `OLLAMA_*`) and covered by `scripts/backup.sh`
+- `.env.example` — every knob; the real `.env` is gitignored (`OLLAMA_*`)
+  and covered by `scripts/backup.sh`
 - `data/` — digest output + `saved.db` read-later state (gitignored)
 
 ## Reachable at
@@ -18,8 +18,10 @@ this dir is compose + secrets + live-editable config only.
 - https://raspberrypi.tail9476fb.ts.net:10000/lede — **PUBLIC**, via Funnel →
   Caddy (`/lede` route, prefix stripped)
 
-Container serves `GET /data.json`, the saved-list write endpoints
-(`X-Lede-Token` gated), and `/healthz` on port 8000.
+Container serves `GET /data.json`, `GET /items?days=7` (week archive), and
+`/healthz` on port 8000 — a read-only API. The saved/read-later list is
+browser-local in the lede frontend (CSV export built in), so there are no
+write endpoints and no shared secret.
 
 ## Deploys
 
