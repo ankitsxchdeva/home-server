@@ -20,8 +20,10 @@ services:
       # ankitsachdeva.com/quantlab/ and THAT is the Origin browsers send.
       # github.io stays listed because it still resolves and redirects.
       - ALLOWED_ORIGINS=https://ankitsachdeva.com,https://ankitsxchdeva.github.io
-    # No env_file: this app holds no secrets. LLM keys are entered in the
-    # browser and forwarded per-request; Kalshi market data is public.
+    # No env_file: this app holds no secrets. Strategy compilation defaults to
+    # the local Ollama (keyless, app-level rate limits: 5/min per IP, 60/hr
+    # global, 2 concurrent); visitors can instead paste their own LLM key in the
+    # browser, forwarded per-request. Kalshi market data is public.
     #
     # Public exposure is NOT a container. It is a Tailscale Funnel path mounted
     # on the host, which survives independently of this compose file:
