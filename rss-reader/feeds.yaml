@@ -4,7 +4,7 @@
 # A source needs a name, a url, and the section it lands in. If the url isn't
 # itself a feed, discover.py finds one (<link rel="alternate">, /feed, /rss...).
 # Per-source knobs:
-#   category: software      # section on the page: software | hardware | health
+#   category: software      # section on the page: software | hardware | health | politics
 #   tags: [ai, tech]        # searchable in the frontend
 #   limit: 10               # cap items taken per cycle (top of the feed)
 #   paywall: true           # fetch through the 13ft proxy (needs PAYWALL_PROXY)
@@ -125,3 +125,33 @@ sources:
     category: health
     tags: [fitness, strength]
     limit: 4
+
+  - name: BBC World
+    url: https://feeds.bbci.co.uk/news/world/rss.xml
+    category: politics
+    tags: [world]
+    limit: 6
+
+  - name: Al Jazeera
+    url: https://www.aljazeera.com/xml/rss/all.xml
+    category: politics
+    tags: [world]
+    limit: 5
+
+  - name: Guardian World
+    url: https://www.theguardian.com/world/rss
+    category: politics
+    tags: [world]
+    limit: 5
+
+  - name: Jacobin
+    url: https://jacobin.com/feed
+    category: politics
+    tags: [dsa, socialism]
+    limit: 4
+
+  - name: DSA Democratic Left
+    url: https://democraticleft.dsausa.org/feed/
+    category: politics
+    tags: [dsa, socialism]
+    limit: 3
