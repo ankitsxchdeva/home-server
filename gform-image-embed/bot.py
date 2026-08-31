@@ -13,7 +13,6 @@ import io
 import json
 import math
 import os
-import random
 import shutil
 import signal
 import sys
@@ -60,14 +59,6 @@ _COLLECT_IMAGE_URLS_JS = r"""() => {
     });
     return out;
 }"""
-
-# Gag: every 10-20 messages from this user (picked at random each cycle),
-# reply with the pears gif. Attached as a file because the original CDN link
-# is signature-expiring; the gif was saved from:
-# discordapp.com/attachments/617725315363373057/1116854794548691024/pears_anime.gif
-PEARS_USER_ID = 83211222777860096
-PEARS_GIF_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pears_anime.gif")
-
 
 # Collage layout: near-square grid of fixed-width cells. Tiles are
 # cover-cropped (scale to fill, crop the overflow) so no background shows.
@@ -287,7 +278,6 @@ class FormImageBot(discord.Client):
         intents = discord.Intents.default()
         intents.message_content = True
         super().__init__(intents=intents)
-        self._pears_remaining = random.randint(10, 20)
 
     async def on_ready(self):
         print(f"Logged in as {self.user} ({self.user.id})")
@@ -296,17 +286,6 @@ class FormImageBot(discord.Client):
         # Ignore own messages
         if message.author == self.user:
             return
-
-        if message.author.id == PEARS_USER_ID:
-            self._pears_remaining -= 1
-            if self._pears_remaining <= 0:
-                self._pears_remaining = random.randint(10, 20)
-                try:
-                    await message.reply(
-                        file=discord.File(PEARS_GIF_PATH), mention_author=False
-                    )
-                except discord.HTTPException as exc:
-                    print(f"[error] Could not send pears gif: {exc}", file=sys.stderr)
 
         # Collect text to search: direct content + any forwarded message snapshots
         texts = [message.content or ""]

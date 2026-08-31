@@ -143,7 +143,7 @@ flowchart LR
             subgraph BOTS["Discord bots"]
                 commute["commute-bot — commute times"]
                 autovrr["autovrr — guest parking registration, hosts the park page"]
-                gform["gform-image-embed — form images + pears gag"]
+                gform["gform-image-embed — form images"]
                 swap["reddit-swap-notifier — keyword pings"]
             end
 
