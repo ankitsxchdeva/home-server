@@ -53,6 +53,13 @@
         server: pi
         container: diagram
 
+    - AdGuard Home:
+        icon: adguard-home.png
+        href: https://adguard.ankit.casa
+        description: Network-wide DNS ad blocking (tailnet devices)
+        server: pi
+        container: adguard
+
 - AI:
     - Ollama:
         icon: ollama.png

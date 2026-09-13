@@ -59,6 +59,16 @@ Then in the [admin console](https://login.tailscale.com/admin/machines):
 3. The new node gets a **new 100.x Tailscale IP** — update the unproxied
    `ankit.casa` and `*.ankit.casa` A records in Cloudflare DNS to point at it,
    or nothing behind Caddy resolves.
+4. **DNS tab** (admin console → DNS → Nameservers): add a global nameserver,
+   Custom → the Pi's new 100.x IP, and enable **Override local DNS**. That is
+   the entire tailnet DNS integration: every tailnet device resolves via
+   AdGuard Home on the Pi (adguard.ankit.casa), router DHCP/RA never enters
+   the DNS path, so the IPv6 leak is structuraly impossible. AdGuard's own
+   config (admin password, upstreams, filters) restores from the backup
+   tarball's `adguard/data/`; without it the container boots into the
+   first-run wizard on :3000 (unpublished — reach it with
+   `ssh -L 3000:localhost:3000` after temporarily publishing 3000, or drive
+   `/control/install/configure` from the compose network).
 
 Verify: `tailscale serve status` shows exactly one mount — Funnel :10000
 proxying to `http://127.0.0.1:8089` (caddy).

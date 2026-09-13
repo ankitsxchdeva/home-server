@@ -18,6 +18,7 @@ A complete home server setup running on Raspberry Pi with Docker containers.
 
 ### Network
 - **[NetAlertX](./netalertx/)** - Network device scanner (port 20211, host network)
+- **[AdGuard Home](./adguard/)** - Network-wide DNS ad blocking (https://adguard.ankit.casa; port 53 tcp/udp published — tailnet devices resolve via the Pi's 100.x IP through the Tailscale admin-console "override local DNS" nameserver, which removes the router (and its IPv6 RA DNS leak) from the DNS path entirely; see RESTORE.md)
 
 ### Services
 - **[Caddy](./caddy/)** - HTTPS reverse proxy for ankit.casa + *.ankit.casa (ports 80/443; wildcard Let's Encrypt cert via Cloudflare DNS-01, built from the official image with xcaddy)

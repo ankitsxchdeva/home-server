@@ -26,6 +26,7 @@ cd "$REPO"
 
 tar -czf "$OUT" \
   */.env \
+  adguard/data \
   home-assistant/config \
   matter-server/data \
   uptime-kuma/data \

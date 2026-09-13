@@ -19,5 +19,6 @@ include:
   - kalshi-pnl/docker-compose.yml
   - quantlab/docker-compose.yml
   - diagram/docker-compose.yml
+  - adguard/docker-compose.yml
   - watchtower/docker-compose.yml
   - caddy/docker-compose.yml

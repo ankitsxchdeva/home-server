@@ -1,0 +1,26 @@
+services:
+  adguard:
+    # Official image, multi-arch incl. arm64; watchtower keeps it updated.
+    image: adguard/adguardhome:latest
+    container_name: adguard
+    restart: unless-stopped
+    volumes:
+      - ./data/work:/opt/adguardhome/work
+      - ./data/conf:/opt/adguardhome/conf
+    ports:
+      # DNS for LAN + tailnet devices. The tailnet's global nameserver points at
+      # the Pi's 100.x IP (Tailscale admin console "override local DNS" — see
+      # RESTORE.md), so tailnet DNS never touches the router: no IPv6 RA leak.
+      # Justification for the only published port besides caddy 80/443 and the
+      # localhost-bound ones: DNS must answer on 53 directly; there is no
+      # TLS/proxy layer for DNS here. Admin UI is NOT published — reached via
+      # https://adguard.ankit.casa (Caddy -> adguard:80 on the compose network).
+      - "53:53/tcp"
+      - "53:53/udp"
+    # The container's own lookups skip itself (no bootstrap loop); upstreams
+    # are IP-based DoH, so plain resolvers are only for image-updates etc.
+    dns:
+      - 1.1.1.1
+      - 1.0.0.1
+    env_file:
+      - .env

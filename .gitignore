@@ -33,6 +33,7 @@ cups/config/ppd/
 # Service data directories
 uptime-kuma/data/
 reddit-swap-notifier/data/
+adguard/data/
 
 # Matter Server - Runtime data, certificates, and device info
 matter-server/data/
