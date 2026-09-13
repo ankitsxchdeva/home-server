@@ -59,8 +59,14 @@
         href: https://ollama.ankit.casa
         description: Local LLM (qwen3.8:27b) — runs on the Mac Studio, not a Pi container
         widget:
-            type: ollama
-            url: https://ollama.ankit.casa
+            type: customapi
+            url: https://ollama.ankit.casa/api/ps
+            mappings:
+                - field: models.0.name
+                  label: loaded model
+                  remap:
+                      - value:
+                        to: "idle"
 
 - Utilities:
     - CUPS Print Server:
