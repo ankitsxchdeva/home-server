@@ -1,9 +1,11 @@
 # Homepage Settings Configuration
 # See: https://homepage.0xcc.pw/configuration/settings
 
-title: "Home Server Dashboard"
-theme: dark
+title: "home server"
+# no fixed theme: the built-in switcher follows the OS and persists per browser
 color: slate
+headerStyle: clean
+hideVersion: true
 language: en
 units: metric
 timeFormat: 24
