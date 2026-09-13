@@ -4,82 +4,151 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Parking</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🅿️</text></svg>">
+<link rel="icon" href="data:,">
+<title>parking</title>
 <style>
-  :root {
-    --bg: oklch(0.972 0.005 100);
-    --surface: oklch(0.995 0.002 100);
-    --ink: oklch(0.27 0.02 165);
-    --muted: oklch(0.52 0.015 165);
-    --border: oklch(0.885 0.012 165);
-    --accent: oklch(0.46 0.09 165);
-    --accent-ink: oklch(0.985 0.005 165);
-    --accent-soft: oklch(0.94 0.03 165);
-    --error: oklch(0.5 0.15 25);
+  /* Colophon design language (~/Documents/design/DESIGN.md v0.7, canonical lane).
+     Tokens mirror tokens.css: absence of data-theme follows prefers-color-scheme. */
+  @font-face {
+    font-family: "Lato";
+    src: url("fonts/lato-400.woff2") format("woff2");
+    font-weight: 400;
+    font-display: swap;
   }
+  @font-face {
+    font-family: "Lato";
+    src: url("fonts/lato-700.woff2") format("woff2");
+    font-weight: 700;
+    font-display: swap;
+  }
+
+  :root {
+    color-scheme: light;
+    --bg: #f5f4fa;
+    --fg: #30292f;
+    --muted: #6a6884;
+    --border: #d8d6e8;
+    --accent: #355691;
+    --accent-hover: #5f5aa2;
+    --dim: 0.75;
+    --t: 150ms cubic-bezier(0.25, 1, 0.5, 1);
+    --focus-ring: 2px solid var(--accent-hover);
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #1e1c22;
+    --fg: #e8e4f4;
+    --muted: #8e8aab;
+    --border: #413f54;
+    --accent: #8b87c8;
+    --accent-hover: #9db8dc;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #1e1c22;
+      --fg: #e8e4f4;
+      --muted: #8e8aab;
+      --border: #413f54;
+      --accent: #8b87c8;
+      --accent-hover: #9db8dc;
+    }
+  }
+
+  ::selection { background: var(--accent); color: var(--bg); }
+  :focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
   * { box-sizing: border-box; margin: 0; }
   html { -webkit-text-size-adjust: 100%; }
   body {
     background: var(--bg);
-    color: var(--ink);
-    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    line-height: 1.45;
+    color: var(--fg);
+    font-family: "Lato", Verdana, Helvetica, sans-serif;
+    font-size: 15px;
+    line-height: 1.65;
     min-height: 100dvh;
     display: grid;
     place-items: center;
-    padding: 24px 16px;
+    padding: 3.5em 1.25em;
   }
   main { width: 100%; max-width: 340px; }
-  h1 { font-size: 1.65rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 24px; }
-  form { display: grid; gap: 14px; }
+
+  main > * { animation: enter 450ms cubic-bezier(0.25, 1, 0.5, 1) both; }
+  main > *:nth-child(2) { animation-delay: 70ms; }
+  @keyframes enter {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  h1 {
+    font-size: 32px;
+    font-weight: 400;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+    margin-bottom: 1em;
+  }
+
+  form { display: grid; gap: 1em; }
   input {
     width: 100%;
     font: inherit;
-    font-size: 1rem;
-    color: var(--ink);
-    background: var(--surface);
+    color: var(--fg);
+    background: transparent;
     border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px 14px;
-    transition: border-color 0.15s ease-out, box-shadow 0.15s ease-out;
+    border-radius: 2px;
+    padding: 0.55em 0.7em;
+    transition: border-color var(--t);
   }
-  input:focus {
-    outline: none;
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-soft);
-  }
+  input::placeholder { color: var(--muted); opacity: var(--dim); }
+  input:hover { border-color: var(--muted); }
+  input:focus { border-color: var(--accent); }
+
   button {
     font: inherit;
-    font-size: 1.02rem;
-    font-weight: 650;
-    color: var(--accent-ink);
-    background: var(--accent);
-    border: none;
-    border-radius: 10px;
-    padding: 14px;
+    font-weight: 700;
+    color: var(--accent);
+    background: transparent;
+    border: 1px solid color-mix(in oklch, var(--accent) 35%, var(--border));
+    border-radius: 2px;
+    padding: 0.7em 1em;
     cursor: pointer;
-    transition: filter 0.15s ease-out, transform 0.1s ease-out;
+    transition: color var(--t), border-color var(--t), background-color var(--t);
   }
-  button:hover { filter: brightness(1.07); }
-  button:active { transform: scale(0.985); }
+  button:hover {
+    color: var(--accent-hover);
+    border-color: var(--accent-hover);
+  }
+
+  /* failures render in muted ink and name the retry, never alarm red */
   #error {
     display: none;
-    color: var(--error);
-    font-size: 0.9rem;
-    font-weight: 550;
+    color: var(--muted);
+    font-size: 13px;
   }
   #error.show { display: block; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 </style>
 </head>
 <body>
 <main>
-  <h1>Parking</h1>
+  <h1>parking</h1>
   <form method="post" action="login">
-    <input type="password" name="password" placeholder="Password" required autofocus
+    <input type="password" name="password" placeholder="password" required autofocus
            autocomplete="current-password">
-    <p id="error" class="{{ERROR}}">Wrong password. Try again.</p>
-    <button type="submit">Sign in</button>
+    <p id="error" class="{{ERROR}}">wrong password, try again.</p>
+    <button type="submit">sign in</button>
   </form>
 </main>
 </body>

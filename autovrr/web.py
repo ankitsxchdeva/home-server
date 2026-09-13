@@ -20,7 +20,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 
 from vrr import register_visitor_parking
 
@@ -89,6 +89,19 @@ async def security_headers(request: Request, call_next):
 @app.get("/healthz")
 async def healthz():
     return {"ok": True}
+
+
+# Self-hosted Lato (SIL OFL, license in fonts/OFL.txt). Public like /login:
+# the login page itself needs the fonts before a session exists.
+@app.get("/fonts/{name}")
+async def fonts(name: str):
+    if name not in {"lato-400.woff2", "lato-700.woff2"}:
+        raise HTTPException(status_code=404)
+    return FileResponse(
+        _STATIC / "fonts" / name,
+        media_type="font/woff2",
+        headers={"Cache-Control": "public, max-age=31536000, immutable"},
+    )
 
 
 @app.get("/login", response_class=HTMLResponse)

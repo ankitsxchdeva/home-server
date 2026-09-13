@@ -4,212 +4,283 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Parking</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🅿️</text></svg>">
+<link rel="icon" href="data:,">
+<title>parking</title>
 <style>
-  :root {
-    --bg: oklch(0.972 0.005 100);
-    --surface: oklch(0.995 0.002 100);
-    --ink: oklch(0.27 0.02 165);
-    --muted: oklch(0.52 0.015 165);
-    --border: oklch(0.885 0.012 165);
-    --accent: oklch(0.46 0.09 165);
-    --accent-ink: oklch(0.985 0.005 165);
-    --accent-soft: oklch(0.94 0.03 165);
-    --error: oklch(0.5 0.15 25);
-    --error-soft: oklch(0.94 0.03 25);
+  /* Colophon design language (~/Documents/design/DESIGN.md v0.7, canonical lane).
+     Tokens mirror tokens.css: absence of data-theme follows prefers-color-scheme. */
+  @font-face {
+    font-family: "Lato";
+    src: url("fonts/lato-400.woff2") format("woff2");
+    font-weight: 400;
+    font-display: swap;
   }
+  @font-face {
+    font-family: "Lato";
+    src: url("fonts/lato-700.woff2") format("woff2");
+    font-weight: 700;
+    font-display: swap;
+  }
+
+  :root {
+    color-scheme: light;
+    --bg: #f5f4fa;
+    --fg: #30292f;
+    --muted: #6a6884;
+    --border: #d8d6e8;
+    --accent: #355691;
+    --accent-hover: #5f5aa2;
+    --dim: 0.75;
+    --t: 150ms cubic-bezier(0.25, 1, 0.5, 1);
+    --focus-ring: 2px solid var(--accent-hover);
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #1e1c22;
+    --fg: #e8e4f4;
+    --muted: #8e8aab;
+    --border: #413f54;
+    --accent: #8b87c8;
+    --accent-hover: #9db8dc;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #1e1c22;
+      --fg: #e8e4f4;
+      --muted: #8e8aab;
+      --border: #413f54;
+      --accent: #8b87c8;
+      --accent-hover: #9db8dc;
+    }
+  }
+
+  ::selection { background: var(--accent); color: var(--bg); }
+  :focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
   * { box-sizing: border-box; margin: 0; }
   html { -webkit-text-size-adjust: 100%; }
   body {
     background: var(--bg);
-    color: var(--ink);
-    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    line-height: 1.45;
+    color: var(--fg);
+    font-family: "Lato", Verdana, Helvetica, sans-serif;
+    font-size: 15px;
+    line-height: 1.65;
     min-height: 100dvh;
     display: grid;
     place-items: center;
-    padding: 24px 16px 48px;
+    padding: 3.5em 1.25em;
   }
-  main { width: 100%; max-width: 400px; }
+  main { width: 100%; max-width: 380px; }
 
-  header { margin-bottom: 24px; }
-  h1 { font-size: 1.65rem; font-weight: 700; letter-spacing: -0.02em; }
+  /* entrance: one 14px rise + fade, stagger 70ms, lands exactly at rest */
+  main > * { animation: enter 450ms cubic-bezier(0.25, 1, 0.5, 1) both; }
+  main > *:nth-child(2) { animation-delay: 70ms; }
+  main > *:nth-child(3) { animation-delay: 140ms; }
+  main > *:nth-child(4) { animation-delay: 210ms; }
+  @keyframes enter {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: none; }
+  }
 
-  form { display: grid; gap: 18px; }
-  .field { display: grid; gap: 6px; }
+  h1 {
+    font-size: 32px;
+    font-weight: 400;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+  }
+  .lede {
+    font-size: 17px;
+    line-height: 1.6;
+    margin-top: 0.5em;
+    max-width: 68ch;
+  }
+
+  form { display: grid; gap: 1.75em; margin-top: 1.75em; }
+  .field { display: grid; gap: 0.5em; }
   .field.combo { position: relative; }
-  label { font-size: 0.85rem; font-weight: 600; }
+  label { font-size: 13px; }
   input {
     width: 100%;
     font: inherit;
-    font-size: 1rem; /* 16px: no iOS zoom-on-focus */
-    color: var(--ink);
-    background: var(--surface);
+    color: var(--fg);
+    background: transparent;
     border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px 14px;
-    transition: border-color 0.15s ease-out, box-shadow 0.15s ease-out;
+    border-radius: 2px;
+    padding: 0.55em 0.7em;
+    transition: border-color var(--t);
   }
-  input::placeholder { color: var(--muted); opacity: 0.75; }
-  input:focus {
-    outline: none;
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-soft);
-  }
-  #plate { text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+  input::placeholder { color: var(--muted); opacity: var(--dim); }
+  input:hover { border-color: var(--muted); }
+  input:focus { border-color: var(--accent); }
+  #plate { text-transform: uppercase; }
 
+  /* popover layer: 1px hairline, radius 3px, one z-index step above content.
+     The licensed small shadow applies on the dark theme only. */
   .combo-list {
     position: absolute;
     top: 100%;
     left: 0; right: 0;
-    margin-top: 6px;
-    padding: 4px;
+    margin-top: 0.25em;
+    padding: 0.25em;
     list-style: none;
-    background: var(--surface);
+    background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 10px;
-    box-shadow: 0 8px 24px oklch(0.27 0.02 165 / 0.12);
-    max-height: 232px;
+    border-radius: 3px;
+    max-height: 15em;
     overflow-y: auto;
-    z-index: 5;
+    z-index: 2;
+  }
+  :root[data-theme="dark"] .combo-list { box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .combo-list { box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); }
   }
   .combo-list li {
-    padding: 10px 12px;
-    border-radius: 7px;
-    font-size: 0.97rem;
+    padding: 0.5em 0.6em;
+    border-radius: 2px;
+    font-size: 13px;
     cursor: pointer;
+    transition: background-color var(--t);
   }
-  .combo-list li.active { background: var(--accent-soft); }
-  .combo-list li .hint { color: var(--muted); font-size: 0.85rem; }
+  .combo-list li.active { background: color-mix(in oklch, var(--accent) 10%, var(--bg)); }
 
   fieldset {
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 16px;
+    border-radius: 3px;
+    padding: 1em;
     display: grid;
-    gap: 14px;
-    background: color-mix(in oklch, var(--surface) 55%, var(--bg));
+    gap: 1em;
   }
   legend {
-    font-size: 0.8rem;
-    font-weight: 600;
+    font-size: 12px;
     color: var(--muted);
-    padding: 0 6px;
+    padding: 0 0.5em;
   }
 
+  /* the single action is a bordered chip, never a filled button */
   button[type="submit"] {
+    width: 100%;
     font: inherit;
-    font-size: 1.02rem;
-    font-weight: 650;
-    color: var(--accent-ink);
-    background: var(--accent);
-    border: none;
-    border-radius: 10px;
-    padding: 14px;
+    font-weight: 700;
+    color: var(--accent);
+    background: transparent;
+    border: 1px solid color-mix(in oklch, var(--accent) 35%, var(--border));
+    border-radius: 2px;
+    padding: 0.7em 1em;
     cursor: pointer;
-    transition: filter 0.15s ease-out, transform 0.1s ease-out;
+    transition: color var(--t), border-color var(--t), background-color var(--t);
   }
-  button[type="submit"]:hover { filter: brightness(1.07); }
-  button[type="submit"]:active { transform: scale(0.985); }
-  button[type="submit"]:disabled { opacity: 0.55; cursor: wait; }
+  button[type="submit"]:hover:not(:disabled) {
+    color: var(--accent-hover);
+    border-color: var(--accent-hover);
+  }
+  button[type="submit"]:disabled {
+    color: var(--muted);
+    border-color: var(--border);
+    cursor: wait;
+  }
+  /* indeterminate progress: opacity pulse only, feedback stays in the button */
+  button[type="submit"].working { animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+  #progress {
+    display: none;
+    font-size: 11px;
+    font-style: italic;
+    color: var(--muted);
+    text-align: center;
+  }
+  #progress.show { display: block; }
 
   #result {
     display: none;
-    border-radius: 12px;
-    padding: 16px;
-    font-size: 0.95rem;
-    margin-top: 22px;
+    margin-top: 1.75em;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 1em;
   }
   #result.show { display: block; }
-  #result.ok { background: var(--accent-soft); }
-  #result.err { background: var(--error-soft); }
-  #result strong { display: block; margin-bottom: 4px; font-size: 1rem; }
-  #result .detail { color: var(--ink); opacity: 0.85; }
+  #result strong { display: block; font-size: 14px; margin-bottom: 0.25em; }
+  #result .detail { font-size: 13px; color: var(--muted); }
 
-  #overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: color-mix(in oklch, var(--bg) 82%, transparent);
-    place-items: center;
-    z-index: 10;
+  noscript p {
+    margin-top: 1.75em;
+    font-size: 11px;
+    font-style: italic;
+    color: var(--muted);
   }
-  #overlay.show { display: grid; }
-  .spinner-box { text-align: center; }
-  .spinner {
-    width: 44px; height: 44px;
-    margin: 0 auto 16px;
-    border-radius: 50%;
-    border: 3px solid var(--border);
-    border-top-color: var(--accent);
-    animation: spin 0.8s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .spinner-box p { font-weight: 600; }
-  .spinner-box small { color: var(--muted); display: block; margin-top: 4px; }
 
-  footer { margin-top: 28px; color: var(--muted); font-size: 0.8rem; text-align: center; }
+  footer { margin-top: 3.5em; font-size: 11px; color: var(--muted); text-align: center; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 </style>
 </head>
 <body>
 <main>
   <header>
-    <h1>Parking</h1>
+    <h1>parking</h1>
+    <p class="lede">register your car for 24-hour guest parking.</p>
   </header>
 
   <form id="park-form" autocomplete="off">
     <div class="field">
-      <label for="plate">License plate</label>
+      <label for="plate">license plate</label>
       <input id="plate" name="plate" required maxlength="10"
              placeholder="ABC1234" autocapitalize="characters" spellcheck="false">
     </div>
 
     <div class="field combo">
-      <label for="make">Vehicle make</label>
-      <input id="make" name="make" required maxlength="40" placeholder="Start typing…"
+      <label for="make">vehicle make</label>
+      <input id="make" name="make" required maxlength="40" placeholder="start typing…"
              role="combobox" aria-expanded="false" aria-controls="make-list" spellcheck="false">
       <ul id="make-list" class="combo-list" role="listbox" hidden></ul>
     </div>
 
     <div class="field combo">
-      <label for="model">Vehicle model</label>
-      <input id="model" name="model" required maxlength="40" placeholder="Start typing…"
+      <label for="model">vehicle model</label>
+      <input id="model" name="model" required maxlength="40" placeholder="start typing…"
              role="combobox" aria-expanded="false" aria-controls="model-list" spellcheck="false">
       <ul id="model-list" class="combo-list" role="listbox" hidden></ul>
     </div>
 
     <fieldset>
-      <legend>About you — optional</legend>
+      <legend>about you (optional)</legend>
       <div class="field">
-        <label for="vname">Name</label>
+        <label for="vname">name</label>
         <input id="vname" name="vname" maxlength="80" placeholder="{{GUEST_NAME}}">
       </div>
       <div class="field">
-        <label for="vphone">Phone</label>
+        <label for="vphone">phone</label>
         <input id="vphone" name="vphone" type="tel" maxlength="20" placeholder="{{GUEST_PHONE}}">
       </div>
       <div class="field">
-        <label for="vemail">Email</label>
+        <label for="vemail">email</label>
         <input id="vemail" name="vemail" type="email" maxlength="80" placeholder="{{GUEST_EMAIL}}">
       </div>
     </fieldset>
 
-    <button type="submit" id="submit">Register parking</button>
+    <div class="field">
+      <button type="submit" id="submit">register parking</button>
+      <p id="progress" role="status">registering with vrr parking, usually 20-40 seconds. don't close this page.</p>
+    </div>
   </form>
+  <noscript><p>this form needs javascript to register.</p></noscript>
 
   <div id="result" role="status"></div>
 
-  <footer>Passes are valid 24 hours.</footer>
+  <footer>passes are valid 24 hours.</footer>
 </main>
-
-<div id="overlay">
-  <div class="spinner-box">
-    <div class="spinner"></div>
-    <p>Registering with VRR Parking</p>
-    <small>Usually 20&ndash;40 seconds. Don&rsquo;t close this page.</small>
-  </div>
-</div>
 
 <script>
 const MAKES = ["Acura","Audi","BMW","Buick","Cadillac","Chevrolet","Chrysler","Dodge","Ford","Genesis","GMC","Honda","Hyundai","Infiniti","Jeep","Kia","Lexus","Lincoln","Mazda","Mercedes-Benz","Mini","Mitsubishi","Nissan","Polestar","Porsche","Ram","Rivian","Subaru","Tesla","Toyota","Volkswagen","Volvo"];
@@ -313,15 +384,17 @@ const modelCombo = combobox(modelInput, document.getElementById("model-list"), (
 makeInput.addEventListener("change", () => { modelInput.value = ""; });
 
 const form = document.getElementById("park-form");
-const overlay = document.getElementById("overlay");
+const progress = document.getElementById("progress");
 const result = document.getElementById("result");
 const submitBtn = document.getElementById("submit");
 
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   result.className = "";
-  overlay.classList.add("show");
   submitBtn.disabled = true;
+  submitBtn.classList.add("working");
+  submitBtn.textContent = "registering…";
+  progress.classList.add("show");
 
   const payload = {
     license_plate: document.getElementById("plate").value,
@@ -341,21 +414,23 @@ form.addEventListener("submit", async (e) => {
     if (res.status === 401) { window.location.href = "login"; return; }
     const data = await res.json().catch(() => ({}));
     if (res.ok && data.success) {
-      result.className = "show ok";
-      result.innerHTML = "<strong>You&rsquo;re registered.</strong><span class='detail'>" +
-        payload.license_plate.toUpperCase() + " is approved for 24 hours. You can park in any guest space.</span>";
+      result.className = "show";
+      result.innerHTML = "<strong>you're registered.</strong><span class='detail'>" +
+        payload.license_plate.toUpperCase() + " is approved for 24 hours. park in any guest space.</span>";
       form.reset();
     } else {
-      result.className = "show err";
-      result.innerHTML = "<strong>Something didn&rsquo;t work.</strong><span class='detail'>" +
-        (data.message || data.detail || "Please try again, or text the host.") + "</span>";
+      result.className = "show";
+      result.innerHTML = "<strong>registration didn't go through.</strong><span class='detail'>" +
+        (data.message || data.detail || "try again, or text the host.") + "</span>";
     }
   } catch (err) {
-    result.className = "show err";
-    result.innerHTML = "<strong>Network error.</strong><span class='detail'>Check your connection and try again.</span>";
+    result.className = "show";
+    result.innerHTML = "<strong>network error.</strong><span class='detail'>check your connection and try again.</span>";
   } finally {
-    overlay.classList.remove("show");
     submitBtn.disabled = false;
+    submitBtn.classList.remove("working");
+    submitBtn.textContent = "register parking";
+    progress.classList.remove("show");
     result.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 });
