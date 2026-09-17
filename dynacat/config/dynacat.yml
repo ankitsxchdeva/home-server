@@ -42,7 +42,7 @@ pages:
           - type: weather
             location: ${WEATHER_LOCATION}
             units: imperial
-            hour-format: 24h
+            hour-format: 12h
 
           - type: server-stats
             servers:
@@ -123,6 +123,9 @@ pages:
                 description: local LLM
                 icon: si:ollama
 
+          - type: docker-containers
+            hide-by-default: false
+
       - size: small
         widgets:
           - type: search
@@ -137,6 +140,3 @@ pages:
             template: |
               <p class="lede-kicker">today's themes</p>
               <p class="color-paragraph">{{ .JSON.String "themes" }}</p>
-
-          - type: docker-containers
-            hide-by-default: false
