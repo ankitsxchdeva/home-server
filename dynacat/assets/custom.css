@@ -24,6 +24,14 @@ body {
     font-family: 'Lato', Verdana, Helvetica, sans-serif;
 }
 
+/* lede widget: the one sanctioned kicker (uppercase, 0.08em tracking) */
+.lede-kicker {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 1.1rem;
+    margin-bottom: 0.25em;
+}
+
 :root {
     /* Colophon shape: widgets are the card class (8px); dynacat's single
      * radius var drives widget frames, controls and badges. */

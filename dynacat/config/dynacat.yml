@@ -39,6 +39,11 @@ pages:
     columns:
       - size: small
         widgets:
+          - type: weather
+            location: ${WEATHER_LOCATION}
+            units: metric
+            hour-format: 24h
+
           - type: search
             search-engine: duckduckgo
             new-tab: true
@@ -60,6 +65,27 @@ pages:
 
       - size: full
         widgets:
+          - type: custom-api
+            title: lede
+            title-icon: mdi:rss
+            cache: 15m
+            url: https://rss.ankit.casa/data.json
+            template: |
+              <p class="lede-kicker">today's themes</p>
+              <p class="color-paragraph">{{ .JSON.String "themes" }}</p>
+              <ul class="list list-gap-10 collapsible-container" data-collapse-after="6">
+                {{ range sortByTime "published" "RFC3339" "desc" (.JSON.Array "items") }}
+                <li>
+                  <a class="size-h4 color-highlight block" href="{{ .String "url" }}">{{ .String "title" }}</a>
+                  <ul class="list-horizontal-text">
+                    <li>{{ .String "source" }}</li>
+                    <li><span {{ toRelativeTime (parseTime "RFC3339" (.String "published")) }}></span></li>
+                  </ul>
+                  <p class="color-paragraph size-h6">{{ .String "summary" }}</p>
+                </li>
+                {{ end }}
+              </ul>
+
           - type: monitor
             title: home automation
             sites:
