@@ -10,7 +10,7 @@ A complete home server setup running on Raspberry Pi with Docker containers.
 - **[Matter Server](./matter-server/)** - Matter protocol bridge (internal)
 
 ### Dashboard & Monitoring
-- **[Homepage](./homepage/)** - Dashboard (https://ankit.casa — Caddy only, no host port)
+- **[Dynacat](./dynacat/)** - Dashboard (https://ankit.casa — Caddy only, no host port)
 - **[Uptime Kuma](./uptime-kuma/)** - Service monitoring (https://kuma.ankit.casa; port 3001 bound to localhost for the host watchdogs' heartbeats)
 - **[Glances](./glances/)** - System resource monitoring (https://glances.ankit.casa — Caddy only, no host port)
 - **[Dozzle](./dozzle/)** - Container log viewer (https://logs.ankit.casa — Caddy only, no host port)
@@ -37,6 +37,7 @@ A complete home server setup running on Raspberry Pi with Docker containers.
 
 ### Deprecated
 Retired services live in [`deprecated/`](./deprecated/) and are excluded from the main compose file:
+- **Homepage (gethomepage)** - the original dashboard; replaced by [Dynacat](./dynacat/)
 - **Pi-hole** - was never used as a DNS server by any LAN client
 - **Traefik** - reverse proxy; only ever routed the wg-easy UI, otherwise served internet scanners
 - **wg-easy (WireGuard)** - never worked externally: UDP 51820 was not forwarded and `vpn.ankit.casa` was Cloudflare-proxied (Cloudflare doesn't carry WireGuard UDP). Replaced by Tailscale.
@@ -127,7 +128,7 @@ flowchart LR
             caddy["Caddy :80/:443 — ankit.casa + *.ankit.casa — wildcard LE cert via Cloudflare DNS-01"]
 
             subgraph WEB["Web services — all https://name.ankit.casa via Caddy"]
-                homepage["homepage — ankit.casa — dashboard"]
+                dynacat["dynacat — ankit.casa — dashboard"]
                 ha["Home Assistant — ha.ankit.casa"]
                 kuma["uptime-kuma — kuma.ankit.casa — monitoring"]
                 glances["glances — glances.ankit.casa — resources"]

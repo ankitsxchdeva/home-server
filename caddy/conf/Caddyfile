@@ -88,7 +88,7 @@ ankit.casa, *.ankit.casa {
 
 	# default: the dashboard
 	handle {
-		reverse_proxy homepage:3000
+		reverse_proxy dynacat:8080
 	}
 }
 

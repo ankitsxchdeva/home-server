@@ -1,0 +1,132 @@
+# Dynacat — dashboard at ankit.casa (tailnet-only Caddy vhost, no host port).
+# Docs: https://dynacat.artur.zone/configuration
+# Theme: Colophon design language (../design repo, DESIGN.md v0.7) mapped to
+# dynacat's HSL theme keys; fonts + shape live in assets/custom.css.
+# GitOps-managed: the UI editor is disabled so the Pi's copy never diverges
+# from git (a UI-edited config would choke the cron's git pull).
+
+server:
+  port: 8080
+  proxied: true
+  trusted-proxies:
+    - 172.16.0.0/12 # docker bridge ranges, so Caddy's X-Forwarded-* is honored
+  allow-editing: false
+
+branding:
+  logo-text: home server
+  app-name: home server
+
+theme:
+  # Colophon dark (default): bg #1e1c22, accent #8b87c8, pos #7fb98a, neg #d97066
+  background-color: 260 10 12
+  primary-color: 244 37 66
+  positive-color: 131 29 61
+  negative-color: 5 60 63
+  contrast-multiplier: 1.1
+  custom-css-file: /assets/custom.css
+  presets:
+    # Colophon light, from the theme picker (persists per browser)
+    colophon-light:
+      light: true
+      # bg #f5f4fa, accent #355691, pos #35744f, neg #b4382f
+      background-color: 250 37 97
+      primary-color: 218 46 39
+      positive-color: 145 37 33
+      negative-color: 4 59 45
+
+pages:
+  - name: home
+    columns:
+      - size: small
+        widgets:
+          - type: search
+            search-engine: duckduckgo
+            new-tab: true
+
+          - type: server-stats
+            servers:
+              - type: local
+                name: raspberry pi
+
+          - type: custom-api
+            title: ollama
+            title-icon: si:ollama
+            cache: 30s
+            url: https://ollama.ankit.casa/api/ps
+            template: |
+              {{ $model := .JSON.String "models.0.name" }}
+              <p class="color-highlight size-h4">{{ if eq $model "" }}idle{{ else }}{{ $model }}{{ end }}</p>
+              <p class="color-subdue size-h6">loaded model, runs on the mac studio</p>
+
+      - size: full
+        widgets:
+          - type: monitor
+            title: home automation
+            sites:
+              - title: Home Assistant
+                url: https://ha.ankit.casa
+                description: home automation hub
+                icon: si:homeassistant
+
+          - type: monitor
+            title: monitoring
+            sites:
+              - title: Uptime Kuma
+                url: https://kuma.ankit.casa
+                description: service monitoring
+                icon: sh:uptime-kuma
+              - title: Glances
+                url: https://glances.ankit.casa
+                description: system monitoring
+                icon: sh:glances
+              - title: Dozzle
+                url: https://logs.ankit.casa
+                description: container logs
+                icon: sh:dozzle
+              - title: NetAlertX
+                url: https://netalertx.ankit.casa
+                description: network monitoring
+                icon: mdi:network
+              - title: Service Map
+                url: https://diagram.ankit.casa
+                description: interactive architecture diagram
+                icon: mdi:map-legend
+              - title: AdGuard Home
+                url: https://adguard.ankit.casa
+                description: network-wide DNS ad blocking
+                icon: si:adguard
+
+          - type: monitor
+            title: utilities
+            sites:
+              - title: CUPS
+                url: https://cups.ankit.casa
+                description: print server
+                icon: mdi:printer
+              - title: 13ft
+                url: https://13ft.ankit.casa
+                description: paywall bypass reader
+                icon: mdi:newspaper
+              - title: RSS Reader
+                url: https://rss.ankit.casa/docs
+                check-url: https://rss.ankit.casa/healthz
+                description: rss digest for lede
+                icon: mdi:rss
+              - title: Kalshi PnL
+                url: https://kalshi.ankit.casa/pnl
+                description: lifetime kalshi profit/loss
+                icon: mdi:chart-line
+              - title: Guest Parking
+                url: https://park.ankit.casa
+                check-url: https://park.ankit.casa/healthz
+                description: guest parking page (password-protected)
+                icon: mdi:parking
+              - title: Ollama
+                url: https://ollama.ankit.casa
+                description: local LLM on the mac studio
+                icon: si:ollama
+
+      - size: small
+        widgets:
+          - type: docker-containers
+            hide-by-default: false

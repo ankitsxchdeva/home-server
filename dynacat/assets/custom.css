@@ -1,0 +1,31 @@
+/* Colophon (design repo v0.7) on dynacat. Colors live in config/dynacat.yml
+ * via dynacat's HSL theme keys; this file carries what the keys can't
+ * express: the typeface and the shape tokens. Loaded after dynacat's own
+ * stylesheets, so equal-specificity rules here win. */
+
+/* Lato, self-hosted (OFL — see fonts/OFL.txt) */
+@font-face {
+    font-family: 'Lato';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('/assets/fonts/lato-400.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Lato';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('/assets/fonts/lato-700.woff2') format('woff2');
+}
+
+body {
+    font-family: 'Lato', Verdana, Helvetica, sans-serif;
+}
+
+:root {
+    /* Colophon shape: widgets are the card class (8px); dynacat's single
+     * radius var drives widget frames, controls and badges. */
+    --border-radius: 8px;
+}

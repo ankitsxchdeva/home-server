@@ -1,0 +1,14 @@
+services:
+  dynacat:
+    image: panonim/dynacat:latest
+    container_name: dynacat
+    volumes:
+      - ./config:/app/config
+      - ./assets:/app/assets
+      # read-only, for the docker-containers widget (fleet status board)
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    env_file:
+      - .env
+    restart: unless-stopped
+    networks:
+      - default
