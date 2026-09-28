@@ -1,0 +1,184 @@
+"""The Winix component."""
+
+from datetime import datetime, timedelta
+
+from winix import WinixAccount, auth
+
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HassJob, HomeAssistant
+from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.event import async_call_later
+from homeassistant.helpers.update_coordinator import (
+    CoordinatorEntity,
+    DataUpdateCoordinator,
+    UpdateFailed,
+)
+
+from .const import LOGGER, WINIX_DOMAIN
+from .device_wrapper import WinixDeviceWrapper
+from .driver import WinixTransientError
+from .helpers import Helpers
+
+RETRY_INTERVAL_SECONDS = 15
+STATE_REFRESH_DELAY = 4
+
+
+class WinixEntity(CoordinatorEntity):
+    """Represents a Winix entity."""
+
+    _attr_has_entity_name = True
+    _attr_attribution = "Data provided by Winix"
+
+    def __init__(self, wrapper: WinixDeviceWrapper, coordinator: WinixManager) -> None:
+        """Initialize the Winix entity."""
+        super().__init__(coordinator)
+
+        device_stub = wrapper.device_stub
+
+        self._mac = device_stub.mac.lower()
+        self.device_wrapper = wrapper
+
+        self._attr_device_info = DeviceInfo(
+            identifiers={(WINIX_DOMAIN, self._mac)},
+            name=f"Winix {device_stub.alias}",
+            manufacturer="Winix",
+            model=device_stub.model,
+            model_id=device_stub.model_id,
+            sw_version=device_stub.sw_version,
+        )
+
+    @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        state = self.device_wrapper.get_state()
+        return state is not None
+
+    def _async_write_state_and_schedule_refresh(self) -> None:
+        """Write optimistic state and schedule a delayed coordinator refresh."""
+        self.async_write_ha_state()
+        async_call_later(
+            self.hass,
+            STATE_REFRESH_DELAY,
+            HassJob(self._async_refresh, cancel_on_shutdown=True),
+        )
+
+    async def _async_refresh(self, _: datetime) -> None:
+        """Refresh device state from the coordinator."""
+        await self.coordinator.async_request_refresh()
+
+        # Notify related entities such as the brightness selection.
+        if self.device_wrapper.features.supports_brightness_level:
+            self.coordinator.async_update_listeners()
+
+
+class WinixManager(DataUpdateCoordinator):
+    """Representation of the Winix device manager."""
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+        auth_response: auth.WinixAuthResponse,
+        scan_interval: int,
+        client,
+    ) -> None:
+        """Initialize the manager."""
+
+        # Always initialize _device_wrappers in case async_prepare_devices_wrappers
+        # was not invoked.
+        self._device_wrappers: list[WinixDeviceWrapper] = []
+        self._auth_response = auth_response
+        self._client = client
+        self._retry_on_error = False
+        self._models_max_filter_life: dict[str, int] = None
+
+        super().__init__(
+            hass,
+            LOGGER,
+            name="WinixManager",
+            update_interval=timedelta(seconds=scan_interval),
+            config_entry=entry,
+        )
+
+    async def _async_update_data(self) -> None:
+        """Fetch the latest data from the source. This overrides the method in DataUpdateCoordinator."""
+
+        LOGGER.info("Updating devices")
+        try:
+            for device_wrapper in self._device_wrappers:
+                await device_wrapper.update()
+            self._retry_on_error = False
+        except WinixTransientError as err:
+            if not self._retry_on_error:
+                self._retry_on_error = True
+                raise UpdateFailed(
+                    f"Transient error during update ({err}), will retry in {RETRY_INTERVAL_SECONDS} seconds",
+                    retry_after=RETRY_INTERVAL_SECONDS,
+                ) from err
+
+            self._retry_on_error = False
+            raise UpdateFailed(
+                f"Retry failed ({err}), resuming normal polling"
+            ) from err
+
+    def update_features(self) -> None:
+        """Update the supported features based on the current state."""
+        for wrapper in self._device_wrappers:
+            wrapper.update_features()
+
+    async def prepare_devices_wrappers(
+        self, access_token: str = "", id_token: str = ""
+    ) -> None:
+        """Prepare device wrappers.
+
+        Raises WinixException.
+        """
+        self._device_wrappers = []  # Reset device_stubs
+
+        token = access_token or self._auth_response.access_token
+        id_tok = id_token or self._auth_response.id_token
+        uuid = WinixAccount(token).get_uuid()
+
+        # Don't log the failure exceptions here, they are logged in the caller. Just raise them up.
+        device_stubs = await Helpers.get_device_stubs(self._client, token, uuid)
+
+        # boto3 call must run in an executor thread (synchronous I/O).
+        identity_id = await self.hass.async_add_executor_job(
+            Helpers.get_identity_id_sync, id_tok
+        )
+
+        if device_stubs:
+            # Get model list once and cache it for all devices.
+            if not self._models_max_filter_life:
+                self._models_max_filter_life = await Helpers.get_models_filter_max_life(
+                    self._client, token, uuid
+                )
+
+            for device_stub in device_stubs:
+                try:
+                    wrapper = WinixDeviceWrapper(
+                        self._client, device_stub, LOGGER, identity_id
+                    )
+                except ValueError as err:
+                    LOGGER.warning("Skipping device: %s", err)
+                    continue
+
+                try:
+                    await wrapper.async_initialize(
+                        token, uuid, self._models_max_filter_life
+                    )
+                except Exception as err:
+                    LOGGER.warning(
+                        "Failed to initialize device %s: %s", device_stub.alias, err
+                    )
+                    raise
+
+                self._device_wrappers.append(wrapper)
+
+            LOGGER.info("%d devices found", len(self._device_wrappers))
+        else:
+            LOGGER.info("No devices found")
+
+    def get_device_wrappers(self) -> list[WinixDeviceWrapper]:
+        """Return the device wrapper objects."""
+        return self._device_wrappers

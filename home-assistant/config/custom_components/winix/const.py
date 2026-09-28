@@ -1,0 +1,240 @@
+"""Constants for the Winix component."""
+
+from enum import StrEnum, unique
+import logging
+from typing import Final
+
+__min_ha_version__ = "2024.8"
+
+LOGGER = logging.getLogger(__package__)
+
+WINIX_DOMAIN: Final = "winix"
+
+WINIX_NAME: Final = "Winix"
+WINIX_AUTH_RESPONSE: Final = "WinixAuthResponse"
+ATTR_AIRFLOW: Final = "airflow"
+ATTR_AIR_AQI: Final = "aqi"
+ATTR_AIR_QUALITY: Final = "air_quality"
+ATTR_AIR_QVALUE: Final = "air_qvalue"
+ATTR_PM25: Final = "pm2_5"
+ATTR_FILTER_HOUR: Final = "filter_hour"
+ATTR_FILTER_REPLACEMENT_DATE: Final = "filter_replace_date"
+ATTR_FILTER_REPLACEMENT_CYCLE: Final = "filter_replacement_cycle"
+ATTR_LOCATION: Final = "location"
+ATTR_MODE: Final = "mode"
+ATTR_PLASMA: Final = "plasma"
+ATTR_POWER: Final = "power"
+ATTR_LAST_BRIGHTNESS_LEVEL: Final = "last_brightness_level"
+ATTR_BRIGHTNESS_LEVEL: Final = "brightness_level"
+ATTR_CHILD_LOCK: Final = "child_lock"
+ATTR_AMBIENT_LIGHT: Final = "ambient_light"
+ATTR_TARGET_HUMIDITY: Final = "target_humidity"
+ATTR_CURRENT_HUMIDITY: Final = "current_humidity"
+ATTR_WATER_TANK: Final = "water_tank"
+ATTR_UV_SANITIZE: Final = "uv_sanitize"
+ATTR_TIMER: Final = "timer"
+
+SENSOR_AIR_QVALUE: Final = "air_qvalue"
+SENSOR_PM25: Final = "pm2_5"
+SENSOR_AQI: Final = "aqi"
+SENSOR_FILTER_LIFE: Final = "filter_life"
+SENSOR_MAX_FILTER_LIFE: Final = "max_filter_life"
+
+BINARY_SENSOR_WATER_TANK: Final = "water_tank"
+BINARY_SENSOR_AUTO_DRY: Final = "auto_dry"
+
+OFF_VALUE: Final = "off"
+ON_VALUE: Final = "on"
+AUTO_DRY_VALUE: Final = "auto-dry"
+
+AIR_QUALITY_GOOD: Final = "good"
+AIR_QUALITY_FAIR: Final = "fair"
+AIR_QUALITY_POOR: Final = "poor"
+AIR_QUALITY_VERY_POOR: Final = "very_poor"
+ATTR_OPERATING_HOURS: Final = "operating_hours"
+
+# The service name is the partial name of the method in WinixPurifier
+SERVICE_PLASMAWAVE_ON: Final = "plasmawave_on"
+SERVICE_PLASMAWAVE_OFF: Final = "plasmawave_off"
+SERVICE_PLASMAWAVE_TOGGLE: Final = "plasmawave_toggle"
+SERVICE_REMOVE_STALE_ENTITIES: Final = "remove_stale_entities"
+FAN_SERVICES: Final = [
+    SERVICE_PLASMAWAVE_ON,
+    SERVICE_PLASMAWAVE_OFF,
+    SERVICE_PLASMAWAVE_TOGGLE,
+]
+
+# airflow can contain the special preset values of manual and sleep
+# but we are not using those as fan speed.
+AIRFLOW_LOW: Final = "low"
+AIRFLOW_MEDIUM: Final = "medium"
+AIRFLOW_HIGH: Final = "high"
+AIRFLOW_TURBO: Final = "turbo"
+AIRFLOW_SLEEP: Final = "sleep"
+AIRFLOW_SUPER: Final = "super"
+
+ORDERED_NAMED_FAN_SPEEDS: Final = [
+    AIRFLOW_LOW,
+    AIRFLOW_MEDIUM,
+    AIRFLOW_HIGH,
+    AIRFLOW_TURBO,
+]
+
+TOWER_PRIME_MODEL: Final = "TOWER PRIME"
+ORDERED_NAMED_TOWER_PRIME_FAN_SPEEDS: Final = [
+    *ORDERED_NAMED_FAN_SPEEDS,
+    AIRFLOW_SUPER,
+]
+
+DEHUMIDIFIER_FAN_SPEEDS: Final = [
+    AIRFLOW_LOW,
+    AIRFLOW_HIGH,
+    AIRFLOW_TURBO,
+]
+
+DEHUMIDIFIER_MIN_HUMIDITY: Final = 35
+DEHUMIDIFIER_MAX_HUMIDITY: Final = 70
+DEHUMIDIFIER_HUMIDITY_STEP: Final = 5
+
+DEFAULT_FILTER_MAX_LIFE_HOURS: Final = 9 * 24 * 30  # 9 months
+
+DEFAULT_POST_TIMEOUT: Final = 5
+
+# mode can contain the special preset value of manual.
+MODE_AUTO: Final = "auto"
+MODE_MANUAL: Final = "manual"
+MODE_CLOTHES: Final = "clothes"
+MODE_SHOES: Final = "shoes"
+MODE_QUIET: Final = "quiet"
+MODE_CONTINUOUS: Final = "continuous"
+
+DEHUMIDIFIER_MODES: Final = [
+    MODE_AUTO,
+    MODE_MANUAL,
+    MODE_CLOTHES,
+    MODE_SHOES,
+    MODE_QUIET,
+    MODE_CONTINUOUS,
+]
+
+PRESET_MODE_AUTO: Final = "Auto"
+PRESET_MODE_AUTO_PLASMA_OFF: Final = "Auto (PlasmaWave off)"
+PRESET_MODE_MANUAL: Final = "Manual"
+PRESET_MODE_MANUAL_PLASMA_OFF: Final = "Manual (PlasmaWave off)"
+PRESET_MODE_SLEEP: Final = "Sleep"
+PRESET_MODES: Final = [
+    PRESET_MODE_AUTO,
+    PRESET_MODE_AUTO_PLASMA_OFF,
+    PRESET_MODE_MANUAL,
+    PRESET_MODE_MANUAL_PLASMA_OFF,
+    PRESET_MODE_SLEEP,
+]
+
+
+@unique
+class NumericPresetModes(StrEnum):
+    """Alternate numeric preset modes.
+
+    The value correspond to the index in PRESET_MODES.
+    """
+
+    PRESET_MODE_AUTO = "1"
+    PRESET_MODE_AUTO_PLASMA_OFF = "2"
+    PRESET_MODE_MANUAL = "3"
+    PRESET_MODE_MANUAL_PLASMA_OFF = "4"
+    PRESET_MODE_SLEEP = "5"
+
+
+class Features:
+    """Additional Winix device features."""
+
+    supports_brightness_level = False
+    supports_child_lock = False
+    supports_pm25 = False
+    supports_uv_sanitize = False
+
+
+DEFAUT_MODEL_FILTER_MAX_LIFE = {
+    "t500_au": 6480,
+    "c610_au": 6480,
+    "t800_au": 6480,
+    "t1000_au": 6480,
+    "5520_au": 6480,
+    "c5_au": 6480,
+    "c710_us": 6480,
+    "a400_us": 6480,
+    "5530_us": 6480,
+    "5520_us": 6480,
+    "5510_us": 6480,
+    "c610_us": 6480,
+    "c545": 6480,
+    "c909": 6480,
+    "t800_us": 6480,
+    "t500_us": 6480,
+    "9800": 6480,
+    "azsuus": 8640,
+    "zeros_eu": 6480,
+    "t500_eu": 6480,
+    "t800_eu": 6480,
+    "zeros_gb": 6480,
+    "t500_gb": 6480,
+    "t800_gb": 6480,
+    "zeros_id": 6480,
+    "t500_id": 6480,
+    "t800_id": 6480,
+    "c5_id": 6480,
+    "t800_jp": 6480,
+    "t500_jp": 6480,
+    "t1000_pps": 6480,
+    "t1000_kr": 6480,
+    "primekor": 6480,
+    "masterkor": 6480,
+    "xqlaser": 8640,
+    "xq20": 8640,
+    "xq": 8640,
+    "tower_q": 8640,
+    "azpueu": 8640,
+    "titan": 8640,
+    "x24_kr": 8640,
+    "x22_kr": 8640,
+    "x21_kr": 8640,
+    "x20_kr": 8640,
+    "jp19m": 8640,
+    "ac101": 8640,
+    "ac100": 8640,
+    "zeros_tw": 6480,
+    "t500_tw": 6480,
+    "t800_tw": 6480,
+    "c5": 6480,
+    "x19ac": 8640,
+    "x17ac": 8640,
+    "towerxq_wa": 8640,
+    "xqpro_wa": 8640,
+    "xlc": 8640,
+    "hera": 8640,
+    "nk105": 8640,
+    "t1": 8640,
+}
+
+
+ATTR_POWER_CONSUMPTION: Final = "power_consumption"
+SENSOR_POWER_CONSUMPTION: Final = "power_consumption"
+
+ATTR_AC_POWER: Final = "ac_power"
+ATTR_AC_MODE: Final = "ac_mode"
+ATTR_AC_TARGET_TEMPERATURE: Final = "ac_target_temperature"
+ATTR_AC_CURRENT_TEMPERATURE: Final = "ac_current_temperature"
+ATTR_AC_FAN_SPEED: Final = "ac_fan_speed"
+ATTR_AC_SWING: Final = "ac_swing"
+ATTR_AC_TURBO: Final = "ac_turbo"
+
+AC_MODE_AUTO: Final = "auto"
+AC_MODE_COOL: Final = "cool"
+AC_MODE_FAN_ONLY: Final = "fan_only"
+AC_MODE_DEHUMIDIFICATION: Final = "dehumidification"
+
+# C02=2: the unit's own anti-mold auto-dry transition after being turned
+# off (observed ~33 min). Distinct from OFF_VALUE/ON_VALUE so callers can
+# tell it apart from a genuine off, since sending a plain 'on' while in
+# this state is ignored by the physical unit (confirmed by testing).
+AC_POWER_DRYING: Final = "drying"
