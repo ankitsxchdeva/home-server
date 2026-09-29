@@ -29,6 +29,20 @@ def init() -> None:
             post_id TEXT PRIMARY KEY,
             seen_at INTEGER NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS site_watches (
+            guild_id   INTEGER NOT NULL,
+            user_id    INTEGER NOT NULL,
+            url        TEXT    NOT NULL,
+            channel_id INTEGER NOT NULL,
+            created_at INTEGER NOT NULL,
+            PRIMARY KEY (guild_id, user_id, url)
+        );
+        CREATE TABLE IF NOT EXISTS site_state (
+            url          TEXT PRIMARY KEY,
+            content_hash TEXT NOT NULL,
+            body         TEXT NOT NULL,
+            updated_at   INTEGER NOT NULL
+        );
         """
     )
     _conn.commit()
@@ -128,6 +142,83 @@ def all_subscriptions() -> list[sqlite3.Row]:
 def distinct_subreddits() -> list[str]:
     rows = _conn.execute("SELECT DISTINCT subreddit FROM subscriptions").fetchall()
     return [r["subreddit"] for r in rows]
+
+
+def add_site_watch(guild_id: int, user_id: int, url: str, channel_id: int) -> int | None:
+    """Create a site watch or move its pings to another channel.
+
+    Returns the previous channel id if the watch moved, else None.
+    """
+    row = _conn.execute(
+        "SELECT channel_id FROM site_watches WHERE guild_id=? AND user_id=? AND url=?",
+        (guild_id, user_id, url),
+    ).fetchone()
+    previous_channel_id = (
+        row["channel_id"] if row and row["channel_id"] != channel_id else None
+    )
+    _conn.execute(
+        "INSERT INTO site_watches (guild_id, user_id, url, channel_id, created_at)"
+        " VALUES (?, ?, ?, ?, ?)"
+        " ON CONFLICT (guild_id, user_id, url)"
+        " DO UPDATE SET channel_id=excluded.channel_id",
+        (guild_id, user_id, url, channel_id, int(time.time())),
+    )
+    _conn.commit()
+    return previous_channel_id
+
+
+def remove_site_watch(guild_id: int, user_id: int, url: str) -> bool:
+    cur = _conn.execute(
+        "DELETE FROM site_watches WHERE guild_id=? AND user_id=? AND url=?",
+        (guild_id, user_id, url),
+    )
+    _conn.commit()
+    if cur.rowcount:
+        # Nobody watching => drop the snapshot too, so a future watch
+        # re-baselines instead of diffing against a stale page.
+        still_watched = _conn.execute(
+            "SELECT 1 FROM site_watches WHERE url=? LIMIT 1", (url,)
+        ).fetchone()
+        if still_watched is None:
+            _conn.execute("DELETE FROM site_state WHERE url=?", (url,))
+            _conn.commit()
+    return cur.rowcount > 0
+
+
+def list_site_watches(guild_id: int, user_id: int) -> list[sqlite3.Row]:
+    return _conn.execute(
+        "SELECT url, channel_id FROM site_watches"
+        " WHERE guild_id=? AND user_id=? ORDER BY url",
+        (guild_id, user_id),
+    ).fetchall()
+
+
+def all_site_watches() -> list[sqlite3.Row]:
+    return _conn.execute(
+        "SELECT guild_id, user_id, url, channel_id, created_at FROM site_watches"
+    ).fetchall()
+
+
+def distinct_site_urls() -> list[str]:
+    rows = _conn.execute("SELECT DISTINCT url FROM site_watches").fetchall()
+    return [r["url"] for r in rows]
+
+
+def get_site_state(url: str) -> sqlite3.Row | None:
+    return _conn.execute(
+        "SELECT content_hash, body FROM site_state WHERE url=?", (url,)
+    ).fetchone()
+
+
+def set_site_state(url: str, content_hash: str, lines: list[str]) -> None:
+    _conn.execute(
+        "INSERT INTO site_state (url, content_hash, body, updated_at)"
+        " VALUES (?, ?, ?, ?)"
+        " ON CONFLICT (url) DO UPDATE SET content_hash=excluded.content_hash,"
+        " body=excluded.body, updated_at=excluded.updated_at",
+        (url, content_hash, "\n".join(lines), int(time.time())),
+    )
+    _conn.commit()
 
 
 def is_seen(post_id: str) -> bool:

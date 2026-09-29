@@ -1,16 +1,19 @@
 # reddit-swap-notifier
 
 Discord bot that pings you when a new post on a swap subreddit matches your
-keywords. Built for the first-come-first-served nature of r/hardwareswap and
-r/mechmarket: it polls every 60 seconds, and each user in the server keeps
-their own watchlist.
+keywords, or when a watched webpage's text changes. Built for the
+first-come-first-served nature of r/hardwareswap and r/mechmarket and of
+small-batch shop drops: it polls every 15 seconds, and each user in the
+server keeps their own watchlist.
 
 ## Commands
 
 | Command | Effect |
 |---|---|
 | `/setup subreddit:hardwareswap keywords:3080, gmk olivia` | Watch a subreddit. Pings arrive in the channel you run this in. |
-| `/show` | Your watches: subreddits, keywords, ping channels. Only you see the reply. |
+| `/watch url:https://example.com/drop` | Watch a webpage; ping when its visible text changes. First watch records a silent baseline. |
+| `/unwatch url:https://example.com/drop` | Stop watching a page. Autocompletes from your watches. |
+| `/show` | Your watches: subreddits, keywords, pages, ping channels. Only you see the reply. |
 | `/remove subreddit:hardwareswap` | Stop watching a subreddit. Autocompletes from your watches. |
 | `/remove subreddit:hardwareswap keyword:3080` | Drop one keyword, keep the rest. |
 
@@ -24,6 +27,12 @@ Worth knowing:
   channel you ran it in. The confirmation says so when it happens.
 - Users matching the same post in the same channel are pinged together in one
   message.
+- Page watches hash the page's visible text (scripts/styles ignored). Any
+  change pings every subscriber of that URL, with a short "what was added"
+  snippet. Fetch errors never count as changes; a page that 404/410s is
+  benched and re-checked hourly. JavaScript-rendered pages (no readable text
+  in the HTML) can't be watched — the bot is plain HTTP, no browser. URLs are
+  capped at 100 characters.
 
 ## Configuration
 
@@ -33,8 +42,9 @@ Worth knowing:
 |---|---|---|
 | `DISCORD_TOKEN` | yes | Bot token — see setup step 1. |
 | `REDDIT_USER_AGENT` | no | User-Agent for RSS requests; Reddit asks that it name the app and your reddit username. |
-| `POLL_INTERVAL_SECONDS` | no | Default 60. Each cycle is one RSS request regardless of watch count. |
+| `POLL_INTERVAL_SECONDS` | no | Default 15. Each cycle is one RSS request + one fetch per watched URL, regardless of watch count. |
 | `GUILD_ID` | no | Your server ID makes slash commands appear instantly; without it the first global sync can take an hour. Developer Mode → right-click server → *Copy Server ID*. |
+| `SITE_USER_AGENT` | no | User-Agent for page fetches; some hosts reject generic ones. |
 | `TZ` | no | Timezone for log timestamps; defaults to UTC. |
 
 ## Setup
@@ -67,7 +77,9 @@ it hasn't been notified before. Consequences:
   re-checked hourly; the others keep working. Re-running `/setup` for it
   un-benches it immediately.
 
-Rate math: 1 unauthenticated RSS request per minute.
+Rate math: 4 unauthenticated RSS requests per minute + 4 page fetches per
+watched URL. (If Reddit rate-limits a cycle, the bot just skips it and tries
+again.)
 
 ## Troubleshooting
 
@@ -85,5 +97,7 @@ Rate math: 1 unauthenticated RSS request per minute.
     in.
   - `Combined listing failed …` — Reddit-side trouble; the bot retries by
     itself.
+  - `<url> returned HTTP 404 — the page is gone` — that page is benched;
+    `/unwatch` it or re-run `/watch` once it's back.
 - **Container exits immediately.** The last log line names the missing `.env`
   variable.

@@ -1,15 +1,17 @@
-"""Reddit poll loop: fetch new posts, match keywords, ping subscribers."""
+"""Poll loop: fetch new posts and watched pages, match, ping subscribers."""
 
 import asyncio
 import logging
 import re
 import time
+from urllib.parse import urlsplit
 
 import aiohttp
 import discord
 
 import db
 from reddit_feed import FeedError, RedditFeed, SubredditGone
+from site_feed import SiteError, SiteFeed, SiteGone, change_summary, hash_lines
 
 log = logging.getLogger(__name__)
 
@@ -27,11 +29,13 @@ RECHECK_BROKEN_AFTER = 3600
 
 
 class Poller:
-    def __init__(self, bot: discord.Client, feed: RedditFeed, interval: int):
+    def __init__(self, bot: discord.Client, feed: RedditFeed, sites: SiteFeed, interval: int):
         self.bot = bot
         self.feed = feed
+        self.sites = sites
         self.interval = interval
         self.broken: dict[str, float] = {}  # subreddit -> when it was found bad
+        self.broken_sites: dict[str, float] = {}  # url -> when it 404/410'd
 
     async def run(self) -> None:
         await self.bot.wait_until_ready()
@@ -44,7 +48,11 @@ class Poller:
             await asyncio.sleep(self.interval)
 
     async def poll_once(self) -> None:
-        subreddits = [s for s in db.distinct_subreddits() if self._usable(s)]
+        await self._poll_reddit()
+        await self._poll_sites()
+
+    async def _poll_reddit(self) -> None:
+        subreddits = [s for s in db.distinct_subreddits() if self._usable(self.broken, s)]
         if not subreddits:
             return
         subscriptions = db.all_subscriptions()
@@ -71,12 +79,12 @@ class Poller:
             "Poll cycle done: %s subreddits, %s new posts", len(subreddits), new_posts
         )
 
-    def _usable(self, subreddit: str) -> bool:
-        benched_at = self.broken.get(subreddit)
+    def _usable(self, bench: dict[str, float], key: str) -> bool:
+        benched_at = bench.get(key)
         if benched_at is None:
             return True
         if time.time() - benched_at >= RECHECK_BROKEN_AFTER:
-            del self.broken[subreddit]  # re-try; if still bad it gets re-benched
+            del bench[key]  # re-try; if still bad it gets re-benched
             return True
         return False
 
@@ -110,6 +118,99 @@ class Poller:
                 " (re-checking hourly)",
                 name,
             )
+
+    async def _poll_sites(self) -> None:
+        urls = [u for u in db.distinct_site_urls() if self._usable(self.broken_sites, u)]
+        if not urls:
+            return
+        watches = db.all_site_watches()
+        checked = changed = 0
+        for url in urls:
+            try:
+                lines = await self.sites.fetch_lines(url)
+            except SiteGone as e:
+                self.broken_sites[url] = time.time()
+                log.error(
+                    "%s returned HTTP %s — the page is gone; excluding it from"
+                    " polling (re-checking hourly). Re-run /watch to resume now.",
+                    url,
+                    e.status,
+                )
+                continue
+            except SiteError as e:
+                log.warning("Site check skipped for %s: %s", url, e)
+                continue
+            checked += 1
+            new_hash = hash_lines(lines)
+            state = db.get_site_state(url)
+            if state is None:
+                # Watch without a baseline (e.g. state table lost) — start now.
+                db.set_site_state(url, new_hash, lines)
+                continue
+            if new_hash == state["content_hash"]:
+                continue
+            changed += 1
+            summary = change_summary(state["body"].split("\n"), lines)
+            # The snapshot advances only once every subscriber got the ping,
+            # so a transient Discord failure re-notifies next cycle.
+            if await self.notify_site_change(url, watches, summary):
+                db.set_site_state(url, new_hash, lines)
+        log.info("Site poll done: %s urls checked, %s changed", checked, changed)
+
+    async def notify_site_change(self, url: str, watches, summary: str) -> bool:
+        # One message per (channel, url): mention every subscriber.
+        by_channel: dict[int, list[int]] = {}
+        for w in watches:
+            if w["url"] == url:
+                by_channel.setdefault(w["channel_id"], []).append(w["user_id"])
+        all_sent = True
+        for channel_id, user_ids in by_channel.items():
+            try:
+                await self.send_site_notification(channel_id, user_ids, url, summary)
+            except (discord.NotFound, discord.Forbidden):
+                # Channel deleted or bot blocked — permanent; retrying would
+                # re-ping the healthy channels every cycle forever.
+                log.error(
+                    "Channel %s is gone or blocks the bot; dropping site"
+                    " notification for %s (users %s)",
+                    channel_id,
+                    url,
+                    user_ids,
+                )
+            except (discord.DiscordServerError, aiohttp.ClientError, OSError, asyncio.TimeoutError):
+                all_sent = False
+                log.exception(
+                    "Failed to notify users %s in channel %s", user_ids, channel_id
+                )
+            except Exception:
+                # Anything else (400s, type errors) will fail identically every
+                # cycle — dropping beats re-pinging the healthy channels forever.
+                log.exception(
+                    "Permanent-looking error notifying users %s in channel %s;"
+                    " dropping site notification for %s",
+                    user_ids,
+                    channel_id,
+                    url,
+                )
+        return all_sent
+
+    async def send_site_notification(
+        self, channel_id: int, user_ids: list[int], url: str, summary: str
+    ) -> None:
+        channel = self.bot.get_channel(channel_id)
+        if channel is None:
+            channel = await self.bot.fetch_channel(channel_id)
+        embed = discord.Embed(
+            title=f"Page changed: {urlsplit(url).netloc}",
+            url=url,
+            description=summary or "Text was removed or rearranged.",
+            color=discord.Color.green(),
+        )
+        content = " ".join(f"<@{u}>" for u in user_ids)
+        if len(content) > 2000:  # Discord's message-content limit; drop whole mentions
+            content = content[: content.rfind(" ", 0, 2000)]
+        await channel.send(content=content, embed=embed)
+        log.info("Notified users %s: %s changed", user_ids, url)
 
     async def notify_matches(self, post, subscriptions) -> None:
         post_subreddit = post.subreddit

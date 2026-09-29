@@ -5,6 +5,7 @@ import logging
 import os
 import re
 import sys
+from urllib.parse import urlsplit, urlunsplit
 
 import discord
 from discord import app_commands
@@ -13,6 +14,7 @@ from dotenv import load_dotenv
 import db
 from poller import Poller
 from reddit_feed import FeedError, RedditFeed, SubredditGone
+from site_feed import SiteError, SiteFeed, SiteGone, hash_lines
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
@@ -25,12 +27,14 @@ class SwapNotifier(discord.Client):
         super().__init__(intents=discord.Intents.default())
         self.tree = app_commands.CommandTree(self)
         self.feed: RedditFeed | None = None
+        self.sites: SiteFeed | None = None
 
     async def setup_hook(self) -> None:
         db.init()
         self.feed = RedditFeed()
-        interval = int(os.environ.get("POLL_INTERVAL_SECONDS") or "60")
-        self.poller = Poller(self, self.feed, interval)
+        self.sites = SiteFeed()
+        interval = int(os.environ.get("POLL_INTERVAL_SECONDS") or "15")
+        self.poller = Poller(self, self.feed, self.sites, interval)
         self.poller_task = asyncio.create_task(self.poller.run())
 
         def log_poller_exit(task: asyncio.Task) -> None:
@@ -56,6 +60,24 @@ client = SwapNotifier()
 
 def normalize_subreddit(name: str) -> str:
     return name.strip().lower().removeprefix("/").removeprefix("r/")
+
+
+# Discord autocomplete choice values cap at 100 chars, so watched URLs must fit.
+MAX_URL_LENGTH = 100
+
+
+def normalize_url(raw: str) -> str | None:
+    """Canonical watch key, or None if it can't be an http(s) page URL."""
+    raw = raw.strip()
+    if not raw or len(raw) > MAX_URL_LENGTH or any(c.isspace() for c in raw):
+        return None
+    parts = urlsplit(raw if "://" in raw else f"https://{raw}")
+    if parts.scheme not in ("http", "https") or not parts.netloc:
+        return None
+    # Fragments never reach the server; a bare domain watches its root page.
+    return urlunsplit(
+        (parts.scheme.lower(), parts.netloc.lower(), parts.path or "/", parts.query, "")
+    )
 
 
 @client.tree.command(description="Watch a subreddit for posts matching your keywords")
@@ -138,29 +160,36 @@ async def setup(interaction: discord.Interaction, subreddit: str, keywords: str)
     await interaction.followup.send(msg)
 
 
-@client.tree.command(description="Show the subreddits and keywords you're watching")
+@client.tree.command(description="Show the subreddits, keywords, and pages you're watching")
 @app_commands.guild_only()
 async def show(interaction: discord.Interaction):
     subs = db.list_subscriptions(interaction.guild_id, interaction.user.id)
-    if not subs:
+    sites = db.list_site_watches(interaction.guild_id, interaction.user.id)
+    if not subs and not sites:
         await interaction.response.send_message(
-            "You're not watching anything yet. Use `/setup` to start.", ephemeral=True
+            "You're not watching anything yet. Use `/setup` or `/watch` to start.",
+            ephemeral=True,
         )
         return
-    embed = discord.Embed(title="Your watches", color=discord.Color.orange())
-    total_chars = len(embed.title)
-    for i, sub in enumerate(subs):
+    fields: list[tuple[str, str]] = []
+    for sub in subs:
         keywords = ", ".join(f"`{k}`" for k in db.split_keywords(sub["keywords"]))
         if len(keywords) > 990:  # field value caps at 1024, incl. the line below
             keywords = keywords[:990] + "…"
-        name = f"r/{sub['subreddit']}"
-        value = f"{keywords}\nPings in <#{sub['channel_id']}>"
+        fields.append(
+            (f"r/{sub['subreddit']}", f"{keywords}\nPings in <#{sub['channel_id']}>")
+        )
+    for site in sites:
+        fields.append((site["url"], f"Pings in <#{site['channel_id']}>"))
+    embed = discord.Embed(title="Your watches", color=discord.Color.orange())
+    total_chars = len(embed.title)
+    for i, (name, value) in enumerate(fields):
         # Embeds cap at 25 fields and 6000 chars total; leave room for the
         # "…and N more" field.
         if len(embed.fields) == 24 or total_chars + len(name) + len(value) > 5800:
             embed.add_field(
-                name=f"…and {len(subs) - i} more",
-                value="Use `/remove`'s autocomplete to browse the rest.",
+                name=f"…and {len(fields) - i} more",
+                value="Use `/remove`'s or `/unwatch`'s autocomplete to browse the rest.",
                 inline=False,
             )
             break
@@ -228,6 +257,87 @@ async def remove_keyword_autocomplete(interaction: discord.Interaction, current:
         app_commands.Choice(name=k, value=k)
         for k in db.split_keywords(sub["keywords"])
         if current in k.lower()
+    ][:25]
+
+
+@client.tree.command(description="Watch a webpage; get pinged when its visible text changes")
+@app_commands.describe(url="Page to watch, e.g. https://darkdarkpark.com/")
+@app_commands.guild_only()
+async def watch(interaction: discord.Interaction, url: str):
+    await interaction.response.defer(ephemeral=True)
+    norm = normalize_url(url)
+    if norm is None:
+        await interaction.followup.send(
+            f"`{url}` doesn't look like a valid page URL (http/https, 100 chars max)."
+        )
+        return
+    perms = interaction.channel.permissions_for(interaction.guild.me)
+    if not (perms.send_messages and perms.embed_links):
+        await interaction.followup.send(
+            "I can't post in this channel (need Send Messages and Embed Links)."
+            " Run `/watch` in a channel I can post in."
+        )
+        return
+    try:
+        lines = await client.sites.fetch_lines(norm)
+    except SiteGone as e:
+        await interaction.followup.send(
+            f"That page returned HTTP {e.status} — can't watch it."
+        )
+        return
+    except SiteError:
+        await interaction.followup.send(
+            "Couldn't fetch that page — check the URL or try again in a minute."
+        )
+        return
+    if not lines:
+        await interaction.followup.send(
+            "That page has no readable text — it's probably JavaScript-rendered,"
+            " which I can't watch."
+        )
+        return
+    # The fetch just proved the page works; un-bench it if the poller had it
+    # sidelined so watching resumes now instead of at the next hourly re-check.
+    client.poller.broken_sites.pop(norm, None)
+    previous_channel_id = db.add_site_watch(
+        interaction.guild_id, interaction.user.id, norm, interaction.channel_id
+    )
+    if db.get_site_state(norm) is None:
+        db.set_site_state(norm, hash_lines(lines), lines)
+        msg = (
+            f"Watching <{norm}> — recorded the current page as the baseline;"
+            " you'll be pinged here on its first change."
+        )
+    else:
+        msg = f"Watching <{norm}> — you'll be pinged here when its text changes."
+    if previous_channel_id is not None:
+        msg += f"\nThis watch's pings moved from <#{previous_channel_id}> to this channel."
+    await interaction.followup.send(msg)
+
+
+@client.tree.command(description="Stop watching a webpage")
+@app_commands.describe(url="Page to stop watching")
+@app_commands.guild_only()
+async def unwatch(interaction: discord.Interaction, url: str):
+    norm = normalize_url(url)
+    removed = norm is not None and db.remove_site_watch(
+        interaction.guild_id, interaction.user.id, norm
+    )
+    if removed:
+        msg = f"Stopped watching <{norm}>."
+    else:
+        msg = "You weren't watching that page (check `/show`)."
+    await interaction.response.send_message(msg, ephemeral=True)
+
+
+@unwatch.autocomplete("url")
+async def unwatch_url_autocomplete(interaction: discord.Interaction, current: str):
+    watches = db.list_site_watches(interaction.guild_id, interaction.user.id)
+    current = current.lower()
+    return [
+        app_commands.Choice(name=w["url"][:100], value=w["url"])
+        for w in watches
+        if current in w["url"].lower()
     ][:25]
 
 
