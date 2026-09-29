@@ -3,8 +3,9 @@
 Discord bot that pings you when a new post on a swap subreddit matches your
 keywords, or when a watched webpage's text changes. Built for the
 first-come-first-served nature of r/hardwareswap and r/mechmarket and of
-small-batch shop drops: it polls every 15 seconds, and each user in the
-server keeps their own watchlist.
+small-batch shop drops: pages poll every 15 seconds (Reddit every 60 — its
+public RSS rate-limits anything faster), and each user in the server keeps
+their own watchlist.
 
 ## Commands
 
@@ -42,7 +43,8 @@ Worth knowing:
 |---|---|---|
 | `DISCORD_TOKEN` | yes | Bot token — see setup step 1. |
 | `REDDIT_USER_AGENT` | no | User-Agent for RSS requests; Reddit asks that it name the app and your reddit username. |
-| `POLL_INTERVAL_SECONDS` | no | Default 15. Each cycle is one RSS request + one fetch per watched URL, regardless of watch count. |
+| `POLL_INTERVAL_SECONDS` | no | Default 15. Page-watch cadence; each cycle is one fetch per watched URL. |
+| `REDDIT_INTERVAL_SECONDS` | no | Default 60. Reddit's RSS 429s well under 4 req/min; 60 is the proven rate. |
 | `GUILD_ID` | no | Your server ID makes slash commands appear instantly; without it the first global sync can take an hour. Developer Mode → right-click server → *Copy Server ID*. |
 | `SITE_USER_AGENT` | no | User-Agent for page fetches; some hosts reject generic ones. |
 | `TZ` | no | Timezone for log timestamps; defaults to UTC. |
@@ -77,9 +79,9 @@ it hasn't been notified before. Consequences:
   re-checked hourly; the others keep working. Re-running `/setup` for it
   un-benches it immediately.
 
-Rate math: 4 unauthenticated RSS requests per minute + 4 page fetches per
-watched URL. (If Reddit rate-limits a cycle, the bot just skips it and tries
-again.)
+Rate math: 1 unauthenticated RSS request per minute + 4 page fetches per
+minute per watched URL. (If Reddit rate-limits a cycle anyway, the bot just
+skips it and tries again.)
 
 ## Troubleshooting
 

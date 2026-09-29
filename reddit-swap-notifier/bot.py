@@ -34,7 +34,8 @@ class SwapNotifier(discord.Client):
         self.feed = RedditFeed()
         self.sites = SiteFeed()
         interval = int(os.environ.get("POLL_INTERVAL_SECONDS") or "15")
-        self.poller = Poller(self, self.feed, self.sites, interval)
+        reddit_interval = int(os.environ.get("REDDIT_INTERVAL_SECONDS") or "60")
+        self.poller = Poller(self, self.feed, self.sites, interval, reddit_interval)
         self.poller_task = asyncio.create_task(self.poller.run())
 
         def log_poller_exit(task: asyncio.Task) -> None:

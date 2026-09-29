@@ -29,17 +29,28 @@ RECHECK_BROKEN_AFTER = 3600
 
 
 class Poller:
-    def __init__(self, bot: discord.Client, feed: RedditFeed, sites: SiteFeed, interval: int):
+    def __init__(
+        self,
+        bot: discord.Client,
+        feed: RedditFeed,
+        sites: SiteFeed,
+        interval: int,
+        reddit_interval: int,
+    ):
         self.bot = bot
         self.feed = feed
         self.sites = sites
         self.interval = interval
+        # Reddit's public RSS 429s well under 4 req/min, so Reddit polls on
+        # its own slower cadence while pages poll every interval.
+        self.reddit_interval = reddit_interval
+        self._last_reddit_poll = 0.0
         self.broken: dict[str, float] = {}  # subreddit -> when it was found bad
         self.broken_sites: dict[str, float] = {}  # url -> when it 404/410'd
 
     async def run(self) -> None:
         await self.bot.wait_until_ready()
-        log.info("Poller started (interval=%ss)", self.interval)
+        log.info("Poller started (interval=%ss, reddit=%ss)", self.interval, self.reddit_interval)
         while True:
             try:
                 await self.poll_once()
@@ -48,7 +59,9 @@ class Poller:
             await asyncio.sleep(self.interval)
 
     async def poll_once(self) -> None:
-        await self._poll_reddit()
+        if time.time() - self._last_reddit_poll >= self.reddit_interval:
+            self._last_reddit_poll = time.time()
+            await self._poll_reddit()
         await self._poll_sites()
 
     async def _poll_reddit(self) -> None:
