@@ -11,7 +11,7 @@ import discord
 
 import db
 from reddit_feed import FeedError, RedditFeed, SubredditGone
-from site_feed import SiteError, SiteFeed, SiteGone, change_summary, hash_lines
+from site_feed import SiteError, SiteFeed, SiteGone
 
 log = logging.getLogger(__name__)
 
@@ -26,6 +26,9 @@ def matching_keywords(keywords: list[str], text: str) -> list[str]:
 
 
 RECHECK_BROKEN_AFTER = 3600
+# A line absent longer than this that shows up again pings as new (restock);
+# anything shorter is page flap and stays silent.
+REAPPEAR_AFTER = 6 * 3600
 
 
 class Poller:
@@ -137,7 +140,8 @@ class Poller:
         if not urls:
             return
         watches = db.all_site_watches()
-        checked = changed = 0
+        checked = pinged = 0
+        now = int(time.time())
         for url in urls:
             try:
                 lines = await self.sites.fetch_lines(url)
@@ -154,21 +158,35 @@ class Poller:
                 log.warning("Site check skipped for %s: %s", url, e)
                 continue
             checked += 1
-            new_hash = hash_lines(lines)
-            state = db.get_site_state(url)
-            if state is None:
-                # Watch without a baseline (e.g. state table lost) — start now.
-                db.set_site_state(url, new_hash, lines)
+            known = db.site_line_map(url)
+            if not known:
+                # No baseline (state lost or first deploy): absorb quietly —
+                # twice, so a first-hit/session page variant doesn't become
+                # "new text" next cycle.
+                db.touch_site_lines(url, lines)
+                try:
+                    await asyncio.sleep(3)
+                    db.touch_site_lines(url, await self.sites.fetch_lines(url))
+                except (SiteError, SiteGone):
+                    pass
                 continue
-            if new_hash == state["content_hash"]:
-                continue
-            changed += 1
-            summary = change_summary(state["body"].split("\n"), lines)
-            # The snapshot advances only once every subscriber got the ping,
-            # so a transient Discord failure re-notifies next cycle.
-            if await self.notify_site_change(url, watches, summary):
-                db.set_site_state(url, new_hash, lines)
-        log.info("Site poll done: %s urls checked, %s changed", checked, changed)
+            new = [
+                line
+                for line in lines
+                if line not in known or now - known[line] > REAPPEAR_AFTER
+            ]
+            if new:
+                pinged += 1
+                summary = "\n".join(new)
+                if len(summary) > 300:  # keep the embed description short
+                    summary = summary[:300] + "…"
+                # last_seen advances only once every subscriber got the ping,
+                # so a transient Discord failure re-notifies next cycle.
+                if not await self.notify_site_change(url, watches, summary):
+                    continue
+            db.touch_site_lines(url, lines)
+        db.prune_site_lines()
+        log.info("Site poll done: %s urls checked, %s with new text", checked, pinged)
 
     async def notify_site_change(self, url: str, watches, summary: str) -> bool:
         # One message per (channel, url): mention every subscriber.
@@ -214,16 +232,16 @@ class Poller:
         if channel is None:
             channel = await self.bot.fetch_channel(channel_id)
         embed = discord.Embed(
-            title=f"Page changed: {urlsplit(url).netloc}",
+            title=f"New content: {urlsplit(url).netloc}",
             url=url,
-            description=summary or "Text was removed or rearranged.",
+            description=summary,
             color=discord.Color.green(),
         )
         content = " ".join(f"<@{u}>" for u in user_ids)
         if len(content) > 2000:  # Discord's message-content limit; drop whole mentions
             content = content[: content.rfind(" ", 0, 2000)]
         await channel.send(content=content, embed=embed)
-        log.info("Notified users %s: %s changed", user_ids, url)
+        log.info("Notified users %s: %s has new text", user_ids, url)
 
     async def notify_matches(self, post, subscriptions) -> None:
         post_subreddit = post.subreddit

@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 import db
 from poller import Poller
 from reddit_feed import FeedError, RedditFeed, SubredditGone
-from site_feed import SiteError, SiteFeed, SiteGone, hash_lines
+from site_feed import SiteError, SiteFeed, SiteGone
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
@@ -33,7 +33,7 @@ class SwapNotifier(discord.Client):
         db.init()
         self.feed = RedditFeed()
         self.sites = SiteFeed()
-        interval = int(os.environ.get("POLL_INTERVAL_SECONDS") or "15")
+        interval = int(os.environ.get("POLL_INTERVAL_SECONDS") or "10")
         reddit_interval = int(os.environ.get("REDDIT_INTERVAL_SECONDS") or "60")
         self.poller = Poller(self, self.feed, self.sites, interval, reddit_interval)
         self.poller_task = asyncio.create_task(self.poller.run())
@@ -303,14 +303,21 @@ async def watch(interaction: discord.Interaction, url: str):
     previous_channel_id = db.add_site_watch(
         interaction.guild_id, interaction.user.id, norm, interaction.channel_id
     )
-    if db.get_site_state(norm) is None:
-        db.set_site_state(norm, hash_lines(lines), lines)
+    if not db.site_line_map(norm):
+        # Silent baseline: two fetches, so a first-hit/session page variant
+        # doesn't become "new text" on the next poll.
+        db.touch_site_lines(norm, lines)
+        try:
+            await asyncio.sleep(3)
+            db.touch_site_lines(norm, await client.sites.fetch_lines(norm))
+        except (SiteError, SiteGone):
+            pass
         msg = (
             f"Watching <{norm}> — recorded the current page as the baseline;"
-            " you'll be pinged here on its first change."
+            " you'll be pinged here when new text appears."
         )
     else:
-        msg = f"Watching <{norm}> — you'll be pinged here when its text changes."
+        msg = f"Watching <{norm}> — you'll be pinged here when new text appears."
     if previous_channel_id is not None:
         msg += f"\nThis watch's pings moved from <#{previous_channel_id}> to this channel."
     await interaction.followup.send(msg)

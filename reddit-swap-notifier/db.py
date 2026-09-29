@@ -37,12 +37,15 @@ def init() -> None:
             created_at INTEGER NOT NULL,
             PRIMARY KEY (guild_id, user_id, url)
         );
-        CREATE TABLE IF NOT EXISTS site_state (
-            url          TEXT PRIMARY KEY,
-            content_hash TEXT NOT NULL,
-            body         TEXT NOT NULL,
-            updated_at   INTEGER NOT NULL
+        CREATE TABLE IF NOT EXISTS site_lines (
+            url       TEXT    NOT NULL,
+            line      TEXT    NOT NULL,
+            last_seen INTEGER NOT NULL,
+            PRIMARY KEY (url, line)
         );
+        -- Replaced by site_lines (per-line last_seen) after hash-based
+        -- change detection proved too noisy on flapping pages.
+        DROP TABLE IF EXISTS site_state;
         """
     )
     _conn.commit()
@@ -174,13 +177,13 @@ def remove_site_watch(guild_id: int, user_id: int, url: str) -> bool:
     )
     _conn.commit()
     if cur.rowcount:
-        # Nobody watching => drop the snapshot too, so a future watch
+        # Nobody watching => drop the known lines too, so a future watch
         # re-baselines instead of diffing against a stale page.
         still_watched = _conn.execute(
             "SELECT 1 FROM site_watches WHERE url=? LIMIT 1", (url,)
         ).fetchone()
         if still_watched is None:
-            _conn.execute("DELETE FROM site_state WHERE url=?", (url,))
+            _conn.execute("DELETE FROM site_lines WHERE url=?", (url,))
             _conn.commit()
     return cur.rowcount > 0
 
@@ -204,19 +207,27 @@ def distinct_site_urls() -> list[str]:
     return [r["url"] for r in rows]
 
 
-def get_site_state(url: str) -> sqlite3.Row | None:
-    return _conn.execute(
-        "SELECT content_hash, body FROM site_state WHERE url=?", (url,)
-    ).fetchone()
+def site_line_map(url: str) -> dict[str, int]:
+    """Every line ever absorbed for the page, mapped to its last-seen time."""
+    rows = _conn.execute(
+        "SELECT line, last_seen FROM site_lines WHERE url=?", (url,)
+    ).fetchall()
+    return {r["line"]: r["last_seen"] for r in rows}
 
 
-def set_site_state(url: str, content_hash: str, lines: list[str]) -> None:
+def touch_site_lines(url: str, lines: list[str]) -> None:
+    now = int(time.time())
+    _conn.executemany(
+        "INSERT INTO site_lines (url, line, last_seen) VALUES (?, ?, ?)"
+        " ON CONFLICT (url, line) DO UPDATE SET last_seen=excluded.last_seen",
+        [(url, line, now) for line in lines],
+    )
+    _conn.commit()
+
+
+def prune_site_lines(max_age: int = 7 * 86400) -> None:
     _conn.execute(
-        "INSERT INTO site_state (url, content_hash, body, updated_at)"
-        " VALUES (?, ?, ?, ?)"
-        " ON CONFLICT (url) DO UPDATE SET content_hash=excluded.content_hash,"
-        " body=excluded.body, updated_at=excluded.updated_at",
-        (url, content_hash, "\n".join(lines), int(time.time())),
+        "DELETE FROM site_lines WHERE last_seen < ?", (int(time.time()) - max_age,)
     )
     _conn.commit()
 

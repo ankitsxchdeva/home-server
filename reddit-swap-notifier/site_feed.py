@@ -1,8 +1,6 @@
-"""Webpage watcher: fetch pages, hash their visible text, summarize changes."""
+"""Webpage watcher: fetch pages and pull out their visible text."""
 
 import asyncio
-import difflib
-import hashlib
 import os
 from html.parser import HTMLParser
 
@@ -60,23 +58,6 @@ def extract_lines(html_text: str) -> list[str]:
 
 def plain_lines(text: str) -> list[str]:
     return [line.strip() for line in text.splitlines() if line.strip()]
-
-
-def hash_lines(lines: list[str]) -> str:
-    return hashlib.sha256("\n".join(lines).encode()).hexdigest()
-
-
-def change_summary(old_lines: list[str], new_lines: list[str], limit: int = 300) -> str:
-    """What appeared, for the notification embed; "" when text only left."""
-    added = [
-        line[1:]
-        for line in difflib.unified_diff(old_lines, new_lines, lineterm="", n=0)
-        if line.startswith("+") and not line.startswith("+++")
-    ]
-    if not added:
-        return ""
-    summary = "\n".join(added)
-    return summary[:limit] + "…" if len(summary) > limit else summary
 
 
 class SiteFeed:
