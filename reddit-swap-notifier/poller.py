@@ -31,6 +31,24 @@ RECHECK_BROKEN_AFTER = 3600
 REAPPEAR_AFTER = 6 * 3600
 
 
+def classify_site_lines(
+    known: dict[str, int], current: list[str], prev_candidates: set[str], now: int
+) -> tuple[set[str], list[str]]:
+    """Split current lines into new candidates vs. confirmed new text.
+
+    Real pages flap between variants (session cookies, server-side
+    degradation), so unseen text only pings if it survives into the next
+    cycle; one-cycle flickers never notify.
+    """
+    candidates = {
+        line
+        for line in current
+        if line not in known or now - known[line] > REAPPEAR_AFTER
+    }
+    confirmed = [line for line in dict.fromkeys(current) if line in prev_candidates]
+    return candidates, confirmed
+
+
 class Poller:
     def __init__(
         self,
@@ -50,6 +68,7 @@ class Poller:
         self._last_reddit_poll = 0.0
         self.broken: dict[str, float] = {}  # subreddit -> when it was found bad
         self.broken_sites: dict[str, float] = {}  # url -> when it 404/410'd
+        self.pending_sites: dict[str, set[str]] = {}  # url -> unconfirmed new lines
 
     async def run(self) -> None:
         await self.bot.wait_until_ready()
@@ -163,6 +182,7 @@ class Poller:
                 # No baseline (state lost or first deploy): absorb quietly —
                 # twice, so a first-hit/session page variant doesn't become
                 # "new text" next cycle.
+                self.pending_sites.pop(url, None)
                 db.touch_site_lines(url, lines)
                 try:
                     await asyncio.sleep(3)
@@ -170,23 +190,22 @@ class Poller:
                 except (SiteError, SiteGone):
                     pass
                 continue
-            new = [
-                line
-                for line in lines
-                if line not in known or now - known[line] > REAPPEAR_AFTER
-            ]
-            if new:
-                pinged += 1
-                summary = "\n".join(new)
+            candidates, confirmed = classify_site_lines(known, lines, self.pending_sites.get(url, set()), now)
+            next_pending = set(candidates)
+            if confirmed:
+                summary = "\n".join(confirmed)
                 if len(summary) > 300:  # keep the embed description short
                     summary = summary[:300] + "…"
-                # last_seen advances only once every subscriber got the ping,
-                # so a transient Discord failure re-notifies next cycle.
-                if not await self.notify_site_change(url, watches, summary):
-                    continue
+                # On a transient Discord failure the confirmed lines stay
+                # pending, so next cycle re-confirms and re-tries the ping.
+                if await self.notify_site_change(url, watches, summary):
+                    pinged += 1
+                else:
+                    next_pending |= set(confirmed)
+            self.pending_sites[url] = next_pending
             db.touch_site_lines(url, lines)
         db.prune_site_lines()
-        log.info("Site poll done: %s urls checked, %s with new text", checked, pinged)
+        log.info("Site poll done: %s urls checked, %s pinged", checked, pinged)
 
     async def notify_site_change(self, url: str, watches, summary: str) -> bool:
         # One message per (channel, url): mention every subscriber.

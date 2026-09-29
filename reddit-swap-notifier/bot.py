@@ -300,6 +300,7 @@ async def watch(interaction: discord.Interaction, url: str):
     # The fetch just proved the page works; un-bench it if the poller had it
     # sidelined so watching resumes now instead of at the next hourly re-check.
     client.poller.broken_sites.pop(norm, None)
+    client.poller.pending_sites.pop(norm, None)
     previous_channel_id = db.add_site_watch(
         interaction.guild_id, interaction.user.id, norm, interaction.channel_id
     )

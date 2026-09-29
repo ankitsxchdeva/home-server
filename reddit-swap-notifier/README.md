@@ -29,7 +29,8 @@ Worth knowing:
 - Users matching the same post in the same channel are pinged together in one
   message.
 - Page watches ping when text appears that hasn't been on the page recently
-  (last 6 hours): new products, price edits, restocks. Text disappearing,
+  (last 6 hours): new products, price edits, restocks. New text must survive
+  two consecutive checks before it pings (~10–20s), so text disappearing,
   reordering, or flickering between page variants never pings. The baseline
   recorded at `/watch` is silent. Fetch errors never count as changes; a page
   that 404/410s is benched and re-checked hourly. JavaScript-rendered pages
