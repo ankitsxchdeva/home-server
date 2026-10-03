@@ -9,19 +9,27 @@
   actions:
   - action: light.turn_on
     target:
-      device_id:
-      - f5317caddef3f9d1279526c1b64a3b4b
-      - 2878198d7d2a1f0f81e4f80242284ac8
+      entity_id: light.living_room_spetsboj
     data:
-      brightness_pct: 80
+      brightness_pct: 50
+      color_temp_kelvin: 2695
   - action: light.turn_on
+    target:
+      entity_id: light.ikea_of_sweden_tradfri_bulb_e26_ww_globe_800lm_2
     data:
-      brightness_pct: 25
-      color_temp_kelvin: 2700
+      brightness_pct: 40
+  - action: light.turn_on
+    target:
+      entity_id: light.ikea_of_sweden_tradfri_bulb_e26_ww_globe_800lm
+    data:
+      brightness_pct: 70
+  - action: light.turn_on
     target:
       entity_id:
       - light.h600b
       - light.h600b_2
+    data:
+      brightness_pct: 25
   mode: single
 - id: '1758031929542'
   alias: Sunrise Alarm Clock
