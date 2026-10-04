@@ -15,6 +15,7 @@ server:
 branding:
   logo-text: home server
   app-name: home server
+  favicon-url: /assets/favicon.svg # house icon, lede-style; served from mounted assets
 
 theme:
   # Colophon dark (default): bg #1e1c22, accent #8b87c8, pos #7fb98a, neg #d97066
@@ -43,6 +44,26 @@ pages:
             location: ${WEATHER_LOCATION}
             units: imperial
             hour-format: 12h
+
+          # Weekly forecast under the daily one; open-meteo daily endpoint.
+          # Lat/lon live in the Pi's gitignored .env like WEATHER_LOCATION.
+          - type: custom-api
+            title: this week
+            title-icon: mdi:calendar-week
+            cache: 1h
+            url: https://api.open-meteo.com/v1/forecast?latitude=${WEATHER_LAT}&longitude=${WEATHER_LON}&daily=temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&forecast_days=7&timezone=auto
+            template: |
+              {{ $times := .JSON.Array "daily.time" }}
+              {{ $maxes := .JSON.Array "daily.temperature_2m_max" }}
+              {{ $mins := .JSON.Array "daily.temperature_2m_min" }}
+              <ul class="list list-gap-8">
+                {{ range $i, $t := $times }}
+                <li class="flex items-center justify-between size-h6">
+                  <span class="{{ if ne $i 0 }}color-subdue{{ end }}">{{ if eq $i 0 }}Today{{ else }}{{ formatTime "Mon" (parseTime "2006-01-02" ($t.String "")) }}{{ end }}</span>
+                  <span>{{ toInt ((index $maxes $i).Float "") }}&deg; <span class="color-subdue">{{ toInt ((index $mins $i).Float "") }}&deg;</span></span>
+                </li>
+                {{ end }}
+              </ul>
 
           - type: server-stats
             servers:
@@ -109,6 +130,10 @@ pages:
                 check-url: https://rss.ankit.casa/healthz
                 description: rss digest for lede
                 icon: mdi:rss
+              - title: Lede
+                url: https://rss.ankit.casa
+                description: read the digest
+                icon: mdi:waves
               - title: Kalshi PnL
                 url: https://kalshi.ankit.casa/pnl
                 description: lifetime kalshi profit/loss
