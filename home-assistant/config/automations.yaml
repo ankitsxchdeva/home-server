@@ -56,18 +56,15 @@
       color_temp_kelvin: 2700
   mode: single
 - id: '1785291854907'
-  alias: Living Room Lights Off
-  description: Turn off the living room lights at 10:30 PM
+  alias: All Lights Off
+  description: Turn off every light in the house at 11 PM
   triggers:
-  - at: '22:30:00'
+  - at: '23:00:00'
     trigger: time
   conditions: []
   actions:
   - action: light.turn_off
-    target:
-      entity_id:
-      - light.ikea_of_sweden_tradfri_bulb_e26_ww_globe_800lm
-      - light.ikea_of_sweden_tradfri_bulb_e26_ww_globe_800lm_2
+    data: {}
   mode: single
 - id: '1785291854939'
   alias: Bedroom Lights Off
