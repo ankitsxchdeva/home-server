@@ -50,22 +50,22 @@ fails=$(( $(cat "$FAILS_FILE" 2>/dev/null || echo 0) + 1 ))
 echo "$fails" > "$FAILS_FILE"
 echo "$(date -Is) funnel probe failed ($funnel_code), consecutive: $fails"
 
-[ "$fails" -lt "$FAIL_THRESHOLD" ] && exit 1
+[ "$fails" -lt "$FAIL_THRESHOLD" ] && exit 0
 
 if ! ping -c1 -W2 "$(ip route show default | awk '{print $3; exit}')" >/dev/null 2>&1; then
   echo "$(date -Is) gateway unreachable (LAN outage?) — not restarting"
-  exit 1
+  exit 0
 fi
 
 tailnet_code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "$TAILNET_URL" || echo 000)
 if [ "$tailnet_code" != "200" ]; then
   echo "$(date -Is) tailnet probe also failed ($tailnet_code) — backend down, not the funnel; not restarting"
-  exit 1
+  exit 0
 fi
 
 if [ -f "$LAST_FILE" ] && [ $(( $(date +%s) - $(stat -c %Y "$LAST_FILE") )) -lt "$MIN_RESTART_GAP" ]; then
   echo "$(date -Is) in restart cooldown — skipping"
-  exit 1
+  exit 0
 fi
 
 echo "$(date -Is) funnel wedged (funnel=$funnel_code tailnet=$tailnet_code); restarting tailscaled"
