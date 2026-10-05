@@ -1,0 +1,13 @@
+[Unit]
+Description=Tailscale Funnel watchdog
+After=network-online.target tailscaled.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/home/ankit/home-server/scripts/funnel-watchdog.sh
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
