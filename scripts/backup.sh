@@ -32,6 +32,7 @@ tar -czf "$OUT" \
   uptime-kuma/data \
   reddit-swap-notifier/data \
   rss-reader/data \
+  open-webui/data \
   netalertx/db \
   cups/config
 

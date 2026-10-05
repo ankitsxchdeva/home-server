@@ -20,5 +20,6 @@ include:
   - quantlab/docker-compose.yml
   - diagram/docker-compose.yml
   - adguard/docker-compose.yml
+  - open-webui/docker-compose.yml
   - watchtower/docker-compose.yml
   - caddy/docker-compose.yml

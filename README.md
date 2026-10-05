@@ -28,6 +28,7 @@ A complete home server setup running on Raspberry Pi with Docker containers.
 - **[Kalshi PnL](./kalshi-pnl/)** - Lifetime Kalshi profit/loss JSON API (public via Funnel :10000 → caddy `/` route for ankitsachdeva.com/kalshi — response is the net number only; secrets scp'd by hand, see its README)
 - **[Quantlab](./quantlab/)** - Backtest + Kalshi arbitrage API (public via Funnel :10000 → caddy `/quantlab` route for ankitsachdeva.com/quantlab, see its README)
 - **Ollama** (moved off the Pi — see the [studio-llm](https://github.com/ankitsxchdeva/studio-llm) repo) - Local LLM running natively on a Mac Studio (Metal GPU); consumers reach it at `https://ollama.ankit.casa` via Caddy over the tailnet. rss-reader uses it to summarize items and write a daily themes overview; quantlab uses it as the default keyless provider for strategy compilation
+- **[Open WebUI](./open-webui/)** - Chat UI for the Studio's Ollama (https://chat.ankit.casa — Caddy only, no host port; talks to ollama.ankit.casa, inference stays off-Pi)
 
 ### Discord Bots
 - **[Commute Bot](./commute-bot/)** - Commute time lookup via Google Maps
@@ -62,14 +63,14 @@ flowchart LR
         subgraph PI["Raspberry Pi 5 — the hub"]
             funnel["Funnel :10000"]
             caddy["Caddy — *.ankit.casa"]
-            apps["12 web apps<br/>dashboards · APIs · parking page"]
+            apps["13 web apps<br/>dashboards · APIs · parking page"]
             bots["4 Discord bots"]
             ha["Home Assistant"]
             chores["cron + watchdogs<br/>deploys · updates · backups"]
         end
 
         subgraph STUDIO["Mac Studio — headless, ethernet"]
-            ollama["Ollama — 27B local LLM"]
+            ollama["Ollama — 30B local LLM"]
             backups[("pi-backups")]
         end
     end
@@ -139,6 +140,7 @@ flowchart LR
                 park["guest parking page — park.ankit.casa — Basic auth"]
                 kalshipnl["kalshi-pnl — kalshi.ankit.casa"]
                 quantlab["quantlab — quantlab.ankit.casa"]
+                openwebui["open-webui — chat.ankit.casa — chat UI"]
                 dozzle["dozzle — logs.ankit.casa — container logs"]
             end
 
@@ -157,7 +159,7 @@ flowchart LR
         end
 
         subgraph STUDIO["Mac Studio — 'studio' — ethernet, headless"]
-            ollama["Ollama :11434 — native macOS, Metal GPU — qwen3.8:27b"]
+            ollama["Ollama :11434 — native macOS, Metal GPU — muse-glimmer:30b-q4_K_M"]
             pibackups[("pi-backups — newest 12 tarballs")]
         end
     end
@@ -304,5 +306,6 @@ All served HTTPS by Caddy (http redirects to https):
 - **Dozzle**: https://logs.ankit.casa
 - **Service Map**: https://diagram.ankit.casa (interactive architecture diagram — data in `diagram/site/data.js`)
 - **Ollama**: https://ollama.ankit.casa (OpenAI-compatible LLM API at `/v1`; served natively by the Mac Studio over the tailnet — no web UI, no host port on the Pi.)
+- **Open WebUI**: https://chat.ankit.casa (chat UI for the Studio's Ollama; inference stays off-Pi)
 
 Direct `http://<pi>:<port>` access remains only where something actually needs it: the host-network services (8123 HA, 20211 NetAlertX, 631 CUPS), uptime-kuma's 3001 bound to localhost for the watchdogs, and caddy's localhost funnel listener (8089). Everything else is Caddy-only — `https://name.ankit.casa` is the single door. Ollama is the exception: it isn't on the Pi at all — native on the Mac Studio, reachable only via `ollama.ankit.casa`.

@@ -1,0 +1,14 @@
+services:
+  open-webui:
+    # Official image (github.com/open-webui/open-webui), multi-arch incl. arm64;
+    # watchtower keeps it updated.
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    restart: unless-stopped
+    # No published port — reached via https://chat.ankit.casa (Caddy -> open-webui:8080)
+    volumes:
+      - ./data:/app/backend/data
+    # Inference stays off-Pi: OLLAMA_BASE_URL in .env points at
+    # https://ollama.ankit.casa (Mac Studio via Caddy over the tailnet).
+    env_file:
+      - .env
