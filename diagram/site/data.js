@@ -41,7 +41,7 @@ const LINES = {
     name: "LLM (Ollama)",
     color: "#a578e8",
     offset: 8,
-    desc: "Inference lives off-Pi: Ollama runs natively on the Mac Studio (Metal GPU, qwen3.8:27b, bound 0.0.0.0:11434). Consumers call https://ollama.ankit.casa, which Caddy reverse-proxies over the tailnet to {$OLLAMA_UPSTREAM} from caddy/.env. rss-reader and quantlab are the consumers; quantlab is the only way public visitors touch it.",
+    desc: "Inference lives off-Pi: Ollama runs natively on the Mac Studio (Metal GPU, muse-glimmer:30b-q4_K_M, bound 0.0.0.0:11434). Consumers call https://ollama.ankit.casa, which Caddy reverse-proxies over the tailnet to {$OLLAMA_UPSTREAM} from caddy/.env. rss-reader and quantlab are the consumers; quantlab is the only way public visitors touch it.",
   },
   smarthome: {
     name: "Smart Home",
@@ -202,7 +202,7 @@ const NODES = [
       ["URL", "https://rss.ankit.casa/docs · public :10000/lede"],
       ["Port", "8000 · uvicorn"],
       ["Loop", "POLL_INTERVAL_SECONDS=1800 · concurrency 8"],
-      ["LLM", "OLLAMA_URL → ollama.ankit.casa · qwen3.8:27b"],
+      ["LLM", "OLLAMA_URL → ollama.ankit.casa · muse-glimmer:30b-q4_K_M"],
       ["State", "data/data.json (atomic) · data/saved.db (sqlite)"],
       ["Guard", "/saved needs X-Lede-Token · /healthz for kuma"],
     ],
@@ -246,7 +246,7 @@ const NODES = [
       ["URL", "https://quantlab.ankit.casa · public :10000/quantlab"],
       ["Port", "3000 · cpus capped at 2.0"],
       ["Build", "from github.com/ankitsxchdeva/quantlab #main"],
-      ["LLM", "ollama provider → ollama.ankit.casa/v1 · pinned qwen3.8:27b"],
+      ["LLM", "ollama provider → ollama.ankit.casa/v1 · pinned muse-glimmer:30b-q4_K_M"],
       ["Abuse guards", "5/min/IP + 60/hr global + 2 concurrent (ollama)"],
       ["Env", "ALLOWED_ORIGINS only · no env_file"],
     ],
@@ -513,13 +513,13 @@ const NODES = [
     ]},
 
   /* ── MAC STUDIO ───────────────────────────────────────────────────── */
-  { id: "ollama", name: "Ollama · qwen3.8:27b", kind: "store", x: 1560, y: 240,
+  { id: "ollama", name: "Ollama · muse-glimmer:30b-q4_K_M", kind: "store", x: 1560, y: 240,
     lines: ["llm", "tailnet"], label: [-18, 4, "end"],
     desc: "Native macOS LaunchAgent on the Studio (Metal GPU; Mac Docker has no GPU passthrough, so never a container), bound to 0.0.0.0:11434 on ethernet. Headless-verified: cold boot brings up SSH → auto-login → Ollama with nobody at the console. Single model, kept warm by rss-reader's keep-alive.",
     facts: [
       ["API", "https://ollama.ankit.casa/v1 (OpenAI-compatible)"],
       ["Serve", "com.local.ollama.plist · 0.0.0.0:11434"],
-      ["Model", "qwen3.8:27b (only model)"],
+      ["Model", "muse-glimmer:30b-q4_K_M (only model)"],
       ["Consumers", "rss-reader summaries · quantlab compile · homepage widget"],
     ],
     routes: [
