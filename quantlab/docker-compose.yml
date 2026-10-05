@@ -10,6 +10,7 @@ services:
       context: https://github.com/ankitsxchdeva/quantlab.git#main
     container_name: quantlab
     restart: unless-stopped
+    env_file: .env # OLLAMA_BASE_URL override only; no secrets (see .env.example)
     cpus: "2.0"        # backtests are CPU-bound; cap so a big run can't stall the Pi
     environment:
       # CORS allowlist. The static UI is served from GitHub Pages, so its origin
@@ -20,8 +21,8 @@ services:
       # ankitsachdeva.com/quantlab/ and THAT is the Origin browsers send.
       # github.io stays listed because it still resolves and redirects.
       - ALLOWED_ORIGINS=https://ankitsachdeva.com,https://ankitsxchdeva.github.io
-    # No env_file: this app holds no secrets. Strategy compilation defaults to
-    # the local Ollama (keyless, app-level rate limits: 5/min per IP, 60/hr
+    # env_file carries only the Ollama endpoint override — the app itself
+    # holds no secrets. Strategy compilation defaults to the local Ollama (keyless, app-level rate limits: 5/min per IP, 60/hr
     # global, 2 concurrent); visitors can instead paste their own LLM key in the
     # browser, forwarded per-request. Kalshi market data is public.
     #
