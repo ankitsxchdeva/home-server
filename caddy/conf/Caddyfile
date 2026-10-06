@@ -78,7 +78,11 @@ ankit.casa, *.ankit.casa {
 	# (host-only, gitignored). Until set, this route 502s by design.
 	@ollama host ollama.ankit.casa
 	handle @ollama {
-		reverse_proxy {$OLLAMA_UPSTREAM:studio-unset.invalid:11434}
+		# oMLX on the Studio (Ollama retired 2026-10-05); Caddy injects the
+		# bearer so tailnet clients stay keyless like before. Key lives in caddy/.env.
+		reverse_proxy {$OLLAMA_UPSTREAM:studio-unset.invalid:8000} {
+			header_up Authorization "Bearer {$OMLX_KEY:unset}"
+		}
 	}
 
 	# Open WebUI chat UI; talks to Ollama via OLLAMA_BASE_URL in its .env

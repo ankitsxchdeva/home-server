@@ -74,11 +74,11 @@ pages:
             title: ollama
             title-icon: si:ollama
             cache: 30s
-            url: https://ollama.ankit.casa/api/ps
+            url: https://ollama.ankit.casa/v1/models
             template: |
-              {{ $model := .JSON.String "models.0.name" }}
+              {{ $model := .JSON.String "data.0.id" }}
               <p class="color-highlight size-h4">{{ if eq $model "" }}idle{{ else }}{{ $model }}{{ end }}</p>
-              <p class="color-subdue size-h6">loaded model</p>
+              <p class="color-subdue size-h6">omlx · studio</p>
 
       - size: full
         widgets:
