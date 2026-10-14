@@ -29,6 +29,7 @@ A complete home server setup running on Raspberry Pi with Docker containers.
 - **[Quantlab](./quantlab/)** - Backtest + Kalshi arbitrage API (public via Funnel :10000 → caddy `/quantlab` route for ankitsachdeva.com/quantlab, see its README)
 - **Ollama** (moved off the Pi — see the [studio-llm](https://github.com/ankitsxchdeva/studio-llm) repo) - Local LLM running natively on a Mac Studio (Metal GPU); consumers reach it at `https://ollama.ankit.casa` via Caddy over the tailnet. rss-reader uses it to summarize items and write a daily themes overview; quantlab uses it as the default keyless provider for strategy compilation
 - **[Open WebUI](./open-webui/)** - Chat UI for the Studio's Ollama (https://chat.ankit.casa — Caddy only, no host port; talks to ollama.ankit.casa, inference stays off-Pi)
+- **[Anesthesia Connect](./anesthesia-connect/)** - Deploy config for the CRNA community/learning MVP — app code + images live in [ankitsxchdeva/anesthesia-connect](https://github.com/ankitsxchdeva/anesthesia-connect). Next.js web + Hono API + Postgres; public via Funnel :10000 → caddy `/anesthesia` route
 
 ### Discord Bots
 - **[Commute Bot](./commute-bot/)** - Commute time lookup via Google Maps

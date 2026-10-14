@@ -1,0 +1,78 @@
+name: anesthesia-connect
+
+# Deploy config only — app code lives in the app repo:
+# https://github.com/ankitsxchdeva/anesthesia-connect
+#
+# Note the build context pins to main: a push to the app repo does NOT
+# redeploy on its own, because the GitOps cron only rebuilds when THIS repo
+# changes. To pick up an app change: `docker compose build --no-cache` the
+# service && `docker compose up -d` — plain `--build` reuses BuildKit's
+# cached git clone of #main and silently ships stale code (bit us with
+# quantlab 2026-08-29).
+
+services:
+  db:
+    build:
+      context: https://github.com/ankitsxchdeva/anesthesia-connect.git#main
+      dockerfile: db/Dockerfile
+    container_name: anesthesia-db
+    restart: unless-stopped
+    env_file:
+      - .env # POSTGRES_PASSWORD, TZ
+    environment:
+      - POSTGRES_USER=anesthesia
+      - POSTGRES_DB=anesthesia
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U anesthesia -d anesthesia"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    # No published port. App-internal; psql via `docker compose exec db`.
+
+  api:
+    build:
+      context: https://github.com/ankitsxchdeva/anesthesia-connect.git#main
+      dockerfile: api/Dockerfile
+    container_name: anesthesia-api
+    restart: unless-stopped
+    env_file:
+      - .env # POSTGRES_PASSWORD (api reads it directly), JWT_SECRET, TZ
+    environment:
+      - PGHOST=db
+      - PGUSER=anesthesia
+      - PGDATABASE=anesthesia
+      - PGPORT=5432
+      - PORT=4000
+    depends_on:
+      db:
+        condition: service_healthy
+    # No published port. Reached by the web service over the default network.
+
+  web:
+    build:
+      context: https://github.com/ankitsxchdeva/anesthesia-connect.git#main
+      dockerfile: web/Dockerfile
+      args:
+        BASE_PATH: /anesthesia
+        API_URL: http://api:4000
+    container_name: anesthesia-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    # No published port. Public exposure: funnel :10000 → caddy :8089,
+    # Caddyfile `handle /anesthesia*` → anesthesia-web:3000 (no strip — the
+    # app serves under basePath /anesthesia; /anesthesia/api/* is proxied
+    # web-side to the api service).
+    networks:
+      - default
+      - caddy
+
+networks:
+  caddy:
+    external: true # created by the caddy project
+    name: home-server_default
+
+volumes:
+  db-data:
