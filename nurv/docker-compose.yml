@@ -1,7 +1,12 @@
-name: anesthesia-connect
-
 # Deploy config only — app code lives in the app repo:
-# https://github.com/ankitsxchdeva/anesthesia-connect
+# https://github.com/ankitsxchdeva/nurv
+#
+# Deployed via the ROOT compose's `include:` (project home-server) — do NOT
+# add a top-level `name:` here; it is ignored on include, and running this
+# file standalone would orphan the live home-server_db-data volume.
+# Container names anesthesia-* and db creds `anesthesia` stay so the live
+# volume and containers carry over across the nurv rename; the new schema
+# lands via db/migrations/001_nurv.sql from the app repo (applied manually).
 #
 # Note the build context pins to main: a push to the app repo does NOT
 # redeploy on its own, because the GitOps cron only rebuilds when THIS repo
@@ -13,7 +18,7 @@ name: anesthesia-connect
 services:
   db:
     build:
-      context: https://github.com/ankitsxchdeva/anesthesia-connect.git#main
+      context: https://github.com/ankitsxchdeva/nurv.git#main
       dockerfile: db/Dockerfile
     container_name: anesthesia-db
     restart: unless-stopped
@@ -33,7 +38,7 @@ services:
 
   api:
     build:
-      context: https://github.com/ankitsxchdeva/anesthesia-connect.git#main
+      context: https://github.com/ankitsxchdeva/nurv.git#main
       dockerfile: api/Dockerfile
     container_name: anesthesia-api
     restart: unless-stopped
@@ -48,11 +53,12 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    # No published port. Reached by the web service over the default network.
+    # No published port. Reached by the web service (and the tunnel) over
+    # the default network.
 
   web:
     build:
-      context: https://github.com/ankitsxchdeva/anesthesia-connect.git#main
+      context: https://github.com/ankitsxchdeva/nurv.git#main
       dockerfile: web/Dockerfile
       args:
         BASE_PATH: /anesthesia
@@ -61,13 +67,25 @@ services:
     restart: unless-stopped
     depends_on:
       - api
-    # No published port. Public exposure: funnel :10000 → caddy :8089,
-    # Caddyfile `handle /anesthesia*` → anesthesia-web:3000 (no strip — the
-    # app serves under basePath /anesthesia; /anesthesia/api/* is proxied
-    # web-side to the api service).
+    # Fallback exposure while cutover to Cloudflare completes: funnel
+    # :10000 → caddy :8089, Caddyfile `handle /anesthesia*` →
+    # anesthesia-web:3000 (no strip; app serves under basePath /anesthesia).
+    # Primary public frontend is the `nurv` Cloudflare Worker at nurv.space.
     networks:
       - default
       - caddy
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: nurv-tunnel
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    env_file:
+      - .env # TUNNEL_TOKEN (Cloudflare dashboard → Networks → Tunnels)
+    depends_on:
+      - api
+    # Exposes the API as https://api.nurv.space → http://api:4000 (public
+    # hostname configured dashboard-side on the tunnel; DNS is automatic).
 
 networks:
   caddy:
