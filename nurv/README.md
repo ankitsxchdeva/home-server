@@ -21,6 +21,11 @@ repo's `main` branch.
 `.env` (gitignored) must exist on the Pi with:
 `POSTGRES_PASSWORD`, `JWT_SECRET`, `TZ`, `TUNNEL_TOKEN`.
 
+The app repo is PRIVATE, so the build contexts read a GitHub token from
+`NURV_GH_PAT` in the ROOT `~/home-server/.env` (compose env interpolation
+does not read service env_files). Token = a `repo`-scoped gh credential,
+living only in the Pi's gitignored env files and gitconfigs.
+
 ## Rename continuity
 
 Deployed through the root compose `include:` (project `home-server`), so the

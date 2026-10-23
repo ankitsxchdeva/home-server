@@ -18,7 +18,7 @@
 services:
   db:
     build:
-      context: https://github.com/ankitsxchdeva/nurv.git#main
+      context: https://x-access-token:${NURV_GH_PAT}@github.com/ankitsxchdeva/nurv.git#main
       dockerfile: db/Dockerfile
     container_name: anesthesia-db
     restart: unless-stopped
@@ -38,7 +38,7 @@ services:
 
   api:
     build:
-      context: https://github.com/ankitsxchdeva/nurv.git#main
+      context: https://x-access-token:${NURV_GH_PAT}@github.com/ankitsxchdeva/nurv.git#main
       dockerfile: api/Dockerfile
     container_name: anesthesia-api
     restart: unless-stopped
@@ -58,7 +58,7 @@ services:
 
   web:
     build:
-      context: https://github.com/ankitsxchdeva/nurv.git#main
+      context: https://x-access-token:${NURV_GH_PAT}@github.com/ankitsxchdeva/nurv.git#main
       dockerfile: web/Dockerfile
       args:
         BASE_PATH: /anesthesia
