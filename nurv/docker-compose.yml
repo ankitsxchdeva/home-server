@@ -4,9 +4,8 @@
 # Deployed via the ROOT compose's `include:` (project home-server) — do NOT
 # add a top-level `name:` here; it is ignored on include, and running this
 # file standalone would orphan the live home-server_db-data volume.
-# Container names anesthesia-* and db creds `anesthesia` stay so the live
-# volume and containers carry over across the nurv rename; the new schema
-# lands via db/migrations/001_nurv.sql from the app repo (applied manually).
+# Schema changes land via db/migrations/NNN_*.sql in the app repo, applied
+# manually (see README).
 #
 # Note the build context pins to main: a push to the app repo does NOT
 # redeploy on its own, because the GitOps cron only rebuilds when THIS repo
@@ -20,17 +19,17 @@ services:
     build:
       context: https://x-access-token:${NURV_GH_PAT}@github.com/ankitsxchdeva/nurv.git#main
       dockerfile: db/Dockerfile
-    container_name: anesthesia-db
+    container_name: nurv-db
     restart: unless-stopped
     env_file:
       - .env # POSTGRES_PASSWORD, TZ
     environment:
-      - POSTGRES_USER=anesthesia
-      - POSTGRES_DB=anesthesia
+      - POSTGRES_USER=nurv
+      - POSTGRES_DB=nurv
     volumes:
       - db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U anesthesia -d anesthesia"]
+      test: ["CMD-SHELL", "pg_isready -U nurv -d nurv"]
       interval: 5s
       timeout: 3s
       retries: 12
@@ -40,39 +39,21 @@ services:
     build:
       context: https://x-access-token:${NURV_GH_PAT}@github.com/ankitsxchdeva/nurv.git#main
       dockerfile: api/Dockerfile
-    container_name: anesthesia-api
+    container_name: nurv-api
     restart: unless-stopped
     env_file:
       - .env # POSTGRES_PASSWORD (api reads it directly), JWT_SECRET, TZ
     environment:
       - PGHOST=db
-      - PGUSER=anesthesia
-      - PGDATABASE=anesthesia
+      - PGUSER=nurv
+      - PGDATABASE=nurv
       - PGPORT=5432
       - PORT=4000
     depends_on:
       db:
         condition: service_healthy
-    # No published port. Reached by the web service (and the tunnel) over
-    # the default network.
-
-  web:
-    build:
-      context: https://x-access-token:${NURV_GH_PAT}@github.com/ankitsxchdeva/nurv.git#main
-      dockerfile: web/Dockerfile
-      args:
-        BASE_PATH: /anesthesia
-        API_URL: http://api:4000
-    container_name: anesthesia-web
-    restart: unless-stopped
-    depends_on:
-      - api
-    # Not publicly routed: the funnel/caddy `/anesthesia*` fallback was retired
-    # (it exposed the whole API without the Worker in front). The public
-    # frontend is the `nurv` Cloudflare Worker at nurv.space.
-    networks:
-      - default
-      - caddy
+    # No published port. Reached only by the tunnel over the default network;
+    # the web frontend is the `nurv` Cloudflare Worker at nurv.space.
 
   tunnel:
     # Pinned: watchtower recreates :latest daily, so the tunnel (and the
@@ -87,11 +68,6 @@ services:
       - api
     # Exposes the API as https://api.nurv.space → http://api:4000 (public
     # hostname configured dashboard-side on the tunnel; DNS is automatic).
-
-networks:
-  caddy:
-    external: true # created by the caddy project
-    name: home-server_default
 
 volumes:
   db-data:

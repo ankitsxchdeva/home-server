@@ -91,7 +91,7 @@ Once the stack is up (step 6), load it over the freshly seeded volume, then
 delete it — it holds every user's data:
 
 ```bash
-docker exec -i anesthesia-db psql -U anesthesia -d anesthesia < ~/home-server/nurv/db-dump.sql
+docker exec -i nurv-db psql -U nurv -d nurv < ~/home-server/nurv/db-dump.sql
 rm ~/home-server/nurv/db-dump.sql
 ```
 
