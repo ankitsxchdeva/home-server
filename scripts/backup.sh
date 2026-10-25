@@ -13,7 +13,9 @@
 #
 # Databases (Home Assistant, uptime-kuma, netalertx) are copied hot, which is fine
 # for these low-write workloads; for a guaranteed-consistent snapshot run
-# `docker compose stop` first and `docker compose up -d` after.
+# `docker compose stop` first and `docker compose up -d` after. nurv's Postgres
+# can't be copied from its data dir hot, so it goes in as a pg_dump instead
+# (nurv/db-dump.sql inside the tarball; restore steps in RESTORE.md).
 set -euo pipefail
 
 REPO=/home/ankit/home-server
@@ -24,7 +26,17 @@ OUT="$DEST/home-server-backup-$STAMP.tar.gz"
 mkdir -p "$DEST"
 cd "$REPO"
 
+# Logical dump of the nurv db (container/creds keep the anesthesia-* names, see
+# nurv/README.md). --clean so a restore over a fresh initdb'd volume replaces
+# the seeded tables. Staged outside the repo; it lands at nurv/db-dump.sql.
+TMP=$(mktemp -d)
+trap 'rm -rf "$TMP"' EXIT
+mkdir -p "$TMP/nurv"
+docker exec anesthesia-db pg_dump -U anesthesia -d anesthesia --clean --if-exists > "$TMP/nurv/db-dump.sql"
+
 tar -czf "$OUT" \
+  -C "$TMP" nurv/db-dump.sql \
+  -C "$REPO" \
   */.env \
   adguard/data \
   home-assistant/config \

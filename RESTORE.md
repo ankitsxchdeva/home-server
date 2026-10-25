@@ -86,6 +86,15 @@ This restores all `*/.env` files, Home Assistant config (users, `.storage`,
 in), Matter fabric keys, uptime-kuma monitors, reddit-swap-notifier
 subscriptions, NetAlertX history, and CUPS printers.
 
+The nurv Postgres comes back as a SQL dump at `nurv/db-dump.sql` (gitignored).
+Once the stack is up (step 6), load it over the freshly seeded volume, then
+delete it — it holds every user's data:
+
+```bash
+docker exec -i anesthesia-db psql -U anesthesia -d anesthesia < ~/home-server/nurv/db-dump.sql
+rm ~/home-server/nurv/db-dump.sql
+```
+
 **No tarball?** Fall back to the Quick Start loop in [README.md](./README.md)
 (`cp .env.example .env` per service) and re-enter every token; Zigbee/Matter
 devices must be re-paired and printers re-added at https://cups.ankit.casa.

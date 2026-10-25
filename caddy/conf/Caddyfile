@@ -126,13 +126,6 @@ ankit.casa, *.ankit.casa {
 		reverse_proxy quantlab:3000
 	}
 
-	# anesthesia-connect MVP. `handle` (NOT handle_path): the Next.js app
-	# serves under basePath /anesthesia, so the prefix must be preserved.
-	# /anesthesia/api/* is proxied web-side to the api service.
-	handle /anesthesia* {
-		reverse_proxy anesthesia-web:3000
-	}
-
 	# default: kalshi-pnl (public pnl number)
 	handle {
 		reverse_proxy kalshi-pnl:8000

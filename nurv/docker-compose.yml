@@ -67,16 +67,17 @@ services:
     restart: unless-stopped
     depends_on:
       - api
-    # Fallback exposure while cutover to Cloudflare completes: funnel
-    # :10000 → caddy :8089, Caddyfile `handle /anesthesia*` →
-    # anesthesia-web:3000 (no strip; app serves under basePath /anesthesia).
-    # Primary public frontend is the `nurv` Cloudflare Worker at nurv.space.
+    # Not publicly routed: the funnel/caddy `/anesthesia*` fallback was retired
+    # (it exposed the whole API without the Worker in front). The public
+    # frontend is the `nurv` Cloudflare Worker at nurv.space.
     networks:
       - default
       - caddy
 
   tunnel:
-    image: cloudflare/cloudflared:latest
+    # Pinned: watchtower recreates :latest daily, so the tunnel (and the
+    # whole API) would change under us without a deploy. Bump deliberately.
+    image: cloudflare/cloudflared:2026.10.3
     container_name: nurv-tunnel
     restart: unless-stopped
     command: tunnel --no-autoupdate run

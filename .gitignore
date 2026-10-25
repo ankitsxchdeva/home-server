@@ -2,6 +2,9 @@
 .env
 **/.env
 
+# nurv Postgres dump, extracted from a backup tarball during a restore
+nurv/db-dump.sql
+
 # Home Assistant - Sensitive Data & Runtime Files
 home-assistant/config/secrets.yaml
 home-assistant/config/.storage/

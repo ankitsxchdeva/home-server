@@ -12,14 +12,20 @@ repo's `main` branch.
   `nurv.space`, proxying `/api/*` to `api.nurv.space`; API reaches the
   `api` container through the `tunnel` service (cloudflared,
   `TUNNEL_TOKEN` in `.env`).
-- **Fallback:** funnel `:10000` → caddy `:8089`, Caddyfile
-  `handle /anesthesia*` → `anesthesia-web:3000` (no prefix strip; app
-  serves under basePath `/anesthesia`). Retire after cutover is verified.
+- The old funnel/caddy `/anesthesia*` fallback is retired; nothing else
+  routes to these containers.
 
 ## Secrets
 
 `.env` (gitignored) must exist on the Pi with:
-`POSTGRES_PASSWORD`, `JWT_SECRET`, `TZ`, `TUNNEL_TOKEN`.
+`POSTGRES_PASSWORD`, `JWT_SECRET`, `TZ`, `TUNNEL_TOKEN`, plus
+`RESEND_API_KEY` and `EMAIL_FROM` — without them password-reset emails are
+never sent. See `.env.example`.
+
+## Backups
+
+`scripts/backup.sh` (weekly cron) includes a `pg_dump` of this db as
+`nurv/db-dump.sql` in the tarball; restore steps in `RESTORE.md`.
 
 The app repo is PRIVATE, so the build contexts read a GitHub token from
 `NURV_GH_PAT` in the ROOT `~/home-server/.env` (compose env interpolation
@@ -31,9 +37,10 @@ living only in the Pi's gitignored env files and gitconfigs.
 Deployed through the root compose `include:` (project `home-server`), so the
 live volume is `home-server_db-data`. Container names (`anesthesia-db` etc.)
 and db credentials (`anesthesia`) intentionally stay unchanged across the
-nurv rename. The nurv schema lands via `db/migrations/001_nurv.sql` in the
-app repo — apply once, manually:
+nurv rename. Schema changes land via `db/migrations/NNN_*.sql` in the app
+repo — schema.sql only runs on a fresh volume, so apply each new migration
+once, manually, in order, from the app repo:
 
 ```
-ssh ankit@100.109.7.124 'docker exec -i anesthesia-db psql -U anesthesia -d anesthesia' < db/migrations/001_nurv.sql
+ssh ankit@100.109.7.124 'docker exec -i anesthesia-db psql -U anesthesia -d anesthesia' < db/migrations/NNN_name.sql
 ```
