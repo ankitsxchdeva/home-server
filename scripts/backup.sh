@@ -34,6 +34,9 @@ trap 'rm -rf "$TMP"' EXIT
 mkdir -p "$TMP/nurv"
 docker exec nurv-db pg_dump -U nurv -d nurv --clean --if-exists > "$TMP/nurv/db-dump.sql"
 
+# GNU tar exits 1 when a live file (an sqlite WAL, say) changes while it's
+# being read; the archive is still fine. Only 2+ is a real failure — without
+# this, set -e aborted the run before the off-box copy below.
 tar -czf "$OUT" \
   -C "$TMP" nurv/db-dump.sql \
   -C "$REPO" \
@@ -46,7 +49,8 @@ tar -czf "$OUT" \
   rss-reader/data \
   open-webui/data \
   netalertx/db \
-  cups/config
+  cups/config \
+  || [ $? -eq 1 ]
 
 # Keep only the newest 4 backups
 ls -1t "$DEST"/home-server-backup-*.tar.gz | tail -n +5 | xargs -r rm -f
