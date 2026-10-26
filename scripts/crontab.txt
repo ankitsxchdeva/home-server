@@ -7,3 +7,6 @@
 
 # Weekly backup (Sun 03:00) — tarball on the Pi + off-box copy on the Mac Studio
 0 3 * * 0 sudo /home/ankit/home-server/scripts/backup.sh >> /home/ankit/home-server/scripts/backup.log 2>&1
+
+# Daily nurv db dump (03:30) — ~/nurv-backups on the Pi + Studio copy
+30 3 * * * /home/ankit/home-server/scripts/nurv-db-backup.sh >> /home/ankit/home-server/scripts/nurv-db-backup.log 2>&1
