@@ -27,8 +27,8 @@ A complete home server setup running on Raspberry Pi with Docker containers.
 - **[RSS Reader](./rss-reader/)** - Deploy config for the lede digest API — app code + image live in [ankitsxchdeva/lede](https://github.com/ankitsxchdeva/lede) (`backend/`). JSON API; public via Funnel :10000 → caddy `/lede` route, feeds ankitsachdeva.com/lede
 - **[Kalshi PnL](./kalshi-pnl/)** - Lifetime Kalshi profit/loss JSON API (public via Funnel :10000 → caddy `/` route for ankitsachdeva.com/kalshi — response is the net number only; secrets scp'd by hand, see its README)
 - **[Quantlab](./quantlab/)** - Backtest + Kalshi arbitrage API (public via Funnel :10000 → caddy `/quantlab` route for ankitsachdeva.com/quantlab, see its README)
-- **Ollama** (moved off the Pi — see the [studio-llm](https://github.com/ankitsxchdeva/studio-llm) repo) - Local LLM running natively on a Mac Studio (Metal GPU); consumers reach it at `https://ollama.ankit.casa` via Caddy over the tailnet. rss-reader uses it to summarize items and write a daily themes overview; quantlab uses it as the default keyless provider for strategy compilation
-- **[Open WebUI](./open-webui/)** - Chat UI for the Studio's Ollama (https://chat.ankit.casa — Caddy only, no host port; talks to ollama.ankit.casa, inference stays off-Pi)
+- **oMLX** (off the Pi — see the [studio-llm](https://github.com/ankitsxchdeva/studio-llm) repo; replaced Ollama 2026-10-05) - Local LLM (`Muse-Glimmer-30B-MLX-4bit`) served natively on a Mac Studio as an OpenAI-compatible API on `:8000/v1`, bearer-key auth. rss-reader (item summaries + daily themes), quantlab (default strategy-compile provider) and Open WebUI call the Studio directly; tailnet clients use `https://ollama.ankit.casa`, where Caddy injects the key
+- **[Open WebUI](./open-webui/)** - Chat UI for the Studio's oMLX (https://chat.ankit.casa — Caddy only, no host port; OpenAI-API connection straight to the Studio, inference stays off-Pi)
 - **[Nurv](./nurv/)** - Deploy config for nurv.space, the pre-CRNA applicant platform — app code lives in [ankitsxchdeva/nurv](https://github.com/ankitsxchdeva/nurv). Hono API + Postgres here, exposed as api.nurv.space through a Cloudflare tunnel; the Next.js frontend runs as a Cloudflare Worker
 
 ### Discord Bots
@@ -71,7 +71,7 @@ flowchart LR
         end
 
         subgraph STUDIO["Mac Studio — headless, ethernet"]
-            ollama["Ollama — 30B local LLM"]
+            ollama["oMLX — 30B local LLM"]
             backups[("pi-backups")]
         end
     end
@@ -154,13 +154,13 @@ flowchart LR
 
             matter["python-matter-server — Matter bridge"]
             watchtower["watchtower — daily image auto-updates"]
-            cron["ankit crontab — GitOps deploy every 5m · docker prune Sun 04:30 · backup Sun 03:00"]
-            wd["systemd watchdogs — printer + matter — host units, not Docker"]
+            cron["ankit crontab — GitOps deploy every 5m · docker prune Sun 04:30 · backup Sun 03:00 · nurv dump daily"]
+            wd["systemd watchdogs — printer + matter + funnel — host units, not Docker"]
             backup["scripts/backup.sh — secrets + state tarball"]
         end
 
         subgraph STUDIO["Mac Studio — 'studio' — ethernet, headless"]
-            ollama["Ollama :11434 — native macOS, Metal GPU — muse-glimmer:30b-q4_K_M"]
+            ollama["oMLX :8000/v1 — native macOS, MLX — Muse-Glimmer-30B-MLX-4bit"]
             pibackups[("pi-backups — newest 12 tarballs")]
         end
     end
@@ -179,7 +179,7 @@ flowchart LR
     guests -->|"HTTPS :10000"| funnel
     funnel -->|"static mount → caddy :8089"| caddy
 
-    repo -->|"cron every 5 min: git pull + compose up -d --build"| cron
+    repo -->|"cron every 5 min: scripts/deploy.sh"| cron
     llmrepo -.->|"setup docs, read by agent on the machine"| ollama
 
     laptop -->|"ssh — key mesh all 4 legs"| PI
@@ -187,8 +187,8 @@ flowchart LR
     laptop -->|"https://*.ankit.casa"| caddy
     phone --> caddy
 
-    caddy -->|"ollama.ankit.casa → OLLAMA_UPSTREAM = studio:11434"| ollama
-    rssr -->|"summaries via OLLAMA_URL = ollama.ankit.casa"| ollama
+    caddy -->|"ollama.ankit.casa → OLLAMA_UPSTREAM = studio:8000 (+ bearer)"| ollama
+    rssr -->|"summaries via OPENAI_BASE_URL = studio:8000/v1"| ollama
 
     cron --> backup
     backup -->|"scp weekly — newest 4 stay on the Pi"| pibackups
@@ -221,7 +221,7 @@ flowchart LR
 
 How it fits together:
 - **Ingress:** Caddy serves `*.ankit.casa` (tailnet-only DNS) with a real wildcard cert. The public internet reaches the Pi through exactly one Tailscale Funnel port (10000), which proxies to a static localhost Caddy listener — every public route lives in the Caddyfile.
-- **Compute split:** the Pi runs every service except inference. The Mac Studio runs Ollama natively (Metal GPU) behind `ollama.ankit.casa` and holds the off-box backup tarballs.
+- **Compute split:** the Pi runs every service except inference. The Mac Studio runs oMLX natively (`:8000/v1`, also behind `ollama.ankit.casa`) and holds the off-box backup tarballs.
 - **Smart home:** HA talks Zigbee (EZSP USB stick, ZHA), Matter (mDNS via matter-server), and HomeKit (thermostat in, HASS Bridge out to Apple Home). Two host-level systemd watchdogs keep printer discovery and Matter nodes alive.
 - **Safety net:** weekly backup tarballs land on the Studio (`~/pi-backups`); RESTORE.md rebuilds the Pi from bare SD + tarball.
 
@@ -243,9 +243,10 @@ The funnel mount itself is host state, not Docker state — it survives `docker 
 
 | Job | Schedule | What it does |
 |---|---|---|
-| GitOps deploy (`crontab -l`) | every 5 min | `git fetch`; if `origin/main` changed: `git pull && docker compose up -d --build`, then a graceful caddy reload (caddy `--watch` doesn't survive git's inode swap; the reload makes Caddyfile-only changes self-apply). Push to main = deploy. |
-| Docker prune (`crontab -l`) | Sun 04:30 | `docker system prune -af --filter "until=168h"` — clears week-old unused images and build cache from GitOps builds |
-| Backup (`crontab -l`) | Sun 03:00 | `sudo scripts/backup.sh` — secrets+state tarball to `/home/ankit/backups` (newest 4) + scp copy to the Mac Studio `~/pi-backups` (newest 12). Log: `scripts/backup.log` |
+| GitOps deploy (`crontab -l`) | every 5 min | [`scripts/deploy.sh`](./scripts/deploy.sh): deploys when this repo's `origin/main` **or** main of the nurv/quantlab app repos moved — `git pull && docker compose up -d --build` with the app contexts pinned to the resolved SHAs, then a graceful caddy reload. A failed deploy is retried (every 30 min) until it succeeds; each tick heartbeats an uptime-kuma push monitor (down on failure). Push to main = deploy. Log: `scripts/deploy.log` |
+| Docker prune (`crontab -l`) | Sun 04:30 | `docker system prune -af --filter "until=168h"`, then `docker builder prune --max-used-space 5GB` — build cache from GitOps builds otherwise piles up (29 GB by 2026-10) |
+| Backup (`crontab -l`) | Sun 03:00 | `sudo scripts/backup.sh` — secrets+state tarball (~130 MB; SQLite DBs snapshotted consistently) to `/home/ankit/backups` (newest 4) + scp copy to the Mac Studio `~/pi-backups` (newest 12); heartbeats uptime-kuma, down if the Studio copy fails. Log: `scripts/backup.log` |
+| nurv db dump (`crontab -l`) | daily 03:30 | `scripts/nurv-db-backup.sh` — `pg_dump` to `~/nurv-backups` (newest 14) + Studio `~/pi-backups/nurv` (newest 60); heartbeats uptime-kuma |
 | Watchtower | daily ~04:00 UTC | Auto-pulls new images and recreates containers (skips locally-built images). Runs the maintained fork `nickfedor/watchtower` (original containrrr project is unmaintained). |
 | Printer watchdog (`systemd` timer — **host unit, not Docker**) | every 5 min | Re-asserts the CUPS/avahi mDNS fix (the recurring "can't reach printer" bug) and heartbeats uptime-kuma. Units + script live in [`scripts/printer-watchdog.*`](./scripts/printer-watchdog.md); installed manually on the host, so it must be re-installed on a rebuild (not covered by GitOps). |
 | Matter watchdog (`systemd` timer — **host unit, not Docker**) | every 5 min | matter-server stops retrying its nodes after a network outage and never recovers, while the container still reports `Up` and `/info` still returns 200. Checks real node availability and restarts the container — gated on LAN-up, 3 consecutive failures, and max 1 restart/hr — then heartbeats uptime-kuma. See [`scripts/matter-watchdog.*`](./scripts/matter-watchdog.md); host install, so re-install on a rebuild. The matching container healthcheck *is* GitOps-covered. |
@@ -258,7 +259,8 @@ Retired 2026-07-11: the Cloudflare DDNS cron and the homepage IP-monitor timer (
 [`scripts/backup.sh`](./scripts/backup.sh) bundles the parts git can't hold
 (`.env` secrets, Zigbee/Matter pairings, HA config, monitor/subscription DBs) —
 runs weekly (Sun 03:00 cron) and pushes a copy off-box to the Mac Studio
-(`~/pi-backups`); manual run: `sudo scripts/backup.sh`.
+(`~/pi-backups`); manual run: `sudo scripts/backup.sh`. Last restore drill
+2026-10-31: every SQLite DB passed `integrity_check`, the nurv dump loaded clean.
 
 ## Quick Start
 
@@ -306,7 +308,7 @@ All served HTTPS by Caddy (http redirects to https):
 - **Quantlab**: https://quantlab.ankit.casa (full UI + API; also public at https://raspberrypi.tail9476fb.ts.net:10000/quantlab via Funnel)
 - **Dozzle**: https://logs.ankit.casa
 - **Service Map**: https://diagram.ankit.casa (interactive architecture diagram — data in `diagram/site/data.js`)
-- **Ollama**: https://ollama.ankit.casa (OpenAI-compatible LLM API at `/v1`; served natively by the Mac Studio over the tailnet — no web UI, no host port on the Pi.)
-- **Open WebUI**: https://chat.ankit.casa (chat UI for the Studio's Ollama; inference stays off-Pi)
+- **oMLX**: https://ollama.ankit.casa (OpenAI-compatible LLM API at `/v1`; served natively by the Mac Studio over the tailnet, Caddy adds the bearer key — no web UI, no host port on the Pi. Hostname kept from the Ollama era.)
+- **Open WebUI**: https://chat.ankit.casa (chat UI for the Studio's oMLX; inference stays off-Pi)
 
-Direct `http://<pi>:<port>` access remains only where something actually needs it: the host-network services (8123 HA, 20211 NetAlertX, 631 CUPS), uptime-kuma's 3001 bound to localhost for the watchdogs, and caddy's localhost funnel listener (8089). Everything else is Caddy-only — `https://name.ankit.casa` is the single door. Ollama is the exception: it isn't on the Pi at all — native on the Mac Studio, reachable only via `ollama.ankit.casa`.
+Direct `http://<pi>:<port>` access remains only where something actually needs it: the host-network services (8123 HA, 20211 NetAlertX, 631 CUPS), uptime-kuma's 3001 bound to localhost for the watchdogs, and caddy's localhost funnel listener (8089). Everything else is Caddy-only — `https://name.ankit.casa` is the single door. oMLX is the exception: it isn't on the Pi at all — native on the Mac Studio (`:8000`), reached directly by the LLM consumers or via `ollama.ankit.casa`.

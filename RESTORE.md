@@ -7,8 +7,10 @@ off-box at `~/pi-backups` on the Mac Studio (`scp ankit@studio:~/pi-backups/\*.t
 Without a tarball the rebuild still works, but every
 token gets re-entered by hand and every Zigbee/Matter device re-paired.
 
-Reference system (last verified 2026-07-15): Raspberry Pi, Debian 12 (bookworm)
-aarch64, docker-ce 29.6, docker-compose-plugin 5.3, tailscale 1.98.
+Reference system (last verified 2026-07-15; packages as of 2026-10-31):
+Raspberry Pi 5, Debian 12 (bookworm) aarch64, kernel 6.12.109, docker-ce 29,
+tailscale 1.104. Tarball restore drilled 2026-10-31 (all SQLite DBs passed
+`integrity_check`, nurv dump loaded clean).
 
 ## 1. Flash the OS
 
@@ -37,6 +39,25 @@ sudo systemctl restart docker
 
 The daemon.json sets container log rotation — without it logs eventually fill
 the SD card.
+
+## 3b. Host tuning (headless, memory cgroups, zram swap)
+
+```bash
+# Memory cgroups: the RPi kernel ships cgroup_disable=memory, so compose
+# mem_limit is silently ignored without this (later flag wins). One line, append:
+sudo sed -i '1 s/$/ cgroup_enable=memory cgroup_memory=1/' /boot/firmware/cmdline.txt
+# Swap in compressed RAM instead of a swap file on the SD card
+sudo apt install -y zram-tools
+sudo sed -i -E 's/^#?ALGO=.*/ALGO=zstd/; s/^#?PERCENT=.*/PERCENT=25/' /etc/default/zramswap
+sudo systemctl disable --now dphys-swapfile 2>/dev/null; sudo dphys-swapfile uninstall 2>/dev/null
+# Headless (only if a Desktop image was flashed). Keep bluetooth: HA uses it.
+sudo systemctl set-default multi-user.target
+sudo systemctl disable lightdm ModemManager triggerhappy 2>/dev/null
+sudo reboot
+```
+
+Verify: `grep -w memory /sys/fs/cgroup/cgroup.controllers` and
+`cat /proc/swaps` shows only `/dev/zram0`.
 
 ## 4. Tailscale
 
@@ -84,7 +105,23 @@ sudo tar -xzf home-server-backup-<date>.tar.gz -C ~/home-server
 This restores all `*/.env` files, Home Assistant config (users, `.storage`,
 `zigbee.db` — Zigbee devices come back if the same USB coordinator is plugged
 in), Matter fabric keys, uptime-kuma monitors, reddit-swap-notifier
-subscriptions, NetAlertX history, and CUPS printers.
+subscriptions, NetAlertX history, and CUPS printers. SQLite DBs appear twice
+in the tarball (live copy, then a consistent snapshot); plain `tar -x` keeps
+the later one, which is what you want. Not in it, by design: AdGuard's query
+log + filter lists and Open WebUI's model cache (regenerated on start).
+
+Not in the tarball either — restore by hand:
+
+- `kalshi-pnl/kalshi_private_key.pem` — scp from wherever you keep it
+  (gitignored; the Kalshi dashboard can issue a new one).
+- `scripts/*.env` push-URL files (`deploy.env`, `backup.env`,
+  `matter-watchdog.env`, `printer-watchdog.env`) — one uptime-kuma push
+  monitor each; the restored kuma DB still has the monitors, so copy each
+  Push URL back out of https://kuma.ankit.casa. Without them everything works,
+  just without heartbeats.
+- A fresher nurv db than the weekly tarball: daily dumps live in
+  `~/nurv-backups` (gone with the SD card) and on the Studio at
+  `~/pi-backups/nurv/` — `gunzip -c nurv-<date>.sql.gz | docker exec -i nurv-db psql -U nurv -d nurv`.
 
 The nurv Postgres comes back as a SQL dump at `nurv/db-dump.sql` (gitignored).
 Once the stack is up (step 6), load it over the freshly seeded volume, then
@@ -99,12 +136,18 @@ rm ~/home-server/nurv/db-dump.sql
 (`cp .env.example .env` per service) and re-enter every token; Zigbee/Matter
 devices must be re-paired and printers re-added at https://cups.ankit.casa.
 
-## 6. Cron + start everything
+## 6. Cron, watchdogs + start everything
 
 ```bash
-crontab ~/home-server/scripts/crontab.txt        # GitOps deploy + weekly prune
-cd ~/home-server && docker compose up -d --build # first build takes a while on a Pi
+crontab ~/home-server/scripts/crontab.txt        # deploy tick, prune, backups
+~/home-server/scripts/deploy.sh                  # first full build; takes a while on a Pi
 ```
+
+Then install the three host watchdogs (systemd units, not Docker), following
+each one's runbook: [`scripts/printer-watchdog.md`](./scripts/printer-watchdog.md),
+[`scripts/matter-watchdog.md`](./scripts/matter-watchdog.md),
+[`scripts/funnel-watchdog.md`](./scripts/funnel-watchdog.md). Verify with
+`systemctl list-timers '*watchdog*'`.
 
 ## 7. Verify
 

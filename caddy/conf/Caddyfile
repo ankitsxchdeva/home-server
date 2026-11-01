@@ -72,9 +72,8 @@ ankit.casa, *.ankit.casa {
 		reverse_proxy adguard:80
 	}
 
-	# Ollama runs natively on the Mac Studio now (see studio-llm repo) — no
-	# auth of its own; the tailnet (ankit.casa -> Tailscale IP) is the boundary.
-	# OLLAMA_UPSTREAM = the Studio's Tailscale IP:port, set in caddy/.env
+	# oMLX runs natively on the Mac Studio (see studio-llm repo); the hostname
+	# keeps its Ollama-era name. OLLAMA_UPSTREAM = the Studio's Tailscale IP:port, set in caddy/.env
 	# (host-only, gitignored). Until set, this route 502s by design.
 	@ollama host ollama.ankit.casa
 	handle @ollama {
@@ -85,8 +84,8 @@ ankit.casa, *.ankit.casa {
 		}
 	}
 
-	# Open WebUI chat UI; talks to Ollama via OLLAMA_BASE_URL in its .env
-	# (https://ollama.ankit.casa — inference stays on the Mac Studio).
+	# Open WebUI chat UI; talks to oMLX on the Studio directly
+	# (OPENAI_API_BASE_URL in its .env — inference stays on the Mac Studio).
 	@chat host chat.ankit.casa
 	handle @chat {
 		reverse_proxy open-webui:8080

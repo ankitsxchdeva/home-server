@@ -38,10 +38,10 @@ const LINES = {
     desc: "How you reach everything. ankit.casa + *.ankit.casa resolve (unproxied Cloudflare DNS) to the Pi's Tailscale IP, so every URL works from any tailnet device anywhere with a real wildcard Let's Encrypt cert (DNS-01 via Cloudflare). Unreachable from the public internet.",
   },
   llm: {
-    name: "LLM (Ollama)",
+    name: "LLM (oMLX)",
     color: "#a578e8",
     offset: 8,
-    desc: "Inference lives off-Pi: Ollama runs natively on the Mac Studio (Metal GPU, muse-glimmer:30b-q4_K_M, bound 0.0.0.0:11434). Consumers call https://ollama.ankit.casa, which Caddy reverse-proxies over the tailnet to {$OLLAMA_UPSTREAM} from caddy/.env. rss-reader and quantlab are the consumers; quantlab is the only way public visitors touch it.",
+    desc: "Inference lives off-Pi: oMLX (MLX, OpenAI-compatible) runs natively on the Mac Studio (Metal GPU, Muse-Glimmer-30B-MLX-4bit, bound 0.0.0.0:8000, bearer-key auth). Tailnet clients call https://ollama.ankit.casa (legacy hostname), which Caddy reverse-proxies over the tailnet to {$OLLAMA_UPSTREAM} from caddy/.env and injects the bearer key (OMLX_KEY), so they stay keyless. rss-reader and quantlab call the Studio directly at :8000/v1 with the key in their own .env (the Caddy hairpin kills >60s requests); quantlab is the only way public visitors touch it.",
   },
   smarthome: {
     name: "Smart Home",
@@ -166,7 +166,7 @@ const NODES = [
       ["Cert", "wildcard LE, DNS-01 (CF_API_TOKEN in caddy/.env)"],
       ["Vhosts", "13 named + default → homepage"],
       ["Public routes", "/ kalshi-pnl · /lede rss-reader · /quantlab quantlab · /$PARK_PUBLIC_PATH autovrr"],
-      ["Env", "CF_API_TOKEN · OLLAMA_UPSTREAM · PARK_PUBLIC_PATH · LAN_IP"],
+      ["Env", "CF_API_TOKEN · OLLAMA_UPSTREAM · OMLX_KEY · PARK_PUBLIC_PATH · LAN_IP"],
       ["DNS", "container uses 1.1.1.1 (host resolv.conf is MagicDNS)"],
     ],
     routes: [
@@ -180,7 +180,7 @@ const NODES = [
         { line: "public", from: "caddy", to: "rss", label: "handle_path /lede* strips prefix → rss-reader:8000" },
       ]},
       { title: "Off-box proxy", hops: [
-        { line: "llm", from: "caddy", to: "ollama", label: "ollama.ankit.casa → {$OLLAMA_UPSTREAM} = studio:11434" },
+        { line: "llm", from: "caddy", to: "ollama", label: "ollama.ankit.casa → {$OLLAMA_UPSTREAM} = studio:8000 (+ bearer)" },
       ]},
     ]},
 
@@ -197,12 +197,12 @@ const NODES = [
     ]},
   { id: "rss", name: "rss-reader", kind: "service", x: 950, y: 470,
     lines: ["public", "tailnet", "llm", "bots"], label: [0, 26, "middle"],
-    desc: "The lede digest engine. FastAPI on :8000 with a background build loop (every 30 min) that pulls feeds.yaml + two scrapers, summarizes through Ollama with a circuit breaker and per-cycle cap, and atomically writes data/data.json. SQLite holds read-later items and the summary cache. Degrades to raw feed summaries when Ollama is down.",
+    desc: "The lede digest engine. FastAPI on :8000 with a background build loop (every 30 min) that pulls feeds.yaml + two scrapers, summarizes through oMLX with a circuit breaker and per-cycle cap, and atomically writes data/data.json. SQLite holds read-later items and the summary cache. Degrades to raw feed summaries when the LLM is down.",
     facts: [
       ["URL", "https://rss.ankit.casa/docs · public :10000/lede"],
       ["Port", "8000 · uvicorn"],
       ["Loop", "POLL_INTERVAL_SECONDS=1800 · concurrency 8"],
-      ["LLM", "OLLAMA_URL → ollama.ankit.casa · muse-glimmer:30b-q4_K_M"],
+      ["LLM", "OpenAI API → studio:8000/v1 direct (key in .env) · Muse-Glimmer-30B-MLX-4bit"],
       ["State", "data/data.json (atomic) · data/saved.db (sqlite)"],
       ["Guard", "/saved needs X-Lede-Token · /healthz for kuma"],
     ],
@@ -214,8 +214,7 @@ const NODES = [
       ]},
       { title: "Digest build (every 30 min)", hops: [
         { line: "bots", from: "rss", to: "feeds", label: "httpx: feeds.yaml + HN Algolia + Yahoo HTML scrapers" },
-        { line: "llm", from: "rss", to: "caddy", label: "POST /api/generate → ollama.ankit.casa" },
-        { line: "llm", from: "caddy", to: "ollama", label: "→ studio:11434 · item summaries + daily themes" },
+        { line: "llm", from: "rss", to: "ollama", label: "POST /v1/chat/completions → studio:8000 direct (bearer) · item summaries + daily themes" },
       ]},
       { title: "You check the API", hops: [
         { line: "tailnet", from: "you", to: "caddy", label: "https://rss.ankit.casa/docs" },
@@ -241,12 +240,12 @@ const NODES = [
     ]},
   { id: "quantlab", name: "quantlab", kind: "service", x: 1190, y: 470,
     lines: ["public", "tailnet", "llm", "bots"], label: [0, 26, "middle"],
-    desc: "Backtest API + Kalshi parlay scan. The app source lives in its own repo and the image git-clones it at build, so deploys need --no-cache. /api/run compiles a strategy with an LLM (default: the keyless local Ollama, rate-limited and concurrency-capped; or visitor BYOK, never stored), fetches Yahoo bars via curl, and runs the backtest. Stateless, holds no secrets.",
+    desc: "Backtest API + Kalshi parlay scan. The app source lives in its own repo and the image git-clones it at build, so deploys need --no-cache. /api/run compiles a strategy with an LLM (default: the local oMLX on the Studio, rate-limited and concurrency-capped; or visitor BYOK, never stored), fetches Yahoo bars via curl, and runs the backtest. Stateless, holds no secrets.",
     facts: [
       ["URL", "https://quantlab.ankit.casa · public :10000/quantlab"],
       ["Port", "3000 · cpus capped at 2.0"],
       ["Build", "from github.com/ankitsxchdeva/quantlab #main"],
-      ["LLM", "ollama provider → ollama.ankit.casa/v1 · pinned muse-glimmer:30b-q4_K_M"],
+      ["LLM", "ollama provider → studio:8000/v1 direct (key in .env) · pinned Muse-Glimmer-30B-MLX-4bit"],
       ["Abuse guards", "5/min/IP + 60/hr global + 2 concurrent (ollama)"],
       ["Env", "ALLOWED_ORIGINS only · no env_file"],
     ],
@@ -255,8 +254,7 @@ const NODES = [
         { line: "public", from: "guests", to: "funnel", label: "HTTPS :10000/quantlab" },
         { line: "public", from: "funnel", to: "caddy", label: "→ :8089" },
         { line: "public", from: "caddy", to: "quantlab", label: "handle_path /quantlab* → quantlab:3000" },
-        { line: "llm", from: "quantlab", to: "caddy", label: "POST /api/run → ollama.ankit.casa/v1 (keyless)" },
-        { line: "llm", from: "caddy", to: "ollama", label: "→ studio:11434 · strategy → code" },
+        { line: "llm", from: "quantlab", to: "ollama", label: "POST /api/run → studio:8000/v1 direct (bearer) · strategy → code" },
         { line: "bots", from: "quantlab", to: "yahoo", label: "price bars via curl (undici gets 429'd)" },
       ]},
       { title: "Parlay scan", hops: [
@@ -267,7 +265,7 @@ const NODES = [
   /* ── PI: trunk 2 — dashboards (y=620) ─────────────────────────────── */
   { id: "homepage", name: "homepage", kind: "service", x: 860, y: 620,
     lines: ["tailnet", "ops"], label: [0, -20, "middle"],
-    desc: "The dashboard at ankit.casa, and the wildcard's catch-all: any unmatched subdomain lands here. Tiles get live status dots and CPU/mem from the docker socket (read-only), and one real widget watches Ollama.",
+    desc: "The dashboard at ankit.casa, and the wildcard's catch-all: any unmatched subdomain lands here. Tiles get live status dots and CPU/mem from the docker socket (read-only), and one real widget watches the LLM endpoint.",
     facts: [
       ["URL", "https://ankit.casa (default route)"],
       ["Port", "3000 · gethomepage"],
@@ -513,23 +511,22 @@ const NODES = [
     ]},
 
   /* ── MAC STUDIO ───────────────────────────────────────────────────── */
-  { id: "ollama", name: "Ollama · muse-glimmer:30b-q4_K_M", kind: "store", x: 1560, y: 240,
+  { id: "ollama", name: "oMLX · Muse-Glimmer-30B-MLX-4bit", kind: "store", x: 1560, y: 240,
     lines: ["llm", "tailnet"], label: [-18, 4, "end"],
-    desc: "Native macOS LaunchAgent on the Studio (Metal GPU; Mac Docker has no GPU passthrough, so never a container), bound to 0.0.0.0:11434 on ethernet. Headless-verified: cold boot brings up SSH → auto-login → Ollama with nobody at the console. Single model, kept warm by rss-reader's keep-alive.",
+    desc: "Native macOS LaunchAgent on the Studio (Metal GPU; Mac Docker has no GPU passthrough, so never a container), running oMLX (process omlx-server, MLX OpenAI-compatible) bound to 0.0.0.0:8000 with bearer-key auth (401 without). Headless-verified: cold boot brings up SSH → auto-login → oMLX with nobody at the console. Single model, never idle-unloaded. Ollama was retired here 2026-10-05. If the Pi can't reach it, check `tailscale status` on the Studio first (the Tailscale app node went offline for ~8h on 2026-10-31 while the Mac stayed up).",
     facts: [
-      ["API", "https://ollama.ankit.casa/v1 (OpenAI-compatible)"],
-      ["Serve", "com.local.ollama.plist · 0.0.0.0:11434"],
-      ["Model", "muse-glimmer:30b-q4_K_M (only model)"],
+      ["API", "https://ollama.ankit.casa/v1 via Caddy (keyless, bearer injected) · studio:8000/v1 direct (bearer)"],
+      ["Serve", "com.local.omlx.plist · omlx serve · 0.0.0.0:8000"],
+      ["Model", "Muse-Glimmer-30B-MLX-4bit (only model)"],
       ["Consumers", "rss-reader summaries · quantlab compile · homepage widget"],
     ],
     routes: [
       { title: "A summary request", hops: [
-        { line: "llm", from: "rss", to: "caddy", label: "POST /api/generate → ollama.ankit.casa" },
-        { line: "llm", from: "caddy", to: "ollama", label: "reverse_proxy {$OLLAMA_UPSTREAM} over tailnet" },
+        { line: "llm", from: "rss", to: "ollama", label: "POST /v1/chat/completions → studio:8000 direct (bearer)" },
       ]},
       { title: "You query it directly", hops: [
         { line: "tailnet", from: "you", to: "caddy", label: "https://ollama.ankit.casa/v1" },
-        { line: "tailnet", from: "caddy", to: "ollama", label: "tailnet-only by design" },
+        { line: "tailnet", from: "caddy", to: "ollama", label: "reverse_proxy {$OLLAMA_UPSTREAM} + bearer · tailnet-only by design" },
       ]},
     ]},
   { id: "pibackups", name: "pi-backups", kind: "store", x: 1560, y: 350,
@@ -622,7 +619,7 @@ const LINE_PATHS = {
     ],
     dashed: [],
     segLabels: {
-      "quantlab>ollama": { text: "studio :11434", at: [1296, 502] },
+      "quantlab>ollama": { text: "studio :8000", at: [1296, 502] },
     },
   },
   smarthome: {
