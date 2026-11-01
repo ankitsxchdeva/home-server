@@ -41,5 +41,5 @@ volume, so apply each new migration once, manually, in order, from the app
 repo:
 
 ```
-ssh ankit@100.109.7.124 'docker exec -i nurv-db psql -U nurv -d nurv' < db/migrations/NNN_name.sql
+ssh ankit@raspberrypi 'docker exec -i nurv-db psql -U nurv -d nurv' < db/migrations/NNN_name.sql
 ```
