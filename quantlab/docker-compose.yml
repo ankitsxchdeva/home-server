@@ -1,13 +1,12 @@
 services:
   quantlab:
     # Built straight from the app repo so the source lives in exactly one place.
-    # Note this pins to main: a push to quantlab does NOT redeploy on its own,
-    # because the GitOps cron only rebuilds when THIS repo changes. To pick up
-    # an app change: `docker compose build --no-cache quantlab && docker
-    # compose up -d quantlab` — plain `--build` reuses BuildKit's cached git
-    # clone of #main and silently ships stale code (bit us 2026-08-29).
+    # Tracks the app repo's main: scripts/deploy.sh resolves main to a SHA every
+    # tick and exports QUANTLAB_REF, so a push to quantlab redeploys within ~5
+    # min (a new SHA is a new context, so BuildKit can't reuse a stale clone of
+    # #main — bit us 2026-08-29). Manual builds fall back to #main.
     build:
-      context: https://github.com/ankitsxchdeva/quantlab.git#main
+      context: https://github.com/ankitsxchdeva/quantlab.git#${QUANTLAB_REF:-main}
     container_name: quantlab
     restart: unless-stopped
     env_file: .env # OLLAMA_BASE_URL override only; no secrets (see .env.example)

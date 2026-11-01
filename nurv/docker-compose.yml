@@ -7,17 +7,16 @@
 # Schema changes land via db/migrations/NNN_*.sql in the app repo, applied
 # manually (see README).
 #
-# Note the build context pins to main: a push to the app repo does NOT
-# redeploy on its own, because the GitOps cron only rebuilds when THIS repo
-# changes. To pick up an app change: `docker compose build --no-cache` the
-# service && `docker compose up -d` — plain `--build` reuses BuildKit's
-# cached git clone of #main and silently ships stale code (bit us with
-# quantlab 2026-08-29).
+# The build context tracks the app repo's main: scripts/deploy.sh resolves
+# main to a SHA every tick and exports NURV_REF, so a push to the app repo
+# redeploys within ~5 min (a new SHA is a new context, so BuildKit can't
+# reuse a stale clone). Manual builds without NURV_REF fall back to #main,
+# which may be a stale cached clone — deploy via scripts/deploy.sh instead.
 
 services:
   db:
     build:
-      context: https://x-access-token:${NURV_GH_PAT}@github.com/ankitsxchdeva/nurv.git#main
+      context: https://x-access-token:${NURV_GH_PAT}@github.com/ankitsxchdeva/nurv.git#${NURV_REF:-main}
       dockerfile: db/Dockerfile
     container_name: nurv-db
     restart: unless-stopped
@@ -37,7 +36,7 @@ services:
 
   api:
     build:
-      context: https://x-access-token:${NURV_GH_PAT}@github.com/ankitsxchdeva/nurv.git#main
+      context: https://x-access-token:${NURV_GH_PAT}@github.com/ankitsxchdeva/nurv.git#${NURV_REF:-main}
       dockerfile: api/Dockerfile
     container_name: nurv-api
     restart: unless-stopped

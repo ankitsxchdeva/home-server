@@ -1,9 +1,12 @@
 # Snapshot of the ankit user's crontab on the Pi.
 # Restore after a rebuild/SD swap with:  crontab scripts/crontab.txt
 # After changing the live crontab, re-export: crontab -l > scripts/crontab.txt
-*/5 * * * * cd ~/home-server && flock -n /tmp/home-server-deploy.lock -c 'git fetch && ! git diff --quiet HEAD origin/main && (git pull && docker compose up -d --build && (docker exec caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile || true))'
+# GitOps deploy tick (this repo + nurv/quantlab app repos) — see scripts/deploy.sh
+*/5 * * * * flock -n /tmp/home-server-deploy.lock /home/ankit/home-server/scripts/deploy.sh >> /home/ankit/home-server/scripts/deploy.log 2>&1
 
-30 4 * * 0 docker system prune -af --filter "until=168h" >> /home/ankit/home-server/scripts/docker-prune.log 2>&1
+# Weekly prune. system prune keeps the last week of build cache; builder prune
+# then caps what's left (it grew to 29 GB on the SD card, 2026-10).
+30 4 * * 0 (docker system prune -af --filter "until=168h" && docker builder prune -af --max-used-space 5GB) >> /home/ankit/home-server/scripts/docker-prune.log 2>&1
 
 # Weekly backup (Sun 03:00) — tarball on the Pi + off-box copy on the Mac Studio
 0 3 * * 0 sudo /home/ankit/home-server/scripts/backup.sh >> /home/ankit/home-server/scripts/backup.log 2>&1
