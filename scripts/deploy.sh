@@ -32,17 +32,37 @@ push() { # $1=up|down  $2=msg
     --data-urlencode "status=$1" --data-urlencode "msg=$2" || true
 }
 fail() { log "FAIL: $1"; push down "$1"; exit 1; }
+# Success, but down while an app repo is pinned to its last deployed SHA.
+done_push() {
+  if [ -n "$stale" ]; then push down "$1; main lookup failed for:$stale (kept last deployed)"; exit 1; fi
+  push up "$1"
+}
+app_ref() { # $1=repo url; main's SHA, 3 tries
+  local sha i
+  for i in 1 2 3; do
+    sha=$(git ls-remote "$1" refs/heads/main | cut -f1)
+    [ -n "$sha" ] && { echo "$sha"; return 0; }
+    sleep 5
+  done
+  return 1
+}
 
 git fetch -q origin || fail "git fetch failed"
 HOME_REF=$(git rev-parse origin/main)
-NURV_REF=$(git ls-remote "https://x-access-token:${NURV_GH_PAT:-}@github.com/ankitsxchdeva/nurv.git" refs/heads/main | cut -f1)
-QUANTLAB_REF=$(git ls-remote https://github.com/ankitsxchdeva/quantlab.git refs/heads/main | cut -f1)
-[ -n "$NURV_REF" ] && [ -n "$QUANTLAB_REF" ] || fail "app repo ls-remote failed"
+# A failed lookup (expired PAT, GitHub blip) falls back to the SHA in
+# deploy.state, so it can't block home-server-only deploys.
+stale=""
+NURV_REF=$(app_ref "https://x-access-token:${NURV_GH_PAT:-}@github.com/ankitsxchdeva/nurv.git") \
+  || { NURV_REF=$(cut -sd' ' -f2 "$STATE" 2>/dev/null); stale="$stale nurv"; }
+QUANTLAB_REF=$(app_ref https://github.com/ankitsxchdeva/quantlab.git) \
+  || { QUANTLAB_REF=$(cut -sd' ' -f3 "$STATE" 2>/dev/null); stale="$stale quantlab"; }
+[ -n "$NURV_REF" ] && [ -n "$QUANTLAB_REF" ] || fail "app repo ls-remote failed:$stale (nothing deployed to fall back to)"
+[ -z "$stale" ] || log "WARN: main lookup failed for:$stale; using last deployed SHA"
 export NURV_REF QUANTLAB_REF
 want="$HOME_REF $NURV_REF $QUANTLAB_REF"
 
 if [ "$want" = "$(cat "$STATE" 2>/dev/null)" ]; then
-  push up "deployed ${HOME_REF:0:7}"
+  done_push "deployed ${HOME_REF:0:7}"
   exit 0
 fi
 if [ "$want" = "$(cat "$FAILED" 2>/dev/null)" ] && [ -n "$(find "$FAILED" -mmin -30)" ]; then
@@ -63,4 +83,4 @@ docker exec caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
 echo "$want" > "$STATE"
 rm -f "$FAILED"
 log "deployed ${HOME_REF:0:7}"
-push up "deployed ${HOME_REF:0:7}"
+done_push "deployed ${HOME_REF:0:7}"
