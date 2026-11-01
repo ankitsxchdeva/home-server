@@ -11,17 +11,35 @@
 # (~/pi-backups, newest 12 kept) over the tailnet — a backup that lives only
 # on the Pi's SD card doesn't survive the card. Restore steps: see RESTORE.md.
 #
-# Databases (Home Assistant, uptime-kuma, netalertx) are copied hot, which is fine
-# for these low-write workloads; for a guaranteed-consistent snapshot run
-# `docker compose stop` first and `docker compose up -d` after. nurv's Postgres
-# can't be copied from its data dir hot, so it goes in as a pg_dump instead
+# SQLite databases (Home Assistant, uptime-kuma, netalertx, ...) are live, so
+# copying the files hot can tear them against their -wal. Each one is instead
+# snapshotted with SQLite's online backup API and the snapshot is added to the
+# tarball after the live dirs: on extract the later member wins, and live
+# -wal/-shm files are left out. nurv's Postgres goes in as a pg_dump
 # (nurv/db-dump.sql inside the tarball; restore steps in RESTORE.md).
+#
+# Regenerable bulk stays out: AdGuard's query log + downloaded filter lists and
+# Open WebUI's model cache (~1.8 GB together; the tarball was 1 GB by 2026-10).
+#
+# Pushes up/down to an uptime-kuma push monitor (BACKUP_PUSH_URL in
+# scripts/backup.env, local-only); down when the Studio copy fails.
 set -euo pipefail
 
 REPO=/home/ankit/home-server
 DEST=${1:-/home/ankit/backups}
 STAMP=$(date +%Y-%m-%d_%H%M)
 OUT="$DEST/home-server-backup-$STAMP.tar.gz"
+DATA_DIRS="adguard/data home-assistant/config matter-server/data uptime-kuma/data
+  reddit-swap-notifier/data rss-reader/data open-webui/data netalertx/db cups/config"
+BACKUP_PUSH_URL=""
+[ -f "$REPO/scripts/backup.env" ] && . "$REPO/scripts/backup.env"
+
+push() { # $1=up|down  $2=msg
+  [ -n "$BACKUP_PUSH_URL" ] || return 0
+  curl -sf -m 5 -o /dev/null -G "$BACKUP_PUSH_URL" \
+    --data-urlencode "status=$1" --data-urlencode "msg=$2" || true
+}
+trap 'push down "backup.sh failed (line $LINENO)"' ERR
 
 mkdir -p "$DEST"
 cd "$REPO"
@@ -34,22 +52,28 @@ trap 'rm -rf "$TMP"' EXIT
 mkdir -p "$TMP/nurv"
 docker exec nurv-db pg_dump -U nurv -d nurv --clean --if-exists > "$TMP/nurv/db-dump.sql"
 
-# GNU tar exits 1 when a live file (an sqlite WAL, say) changes while it's
-# being read; the archive is still fine. Only 2+ is a real failure — without
-# this, set -e aborted the run before the off-box copy below.
+# Consistent snapshots of every live SQLite db, staged under $TMP/sqlite at
+# the same relative paths. Header check: AdGuard's *.db files are BoltDB.
+SNAPS=""
+for db in $(find $DATA_DIRS \( -name '*.db' -o -name '*.sqlite3' \) -type f); do
+  [ "$(head -c 15 "$db" | tr -d '\0')" = "SQLite format 3" ] || continue
+  SNAPS="$SNAPS $db"
+  mkdir -p "$TMP/sqlite/$(dirname "$db")"
+  python3 -c 'import sqlite3,sys; s=sqlite3.connect(sys.argv[1]); d=sqlite3.connect(sys.argv[2]); s.backup(d); d.close()' \
+    "$db" "$TMP/sqlite/$db"
+done
+
+# GNU tar exits 1 when a live file changes while it's being read; the live
+# db files it might catch mid-write are superseded by the snapshots, so only
+# 2+ is a real failure.
 tar -czf "$OUT" \
+  --exclude='*.db-wal' --exclude='*.db-shm' --exclude='*.sqlite3-wal' --exclude='*.sqlite3-shm' \
+  --exclude=adguard/data/work/data/querylog.json\* \
+  --exclude=adguard/data/work/data/filters \
+  --exclude=open-webui/data/cache \
   -C "$TMP" nurv/db-dump.sql \
-  -C "$REPO" \
-  */.env \
-  adguard/data \
-  home-assistant/config \
-  matter-server/data \
-  uptime-kuma/data \
-  reddit-swap-notifier/data \
-  rss-reader/data \
-  open-webui/data \
-  netalertx/db \
-  cups/config \
+  -C "$REPO" */.env $DATA_DIRS \
+  -C "$TMP/sqlite" $SNAPS \
   || [ $? -eq 1 ]
 
 # Keep only the newest 4 backups
@@ -67,6 +91,9 @@ if sudo -u ankit ssh -o BatchMode=yes ankit@studio "mkdir -p ~/$STUDIO_DIR" \
     "ls -1t ~/$STUDIO_DIR/home-server-backup-*.tar.gz | tail -n +13 | xargs rm -f"
 else
   echo "WARN: Studio copy failed; only local copy exists: $OUT" >&2
+  push down "Studio copy failed; local only: $(basename "$OUT")"
+  exit 1
 fi
 
 ls -lh "$OUT"
+push up "$(basename "$OUT") $(du -h "$OUT" | cut -f1)"

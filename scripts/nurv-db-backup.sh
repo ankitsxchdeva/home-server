@@ -7,10 +7,21 @@
 # see scripts/crontab.txt. Writes nurv-YYYY-MM-DD.sql.gz to ~/nurv-backups
 # (newest 14 kept) and copies it to the Mac Studio (~/pi-backups/nurv,
 # newest 60 kept). Restore: gunzip -c FILE | docker exec -i nurv-db psql -U nurv -d nurv
+# Pushes up/down to an uptime-kuma push monitor (NURV_BACKUP_PUSH_URL in
+# scripts/backup.env, local-only); down when the Studio copy fails.
 set -euo pipefail
 
 DEST=/home/ankit/nurv-backups
 OUT="$DEST/nurv-$(date +%F).sql.gz"
+NURV_BACKUP_PUSH_URL=""
+[ -f /home/ankit/home-server/scripts/backup.env ] && . /home/ankit/home-server/scripts/backup.env
+
+push() { # $1=up|down  $2=msg
+  [ -n "$NURV_BACKUP_PUSH_URL" ] || return 0
+  curl -sf -m 5 -o /dev/null -G "$NURV_BACKUP_PUSH_URL" \
+    --data-urlencode "status=$1" --data-urlencode "msg=$2" || true
+}
+trap 'push down "nurv-db-backup.sh failed (line $LINENO)"' ERR
 
 umask 077
 mkdir -p "$DEST"
@@ -27,6 +38,9 @@ if ssh -o BatchMode=yes ankit@studio "mkdir -p ~/$STUDIO_DIR" \
   ssh -o BatchMode=yes ankit@studio "ls -1t ~/$STUDIO_DIR/nurv-*.sql.gz | tail -n +61 | xargs rm -f"
 else
   echo "WARN: Studio copy failed; only local copy exists: $OUT" >&2
+  push down "Studio copy failed; local only: $(basename "$OUT")"
+  exit 1
 fi
 
 ls -lh "$OUT"
+push up "$(basename "$OUT")"
