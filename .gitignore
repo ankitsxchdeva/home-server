@@ -1,6 +1,11 @@
-# Environment files with secrets
+# Environment files with secrets (incl. hand-made copies like .env.bak)
 .env
 **/.env
+.env.*
+**/.env.*
+!.env.example
+!**/.env.example
+*.bak
 
 # nurv Postgres dump, extracted from a backup tarball during a restore
 nurv/db-dump.sql
@@ -99,6 +104,14 @@ home-assistant/config/blueprints/
 # printer-watchdog: local-only push token + runtime log
 scripts/printer-watchdog.env
 scripts/printer-watchdog.log
+
+# backup.sh / nurv-db-backup.sh: local-only push tokens
+scripts/backup.env
+
+# deploy.sh: local-only push token + runtime state (deploy.log is caught by *.log)
+scripts/deploy.env
+scripts/deploy.state
+scripts/deploy.failed
 
 # matter-watchdog: local-only push token + runtime log/state
 scripts/matter-watchdog.env
