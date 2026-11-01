@@ -32,10 +32,11 @@ ls -1t "$DEST"/nurv-*.sql.gz | tail -n +15 | xargs -r rm -f
 
 # Off-box copy, same pattern as backup.sh: failure only warns.
 STUDIO_DIR=pi-backups/nurv
-if ssh -o BatchMode=yes ankit@studio "mkdir -p ~/$STUDIO_DIR" \
-  && scp -q -o BatchMode=yes "$OUT" "ankit@studio:~/$STUDIO_DIR/"; then
+SSH_OPTS="-o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=4"
+if ssh $SSH_OPTS ankit@studio "mkdir -p ~/$STUDIO_DIR" \
+  && scp -q $SSH_OPTS "$OUT" "ankit@studio:~/$STUDIO_DIR/"; then
   echo "copied to studio:~/$STUDIO_DIR/"
-  ssh -o BatchMode=yes ankit@studio "ls -1t ~/$STUDIO_DIR/nurv-*.sql.gz | tail -n +61 | xargs rm -f"
+  ssh $SSH_OPTS ankit@studio "ls -1t ~/$STUDIO_DIR/nurv-*.sql.gz | tail -n +61 | xargs rm -f"
 else
   echo "WARN: Studio copy failed; only local copy exists: $OUT" >&2
   push down "Studio copy failed; local only: $(basename "$OUT")"

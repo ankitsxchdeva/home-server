@@ -86,11 +86,12 @@ ls -1t "$DEST"/home-server-backup-*.tar.gz | tail -n +5 | xargs -r rm -f
 # (the account with SSH keys on the Studio; this script runs as root, and the
 # tarball is 644). Failure leaves the local copy intact and only warns.
 STUDIO_DIR=pi-backups
-if sudo -u ankit ssh -o BatchMode=yes ankit@studio "mkdir -p ~/$STUDIO_DIR" \
-  && sudo -u ankit scp -q -o BatchMode=yes "$OUT" "ankit@studio:~/$STUDIO_DIR/"; then
+SSH_OPTS="-o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=4"
+if sudo -u ankit ssh $SSH_OPTS ankit@studio "mkdir -p ~/$STUDIO_DIR" \
+  && sudo -u ankit scp -q $SSH_OPTS "$OUT" "ankit@studio:~/$STUDIO_DIR/"; then
   echo "copied to studio:~/$STUDIO_DIR/"
   # Studio has the disk; keep a deeper rotation there (newest 12).
-  sudo -u ankit ssh -o BatchMode=yes ankit@studio \
+  sudo -u ankit ssh $SSH_OPTS ankit@studio \
     "ls -1t ~/$STUDIO_DIR/home-server-backup-*.tar.gz | tail -n +13 | xargs rm -f"
 else
   echo "WARN: Studio copy failed; only local copy exists: $OUT" >&2
