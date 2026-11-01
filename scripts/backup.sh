@@ -78,13 +78,15 @@ tar -czf "$OUT" \
   -C "$REPO" .env */.env $DATA_DIRS \
   -C "$TMP/sqlite" $SNAPS \
   || [ $? -eq 1 ]
+# It holds every .env: readable by ankit (for the scp below), not by everyone.
+chown root:ankit "$OUT"; chmod 640 "$OUT"
 
 # Keep only the newest 4 backups
 ls -1t "$DEST"/home-server-backup-*.tar.gz | tail -n +5 | xargs -r rm -f
 
 # Off-box copy: push to the Mac Studio over the tailnet. scp/ssh run as ankit
 # (the account with SSH keys on the Studio; this script runs as root, and the
-# tarball is 644). Failure leaves the local copy intact and only warns.
+# tarball is group-ankit 640). Failure leaves the local copy intact and only warns.
 STUDIO_DIR=pi-backups
 SSH_OPTS="-o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=4"
 if sudo -u ankit ssh $SSH_OPTS ankit@studio "mkdir -p ~/$STUDIO_DIR" \
