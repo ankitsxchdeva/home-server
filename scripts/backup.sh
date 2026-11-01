@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Bundle everything a rebuilt Pi needs that git can't hold: secrets (.env files)
-# and stateful container data. The repo is public, so none of this can be tracked.
+# Bundle everything a rebuilt Pi needs that git can't hold: secrets (.env files,
+# incl. the root one with deploy.sh's NURV_GH_PAT) and stateful container data. The repo is public, so none of this can be tracked.
 #
 # Run ON the Pi, as root (several data dirs are root-owned):
 #
@@ -75,7 +75,7 @@ tar -czf "$OUT" \
   --exclude=adguard/data/work/data/filters \
   --exclude=open-webui/data/cache \
   -C "$TMP" nurv/db-dump.sql \
-  -C "$REPO" */.env $DATA_DIRS \
+  -C "$REPO" .env */.env $DATA_DIRS \
   -C "$TMP/sqlite" $SNAPS \
   || [ $? -eq 1 ]
 

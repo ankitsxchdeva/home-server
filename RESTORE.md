@@ -102,9 +102,10 @@ From the newest backup tarball (see `scripts/backup.sh` for what's in it):
 sudo tar -xzf home-server-backup-<date>.tar.gz -C ~/home-server
 ```
 
-This restores all `*/.env` files, Home Assistant config (users, `.storage`,
-`zigbee.db` — Zigbee devices come back if the same USB coordinator is plugged
-in), Matter fabric keys, uptime-kuma monitors, reddit-swap-notifier
+This restores all `.env` files (each service's, plus the root one holding
+`NURV_GH_PAT`, which `scripts/deploy.sh` needs to read the private nurv repo),
+Home Assistant config (users, `.storage`, `zigbee.db` — Zigbee devices come
+back if the same USB coordinator is plugged in), Matter fabric keys, uptime-kuma monitors, reddit-swap-notifier
 subscriptions, NetAlertX history, and CUPS printers. SQLite DBs appear twice
 in the tarball (live copy, then a consistent snapshot); plain `tar -x` keeps
 the later one, which is what you want. Not in it, by design: AdGuard's query
@@ -116,7 +117,8 @@ Not in the tarball either — restore by hand:
   (gitignored; the Kalshi dashboard can issue a new one).
 - `scripts/*.env` push-URL files (`deploy.env`, `backup.env`,
   `matter-watchdog.env`, `printer-watchdog.env`) — one uptime-kuma push
-  monitor each; the restored kuma DB still has the monitors, so copy each
+  monitor each (`backup.env` holds two: `BACKUP_PUSH_URL` and
+  `NURV_BACKUP_PUSH_URL`); the restored kuma DB still has the monitors, so copy each
   Push URL back out of https://kuma.ankit.casa. Without them everything works,
   just without heartbeats.
 - A fresher nurv db than the weekly tarball: daily dumps live in
