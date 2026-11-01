@@ -22,6 +22,8 @@ DEPLOY_PUSH_URL=""
 
 cd "$REPO"
 set -a; [ -f .env ] && . ./.env; set +a     # NURV_GH_PAT (private nurv repo)
+# BuildKit echoes the nurv context URL, token included; keep it out of deploy.log.
+[ -n "${NURV_GH_PAT:-}" ] && exec > >(sed -u "s|$NURV_GH_PAT|<redacted>|g") 2>&1
 
 log() { echo "$(date '+%F %T') $*"; }
 push() { # $1=up|down  $2=msg
