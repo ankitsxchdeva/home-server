@@ -23,3 +23,15 @@ jobs:
 
       - name: Validate merged compose
         run: docker compose config -q
+
+      - name: No ${VAR} interpolation in environment entries
+        # Interpolation reads the ROOT .env (empty by design), so
+        # `- X=${X}` silently shadows a good env_file value with "" — the
+        # cups/homepage bug (fixed 2026-08-30). Put the value in the service's
+        # .env instead.
+        run: |
+          if grep -rnE '^\s*(-\s*[A-Za-z_][A-Za-z0-9_]*=|[A-Za-z_][A-Za-z0-9_]*:\s*)["'"'"']?\$\{' \
+              --include=docker-compose.yml --exclude-dir=deprecated .; then
+            echo "::error::\${VAR} interpolation in an environment entry (see AGENTS.md > Service conventions)"
+            exit 1
+          fi
