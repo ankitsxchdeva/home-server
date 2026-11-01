@@ -5,10 +5,11 @@ services:
     image: ghcr.io/open-webui/open-webui:main
     container_name: open-webui
     restart: unless-stopped
+    mem_limit: 2g      # largest resident service (~770 MB RSS, more when RAG embeds); cap it
     # No published port — reached via https://chat.ankit.casa (Caddy -> open-webui:8080)
     volumes:
       - ./data:/app/backend/data
-    # Inference stays off-Pi: OLLAMA_BASE_URL in .env points at
-    # https://ollama.ankit.casa (Mac Studio via Caddy over the tailnet).
+    # Inference stays off-Pi: OPENAI_API_BASE_URL in .env points straight at
+    # oMLX on the Mac Studio (http://<studio>:8000/v1 over the tailnet).
     env_file:
       - .env

@@ -3,6 +3,7 @@ services:
     build: .
     container_name: autovrr
     restart: unless-stopped
+    mem_limit: 1g      # headless Chromium; cap so a runaway browser OOMs itself, not the Pi
     env_file:
       - .env
     # Guest parking web page (web.py) — tailnet via https://park.ankit.casa,
