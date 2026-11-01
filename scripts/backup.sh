@@ -61,6 +61,9 @@ for db in $(find $DATA_DIRS \( -name '*.db' -o -name '*.sqlite3' \) -type f); do
   mkdir -p "$TMP/sqlite/$(dirname "$db")"
   python3 -c 'import sqlite3,sys; s=sqlite3.connect(sys.argv[1]); d=sqlite3.connect(sys.argv[2]); s.backup(d); d.close()' \
     "$db" "$TMP/sqlite/$db"
+  # Keep the live owner/mode: the snapshot wins on extract, and a root-owned
+  # copy breaks containers that write as their own uid (netalertx is 20211).
+  chown --reference="$db" "$TMP/sqlite/$db"; chmod --reference="$db" "$TMP/sqlite/$db"
 done
 
 # GNU tar exits 1 when a live file changes while it's being read; the live
