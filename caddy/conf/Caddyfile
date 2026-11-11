@@ -37,9 +37,9 @@ ankit.casa, *.ankit.casa {
 		reverse_proxy {$LAN_IP:192.168.1.102}:631
 	}
 
-	@thirteenft host 13ft.ankit.casa
-	handle @thirteenft {
-		reverse_proxy 13ft:5000
+	@ladder host ladder.ankit.casa
+	handle @ladder {
+		reverse_proxy ladder:8080
 	}
 
 	@rss host rss.ankit.casa

@@ -23,7 +23,7 @@ A complete home server setup running on Raspberry Pi with Docker containers.
 ### Services
 - **[Caddy](./caddy/)** - HTTPS reverse proxy for ankit.casa + *.ankit.casa (ports 80/443; wildcard Let's Encrypt cert via Cloudflare DNS-01, built from the official image with xcaddy)
 - **[CUPS](./cups/)** - Print server (port 631, host network)
-- **[13ft](./13ft/)** - Paywall bypass reader proxy (https://13ft.ankit.casa — Caddy only, no host port)
+- **[Ladder](./ladder/)** - Paywall bypass reader proxy (https://ladder.ankit.casa — Caddy only, no host port)
 - **[RSS Reader](./rss-reader/)** - Deploy config for the lede digest API — app code + image live in [ankitsxchdeva/lede](https://github.com/ankitsxchdeva/lede) (`backend/`). JSON API; public via Funnel :10000 → caddy `/lede` route, feeds ankitsachdeva.com/lede
 - **[Kalshi PnL](./kalshi-pnl/)** - Lifetime Kalshi profit/loss JSON API (public via Funnel :10000 → caddy `/` route for ankitsachdeva.com/kalshi — response is the net number only; secrets scp'd by hand, see its README)
 - **[Quantlab](./quantlab/)** - Backtest + Kalshi arbitrage API (public via Funnel :10000 → caddy `/quantlab` route for ankitsachdeva.com/quantlab, see its README)
@@ -136,7 +136,7 @@ flowchart LR
                 glances["glances — glances.ankit.casa — resources"]
                 netalertx["netalertx — netalertx.ankit.casa — LAN scanner"]
                 cups["CUPS — cups.ankit.casa — print server"]
-                f13ft["13ft — 13ft.ankit.casa — reader proxy"]
+                ladder["ladder — ladder.ankit.casa — reader proxy"]
                 rssr["rss-reader — rss.ankit.casa — lede digest API"]
                 park["guest parking page — park.ankit.casa — Basic auth"]
                 kalshipnl["kalshi-pnl — kalshi.ankit.casa"]
@@ -301,7 +301,7 @@ All served HTTPS by Caddy (http redirects to https):
 - **Glances**: https://glances.ankit.casa
 - **NetAlertX**: https://netalertx.ankit.casa
 - **CUPS Print Server**: https://cups.ankit.casa
-- **13ft Reader**: https://13ft.ankit.casa
+- **Ladder Reader**: https://ladder.ankit.casa
 - **RSS Reader**: https://rss.ankit.casa/docs (JSON API; Swagger UI)
 - **Guest Parking**: https://park.ankit.casa (login page + session cookie; also public via the Funnel :10000 path route at an unguessable path — PARK_PUBLIC_PATH in caddy/.env)
 - **Kalshi PnL**: https://kalshi.ankit.casa/pnl (JSON API; also public via Funnel :10000)

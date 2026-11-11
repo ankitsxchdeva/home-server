@@ -7,7 +7,7 @@
 #   category: software      # section on the page: software | hardware | health | politics
 #   tags: [ai, tech]        # searchable in the frontend
 #   limit: 10               # cap items taken per cycle (top of the feed)
-#   paywall: true           # fetch through the 13ft proxy (needs PAYWALL_PROXY)
+#   paywall: true           # fetch through the ladder proxy (needs PAYWALL_PROXY)
 #   scrape: module_name     # genuinely feedless site → scrapers/module_name.py
 #   aggregator: true        # links out to other sites; when the same article
 #                           # appears in an origin feed too, the origin wins

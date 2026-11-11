@@ -14,7 +14,7 @@ include:
   - netalertx/docker-compose.yml
   - glances/docker-compose.yml
   - dozzle/docker-compose.yml
-  - 13ft/docker-compose.yml
+  - ladder/docker-compose.yml
   - rss-reader/docker-compose.yml
   - kalshi-pnl/docker-compose.yml
   - quantlab/docker-compose.yml

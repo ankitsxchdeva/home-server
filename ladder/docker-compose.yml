@@ -1,0 +1,14 @@
+services:
+  ladder:
+    # Upstream image (github.com/everywall/ladder), multi-arch incl. arm64;
+    # watchtower keeps it updated. Replaced 13ft (2026-11-11), whose Googlebot-UA
+    # trick is now rejected by most sites. Ladder adds per-site rules (strip
+    # paywall overlays, cookie/header tweaks) on top of the UA spoof.
+    image: ghcr.io/everywall/ladder:latest
+    container_name: ladder
+    restart: unless-stopped
+    environment:
+      - PORT=8080
+      # Community ruleset, fetched at startup (restart picks up new rules).
+      - RULESET=https://raw.githubusercontent.com/everywall/ladder-rules/main/ruleset.yaml
+    # No published port — reached via https://ladder.ankit.casa (Caddy -> ladder:8080)

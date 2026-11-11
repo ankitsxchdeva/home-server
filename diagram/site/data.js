@@ -185,14 +185,14 @@ const NODES = [
     ]},
 
   /* ── PI: trunk 1 — public-facing web services (y=470) ─────────────── */
-  { id: "f13ft", name: "13ft", kind: "service", x: 830, y: 470,
+  { id: "ladder", name: "ladder", kind: "service", x: 830, y: 470,
     lines: ["tailnet"], label: [0, -20, "middle"],
-    desc: "Self-hosted paywall-bypass reader (Flask). Fetches any pasted URL with a Googlebot UA and rewrites the HTML with a <base> tag. Tailnet-only; rss-reader can optionally route paywalled sources through it (PAYWALL_PROXY, currently commented out).",
-    facts: [["URL", "https://13ft.ankit.casa"], ["Port", "5000 (Flask dev server)"], ["Stack", "requests + BeautifulSoup · no DB, no auth"]],
+    desc: "Self-hosted paywall-bypass reader proxy (Go, everywall/ladder; replaced 13ft 2026-11-11). Fetches any pasted URL with a Googlebot UA plus per-site rules from the community ruleset (strip overlays, tweak cookies/headers). Tailnet-only; rss-reader can optionally route paywalled sources through it (PAYWALL_PROXY, currently commented out).",
+    facts: [["URL", "https://ladder.ankit.casa"], ["Port", "8080"], ["Stack", "Go · everywall/ladder-rules ruleset · no DB, no auth"]],
     routes: [
       { title: "Read an article", hops: [
-        { line: "tailnet", from: "you", to: "caddy", label: "https://13ft.ankit.casa" },
-        { line: "tailnet", from: "caddy", to: "f13ft", label: "reverse_proxy 13ft:5000" },
+        { line: "tailnet", from: "you", to: "caddy", label: "https://ladder.ankit.casa" },
+        { line: "tailnet", from: "caddy", to: "ladder", label: "reverse_proxy ladder:8080" },
       ]},
     ]},
   { id: "rss", name: "rss-reader", kind: "service", x: 950, y: 470,
@@ -602,7 +602,7 @@ const LINE_PATHS = {
   tailnet: {
     paths: [
       ["you", "caddy"],
-      ["caddy", "f13ft", "rss", "kalshipnl", "quantlab"],
+      ["caddy", "ladder", "rss", "kalshipnl", "quantlab"],
       ["quantlab", [1330, 470], "ollama"],
       ["caddy", [740, 550], [800, 620], "homepage", "kuma", "glances", "dozzle"],
       ["caddy", [640, 620], [700, 780], "ha", "netalertx", "cups"],
@@ -650,7 +650,7 @@ const LINE_PATHS = {
       ["quantlab", [1390, 720], [1390, 1445], "yahoo"],
       ["rss", [700, 640], "feeds"],
     ],
-    dashed: [["rss", "f13ft"]],
+    dashed: [["rss", "ladder"]],
     segLabels: {},
   },
   ops: {

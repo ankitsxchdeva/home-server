@@ -121,8 +121,8 @@ pages:
                 url: https://cups.ankit.casa
                 description: print server
                 icon: mdi:printer
-              - title: 13ft
-                url: https://13ft.ankit.casa
+              - title: Ladder
+                url: https://ladder.ankit.casa
                 description: paywall bypass reader
                 icon: mdi:newspaper
               - title: RSS Reader
