@@ -4,7 +4,7 @@
  * Lives in a Google Sheet (Extensions > Apps Script) and is deployed as a web
  * app that runs as the sheet's owner. Tabs:
  *   Orders    one row per order, newest at the bottom
- *   Settings  price, inventory, sale times, payment handles, email templates
+ *   Settings  price, inventory, sale times, payment handles, email wording
  *   Summary   live counts (formulas)
  *
  * Every order goes through a script lock, so two buyers can't take the last

@@ -1,24 +1,16 @@
+/** @OnlyCurrentDoc */
 /**
- * Sheet setup and the Shop menu: email payment details and tracking numbers
- * to buyers from your own Gmail.
+ * Sheet setup and the Shop menu.
  *
- * Every email action works on the rows you've selected in the Orders tab.
- * "Draft" puts the emails in your Gmail Drafts to review and send yourself, and
- * notes "Drafted" on the row so the same email isn't made twice.
- * "Send" asks you to confirm the list of recipients first.
+ * The script has no email access: @OnlyCurrentDoc above limits it to this one
+ * spreadsheet, so Google's access screen asks only for this sheet and for
+ * showing the Shop menu. Email buyers yourself, using the rows as the record.
  */
 
 function onOpen() {
   SpreadsheetApp.getUi().createMenu("Shop")
-    .addItem("Draft payment emails for selected rows", "draftPaymentEmails")
-    .addItem("Send payment emails for selected rows", "sendPaymentEmails")
-    .addSeparator()
     .addItem("Mark selected rows as paid", "markPaid")
     .addSeparator()
-    .addItem("Draft tracking emails for selected rows", "draftTrackingEmails")
-    .addItem("Send tracking emails for selected rows", "sendTrackingEmails")
-    .addSeparator()
-    .addItem("Email me a test using the selected row", "sendTestToMe")
     .addItem("Set up sheet", "setup")
     .addToUi();
 }
@@ -137,139 +129,6 @@ function setCell_(o, header, value) {
   sh.getRange(o.row, columns_(sh)[header] + 1).setValue(value);
 }
 
-// ---------------------------------------------------------------- Email building
-
-var TRACKING_URLS = {
-  USPS: "https://tools.usps.com/go/TrackConfirmAction?tLabels=",
-  UPS: "https://www.ups.com/track?tracknum=",
-  FedEx: "https://www.fedex.com/fedextrack/?trknbr=",
-  DHL: "https://www.dhl.com/global-en/home/tracking/tracking-express.html?tracking-id="
-};
-
-function money_(n, currency) {
-  if (n === "" || n == null || isNaN(Number(n))) return "";
-  var v = Number(n);
-  var sym = currency === "USD" || !currency ? "$" : currency + " ";
-  return sym + (v % 1 ? v.toFixed(2) : String(v));
-}
-
-function fill_(template, o, s) {
-  var currency = o.get("Currency") || s.currency;
-  var shipping = o.get("Shipping");
-  var total = shipping === "" ? "" : Number(o.get("Subtotal")) + Number(shipping);
-  var payBy = new Date(Date.now() + s.pay_days * 864e5);
-  var tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
-  var carrier = String(o.get("Carrier") || "");
-  var number = String(o.get("Tracking number") || "").trim();
-  var trackUrl = TRACKING_URLS[carrier] ? TRACKING_URLS[carrier] + encodeURIComponent(number) : "";
-  var addr = [o.get("Name"), o.get("Address line 1"), o.get("Address line 2"), o.get("Suburb / district"),
-    [o.get("City"), o.get("State / region"), o.get("Postal code")].filter(String).join(" "), o.get("Country")]
-    .map(function (v) { return String(v || "").replace(/^'/, ""); }).filter(String).join("\n");
-  var vals = {
-    first_name: String(o.get("Name")).replace(/^'/, "").split(" ")[0],
-    name: String(o.get("Name")).replace(/^'/, ""),
-    order_id: o.get("Order ID"),
-    qty: o.get("Qty"),
-    product: s.product_name,
-    unit_price: money_(o.get("Unit price"), currency),
-    subtotal: money_(o.get("Subtotal"), currency),
-    shipping: money_(shipping, currency),
-    total: money_(total, currency),
-    country: o.get("Country"),
-    payment_method: o.get("Payment method"),
-    pay_to: String(o.get("Pay to")).replace(/^'/, ""),
-    pay_by: Utilities.formatDate(payBy, tz, "EEEE, MMMM d"),
-    address: addr,
-    carrier: carrier || "the carrier",
-    tracking_number: number,
-    tracking_url: trackUrl,
-    seller_name: s.seller_name
-  };
-  return String(template).replace(/\{\{(\w+)\}\}/g, function (m, k) { return vals[k] != null ? String(vals[k]) : m; });
-}
-
-function paymentProblems_(o, s) {
-  var p = [];
-  if (o.get("Status") === "Cancelled") p.push("cancelled");
-  if (o.get("Shipping") === "") p.push("no shipping amount yet");
-  if (/^\[/.test(String(o.get("Pay to")))) p.push("payment handle is still a placeholder");
-  if (o.get("Payment email sent")) p.push("payment email already " + (/^Drafted/.test(o.get("Payment email sent")) ? "drafted" : "sent") + " (clear that cell to redo)");
-  return p;
-}
-
-function trackingProblems_(o) {
-  var p = [];
-  if (o.get("Status") === "Cancelled") p.push("cancelled");
-  if (!String(o.get("Tracking number")).trim()) p.push("no tracking number");
-  if (!o.get("Carrier")) p.push("no carrier");
-  if (o.get("Tracking email sent")) p.push("tracking email already " + (/^Drafted/.test(o.get("Tracking email sent")) ? "drafted" : "sent") + " (clear that cell to redo)");
-  return p;
-}
-
-// ---------------------------------------------------------------- Menu actions
-
-function draftPaymentEmails() { paymentEmails_(false); }
-function sendPaymentEmails() { paymentEmails_(true); }
-function draftTrackingEmails() { trackingEmails_(false); }
-function sendTrackingEmails() { trackingEmails_(true); }
-
-function paymentEmails_(send) {
-  var s = settings_();
-  emailRows_(send, "payment", paymentProblems_, function (o) {
-    return { subject: fill_(s.payment_email_subject, o, s), body: fill_(s.payment_email_body, o, s) };
-  }, function (o, sent) {
-    setCell_(o, "Payment email sent", sent ? new Date() : "Drafted " + today_());
-    if (o.get("Status") === "New") setCell_(o, "Status", "Payment requested");
-  }, s);
-}
-
-function trackingEmails_(send) {
-  var s = settings_();
-  emailRows_(send, "tracking", function (o) { return trackingProblems_(o); }, function (o) {
-    return { subject: fill_(s.tracking_email_subject, o, s), body: fill_(s.tracking_email_body, o, s) };
-  }, function (o, sent) {
-    setCell_(o, "Tracking email sent", sent ? new Date() : "Drafted " + today_());
-    setCell_(o, "Status", "Shipped");
-  }, s);
-}
-
-function emailRows_(send, kind, problems, build, after, s) {
-  var ui = SpreadsheetApp.getUi();
-  var picked = selectedOrders_();
-  if (!picked.length) { ui.alert("Select one or more order rows in the Orders tab first."); return; }
-  var ready = [], skipped = [];
-  picked.forEach(function (o) {
-    var p = problems(o, s);
-    if (p.length) skipped.push(o.get("Order ID") + ": " + p.join(", "));
-    else ready.push(o);
-  });
-  if (!ready.length) { ui.alert("Nothing to " + (send ? "send" : "draft") + ".\n\n" + skipped.join("\n")); return; }
-
-  if (send) {
-    var list = ready.map(function (o) { return o.get("Order ID") + "  " + o.get("Email"); }).join("\n");
-    var answer = ui.alert("Send " + ready.length + " " + kind + " email" + (ready.length > 1 ? "s" : "") + "?",
-      "These go out now from your Gmail:\n\n" + list + (skipped.length ? "\n\nSkipping:\n" + skipped.join("\n") : ""),
-      ui.ButtonSet.YES_NO);
-    if (answer !== ui.Button.YES) return;
-  }
-  var done = 0;
-  ready.forEach(function (o) {
-    var msg = build(o);
-    var to = String(o.get("Email")).replace(/^'/, "");
-    var opts = { name: s.seller_name };
-    if (send) GmailApp.sendEmail(to, msg.subject, msg.body, opts);
-    else GmailApp.createDraft(to, msg.subject, msg.body, opts);
-    after(o, send);
-    done++;
-  });
-  ui.alert((send ? "Sent " : "Drafted ") + done + " " + kind + " email" + (done > 1 ? "s" : "") + "." +
-    (send ? "" : " They're in your Gmail Drafts, ready for you to check and send.") +
-    (skipped.length ? "\n\nSkipped:\n" + skipped.join("\n") : ""));
-}
-
-function today_() {
-  return Utilities.formatDate(new Date(), SpreadsheetApp.getActive().getSpreadsheetTimeZone(), "yyyy-MM-dd HH:mm");
-}
 
 function markPaid() {
   var picked = selectedOrders_();
@@ -281,16 +140,3 @@ function markPaid() {
   SpreadsheetApp.getUi().alert("Marked " + picked.length + " row" + (picked.length === 1 ? "" : "s") + " as paid.");
 }
 
-// Sends the selected row's payment email (and tracking email, if it has a
-// tracking number) to you only, so you can check the wording. Changes nothing.
-function sendTestToMe() {
-  var s = settings_();
-  var me = Session.getEffectiveUser().getEmail();
-  var o = selectedOrders_()[0];
-  if (!o) { SpreadsheetApp.getUi().alert("Select an order row first."); return; }
-  GmailApp.sendEmail(me, "[TEST] " + fill_(s.payment_email_subject, o, s), fill_(s.payment_email_body, o, s), { name: s.seller_name });
-  if (String(o.get("Tracking number")).trim()) {
-    GmailApp.sendEmail(me, "[TEST] " + fill_(s.tracking_email_subject, o, s), fill_(s.tracking_email_body, o, s), { name: s.seller_name });
-  }
-  SpreadsheetApp.getUi().alert("Sent a test to " + me + ". Nothing was sent to the buyer.");
-}

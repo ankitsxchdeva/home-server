@@ -136,56 +136,35 @@ test("order numbers never repeat after a row is deleted", () => {
   assert.strictEqual(post(env, order()).order.id, "KC-003");
 });
 
-test("payment emails: skip rows without shipping, draft the rest, never double-draft", () => {
+test("script has no email access and is limited to this sheet", () => {
+  const fs = require("fs"), path = require("path");
+  const dir = path.join(__dirname, "..", "apps-script");
+  const src = ["Code.gs", "Admin.gs"].map((f) => fs.readFileSync(path.join(dir, f), "utf8")).join("\n");
+  assert.doesNotMatch(src, /GmailApp|MailApp|Session\.|openById|openByUrl|DriveApp|UrlFetchApp/);
+  assert.match(fs.readFileSync(path.join(dir, "Admin.gs"), "utf8"), /^\/\*\* @OnlyCurrentDoc \*\//);
+});
+
+test("Shop menu offers only Mark paid and Set up", () => {
+  const env = fresh(); const items = [];
+  const menu = { addItem: (l, f) => { items.push(f); return menu; }, addSeparator: () => menu, addToUi: () => {} };
+  const ui = env.ctx.SpreadsheetApp.getUi(); const orig = ui.createMenu; ui.createMenu = () => menu;
+  env.ctx.onOpen(); ui.createMenu = orig;
+  assert.deepStrictEqual(items, ["markPaid", "setup"]);
+  items.forEach((f) => assert.strictEqual(typeof env.ctx[f], "function"));
+});
+
+test("shipping fills Total due, and Mark paid skips cancelled rows", () => {
   const env = fresh();
-  setSetting(env, "paypal_handle", "ankit@example.com");
   post(env, order({ qty: 2, email: "a@example.com" })); post(env, order({ email: "b@example.com" }));
   const sh = env.ss.getSheetByName("Orders"); const col = env.ctx.columns_(sh);
   sh.cells[1][col["Shipping"]] = 12;
   env.ctx.onEdit({ range: sh.getRange(2, col["Shipping"] + 1) });
   assert.strictEqual(sh.cells[1][col["Total due"]], 302);
+  sh.cells[2][col["Status"]] = "Cancelled";
   env.ss.setActiveSheet(sh); sh._active = sh.getRange(2, 1, 2, 1);
-  env.ctx.draftPaymentEmails();
-  assert.strictEqual(env.drafts.length, 1); assert.strictEqual(env.sent.length, 0);
-  assert.strictEqual(env.drafts[0].to, "a@example.com");
-  assert.match(env.drafts[0].body, /Total: \$302/); assert.match(env.drafts[0].body, /PayPal to ankit@example.com as Friends and Family/);
-  assert.match(env.alerts.at(-1)[0], /KC-002: no shipping amount yet/);
-  assert.strictEqual(sh.cells[1][col["Status"]], "Payment requested");
-  env.ctx.draftPaymentEmails();
-  assert.strictEqual(env.drafts.length, 1);
-});
-
-test("placeholder payment handle blocks payment emails", () => {
-  const env = fresh();
-  post(env, order());
-  const sh = env.ss.getSheetByName("Orders"); const col = env.ctx.columns_(sh);
-  sh.cells[1][col["Shipping"]] = 10; env.ss.setActiveSheet(sh); sh._active = sh.getRange(2, 1);
-  env.ctx.sendPaymentEmails();
-  assert.strictEqual(env.sent.length, 0); assert.match(env.alerts.at(-1)[0], /placeholder/);
-});
-
-test("tracking emails send after confirmation and mark shipped; test goes only to owner", () => {
-  const env = fresh();
-  post(env, order({ email: "c@example.com" }));
-  const sh = env.ss.getSheetByName("Orders"); const col = env.ctx.columns_(sh);
-  sh.cells[1][col["Carrier"]] = "USPS"; sh.cells[1][col["Tracking number"]] = "9400111899223197428490";
-  env.ss.setActiveSheet(sh); sh._active = sh.getRange(2, 1);
-  env.ctx.sendTestToMe();
-  assert.ok(env.sent.every((m) => m.to === "owner@example.com"));
-  env.ctx.sendTrackingEmails();
-  const last = env.sent.at(-1);
-  assert.strictEqual(last.to, "c@example.com"); assert.match(last.body, /tLabels=9400111899223197428490/);
-  assert.strictEqual(sh.cells[1][col["Status"]], "Shipped");
-});
-
-test("declining the send confirmation sends nothing", () => {
-  const env = load({ answer: "NO" }); env.ctx.setup();
-  post(env, order());
-  const sh = env.ss.getSheetByName("Orders"); const col = env.ctx.columns_(sh);
-  sh.cells[1][col["Carrier"]] = "UPS"; sh.cells[1][col["Tracking number"]] = "1Z999";
-  env.ss.setActiveSheet(sh); sh._active = sh.getRange(2, 1);
-  env.ctx.sendTrackingEmails();
-  assert.strictEqual(env.sent.length, 0);
+  env.ctx.markPaid();
+  assert.strictEqual(sh.cells[1][col["Status"]], "Paid"); assert.ok(sh.cells[1][col["Paid on"]]);
+  assert.strictEqual(sh.cells[2][col["Status"]], "Cancelled"); assert.ok(!sh.cells[2][col["Paid on"]]);
 });
 
 test("address rules also load from a hidden AddressData tab instead of AddressData.gs", () => {

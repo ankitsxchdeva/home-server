@@ -3,7 +3,7 @@
 Friends and family sale page, "2026 Inkwell 10x10 in-stock sale": 60 Inkwell 10x10 cases at $145, up to 4 per person, shipping worked out after the order.
 
 - **Page:** static HTML in `site/`, served by GitHub Pages. No build step.
-- **Orders:** a Google Sheet. A small Apps Script in the sheet (`apps-script/`) takes orders, holds a lock while it checks stock so two people can't buy the last case, and gives you a **Shop** menu to email payment details and tracking numbers from your own Gmail.
+- **Orders:** a Google Sheet. A small Apps Script in the sheet (`apps-script/`) takes orders, holds a lock while it checks stock so two people can't buy the last case, and gives you a small **Shop** menu. The script has no access to your email: `@OnlyCurrentDoc` limits it to this one sheet. You email buyers yourself.
 - **Payments:** buyers pick PayPal, Venmo (US addresses only) or Wise and must tick the friends-and-family box. The page never takes card or bank details.
 
 Nothing here runs on the Pi, and the root `docker-compose.yml` doesn't include it.
@@ -13,11 +13,11 @@ Nothing here runs on the Pi, and the root `docker-compose.yml` doesn't include i
 1. Buyer fills in the page. Address fields, labels and postal-code checks change per country (Google's address data for 250 countries, bundled in `site/address-data.json`). A US ZIP has to match the state. US buyers can add a phone number; buyers elsewhere aren't asked for one.
 2. The sheet re-checks everything, takes the lock, checks stock and the 4-per-email cap, and adds a row with status **New**. The buyer lands on the success page with their order number.
 3. You type the **Shipping** amount on the row. **Total due** fills itself.
-4. Select rows, then **Shop > Draft payment emails** (lands in Gmail Drafts for you to check and send) or **Send payment emails** (asks you to confirm the list first). Status becomes **Payment requested**.
+4. Email the buyer what they owe and where to send it (the email templates in Settings are a starting point), then set Status to **Payment requested** and note the date in **Payment email sent**.
 5. When the money arrives, select rows, **Shop > Mark selected rows as paid**.
-6. Enter **Carrier** and **Tracking number**, then **Shop > Draft/Send tracking emails**. Status becomes **Shipped**.
+6. Enter **Carrier** and **Tracking number**, email the buyer, note the date in **Tracking email sent** and set Status to **Shipped**.
 
-Set a row to **Cancelled** to free its cases. Rows already emailed are skipped, so nobody gets the same email twice; clear the "email sent" cell to redo one. **Email me a test using the selected row** sends both emails to you only.
+Set a row to **Cancelled** to free its cases.
 
 The **Summary** tab counts cases left, orders waiting on each step and money received.
 
@@ -29,7 +29,7 @@ The **Summary** tab counts cases left, orders waiting on each step and money rec
 2. **Extensions > Apps Script.** Rename the project "Shop".
 3. Replace the contents of `Code.gs` with `apps-script/Code.gs`. Add two more script files (**+ > Script**) named `Admin` and `AddressData` and paste `apps-script/Admin.gs` and `apps-script/AddressData.gs`.
 4. **Project Settings** (gear) > tick **Show "appsscript.json" manifest file**, then paste `apps-script/appsscript.json` into it.
-5. Back in the editor, pick `setup` in the function list and press **Run**. Google asks you to authorize your own script: choose your account, then **Advanced > Go to Shop (unsafe) > Allow**. It says "unsafe" only because the script isn't published; it's yours.
+5. Back in the editor, pick `setup` in the function list and press **Run**. Google asks you to authorize your own script. It should ask only to see and edit this one spreadsheet and to show the Shop menu; if it asks for email or all your sheets, the files weren't pasted as they are here. It may say "unsafe" only because the script isn't published; it's yours.
 6. Reload the sheet. You now have **Orders**, **Settings**, **Summary** tabs and a **Shop** menu.
 
 ### 2. Settings tab
@@ -44,7 +44,7 @@ Fill these in before going live:
 | `allowed_countries` | Blank ships anywhere, or a list like `US, CA, GB`. |
 | `sale_paused` | TRUE stops new orders instantly. |
 
-Price ($145), stock (60), 4 per order, product name and both email templates are here too. `{{total}}`, `{{pay_to}}`, `{{tracking_url}}` and the other `{{…}}` placeholders fill from the row.
+Price ($145), stock (60), 4 per order and product name are here too, plus wording for the payment and tracking emails that you can reuse when you write them.
 
 ### 3. Deploy the order endpoint
 
@@ -66,8 +66,8 @@ Pages for this repo lives at `ankitsachdeva.com/home-server/`, because the user 
 
 1. In Settings set `inventory_total` to `8` and leave Orders empty.
 2. Run the shop-pages workflow with **include_e2e** ticked, open `…/e2e.html` and press **Run test**. Test orders use `@example.com` addresses and the name "E2E Test".
-3. Open the sale page: it should say sold out. Fill in a Shipping amount on one test row, then **Shop > Draft payment emails**: a draft appears in Gmail Drafts (don't send it).
-4. Clean up: delete the test rows and drafts, set `inventory_total` back to `60`, and run the workflow again with **include_e2e** unticked.
+3. Open the sale page: it should say sold out. Fill in a Shipping amount on one test row: Total due fills itself.
+4. Clean up: delete the test rows, set `inventory_total` back to `60`, and run the workflow again with **include_e2e** unticked.
 
 ## Preview without the sheet
 
@@ -87,7 +87,7 @@ Copy the sheet (the script comes with it), change the product settings and email
 cd shop && npm test
 ```
 
-Covers address rules for several countries, and the backend against an in-memory sheet: no overselling past 60, the per-email cap, double-submit protection, sold-out and not-open answers, formula injection, and the email actions (skips, drafts, confirmation).
+Covers address rules for several countries, and the backend against an in-memory sheet: no overselling past 60, the per-email cap, double-submit protection, sold-out and not-open answers, formula injection, Mark paid, and that the script has no email access.
 
 `apps-script/AddressData.gs` and `site/address-data.json` are generated:
 
