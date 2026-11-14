@@ -187,3 +187,12 @@ test("declining the send confirmation sends nothing", () => {
   env.ctx.sendTrackingEmails();
   assert.strictEqual(env.sent.length, 0);
 });
+
+test("address rules also load from a hidden AddressData tab instead of AddressData.gs", () => {
+  const env = load({ addressTab: true }); env.ctx.setup();
+  assert.strictEqual(env.ss.getSheetByName("AddressData").sheetHidden, true, "setup hides the tab");
+  assert.ok(post(env, order({ paymentMethod: "wise",
+    address: { country: "GB", address1: "221B Baker St", city: "London", postal: "NW1 6XE" } })).ok);
+  const r = post(env, order({ address: { country: "US", address1: "1 Main", city: "Austin", region: "TX", postal: "10001" } }));
+  assert.ok(r.fields.postal, "ZIP outside the state is still refused");
+});

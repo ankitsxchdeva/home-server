@@ -20,6 +20,7 @@ function makeSheet(name) {
     getDataRange() { return range(1, 1, Math.max(1, sheet.getLastRow()), Math.max(1, sheet.getLastColumn())); },
     appendRow(vals) { const r = sheet.getLastRow() + 1; range(r, 1, 1, vals.length).setValues([vals]); },
     setFrozenRows() {}, setColumnWidth() {}, hideColumns(c) { sheet.hidden.push(c); }, clear() { cells.length = 0; },
+    hideSheet() { sheet.sheetHidden = true; },
     getActiveRangeList: () => null,
     getActiveRange: () => sheet._active,
   };
@@ -83,7 +84,14 @@ function load(opts = {}) {
     },
   };
   vm.createContext(ctx);
-  for (const f of ["AddressData.gs", "Code.gs", "Admin.gs"]) {
+  if (opts.addressTab) {
+    // Address data from a sheet tab instead of AddressData.gs.
+    const { chunks } = require("../scripts/address-data-csv.js");
+    const tab = ss.insertSheet("AddressData");
+    chunks(30000).forEach((c, i) => tab.getRange(i + 1, 1).setValues([[c]]));
+  }
+  const files = opts.addressTab ? ["Code.gs", "Admin.gs"] : ["AddressData.gs", "Code.gs", "Admin.gs"];
+  for (const f of files) {
     vm.runInContext(fs.readFileSync(path.join(__dirname, "../apps-script", f), "utf8"), ctx, { filename: f });
   }
   return { ctx, ss, sheets, sent, drafts, alerts };

@@ -88,6 +88,9 @@ function setup() {
   sm.getRange("B9").setNumberFormat("$#,##0.00");
   sm.setColumnWidth(1, 300);
 
+  var ad = ss.getSheetByName("AddressData");
+  if (ad) ad.hideSheet();
+
   ss.setActiveSheet(orders);
 }
 

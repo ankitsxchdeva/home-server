@@ -308,7 +308,7 @@ function validateOrder_(p, s) {
 
   var a = p.address || {};
   var cc = str(a.country, 2).toUpperCase();
-  var data = ADDRESS_DATA[cc];
+  var data = addressData_()[cc];
   var allowed = allowedCountries_(s);
   if (!data) f.country = "Choose a country.";
   else if (allowed && allowed.indexOf(cc) === -1) f.country = "Sorry, this sale doesn't ship there.";
@@ -348,4 +348,20 @@ function validateOrder_(p, s) {
 
   o.address = addr;
   return Object.keys(f).length ? { ok: false, fields: f } : { ok: true, order: o };
+}
+
+// Address rules come from AddressData.gs when it's in the project, or else
+// from a hidden "AddressData" tab: column A holds the same JSON split into
+// chunks, each starting with "x" so Sheets never treats a chunk as a number
+// or formula. (scripts/address-data-csv.js builds that tab's CSV.)
+var addressDataCache_ = null;
+function addressData_() {
+  if (typeof ADDRESS_DATA !== "undefined") return ADDRESS_DATA;
+  if (addressDataCache_) return addressDataCache_;
+  var sh = SpreadsheetApp.getActive().getSheetByName("AddressData");
+  if (!sh || sh.getLastRow() < 1) throw new Error("Address data missing: add AddressData.gs or the AddressData tab.");
+  var json = sh.getRange(1, 1, sh.getLastRow(), 1).getValues()
+    .map(function (r) { return String(r[0]).slice(1); }).join("");
+  addressDataCache_ = JSON.parse(json);
+  return addressDataCache_;
 }
