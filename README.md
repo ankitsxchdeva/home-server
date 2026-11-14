@@ -32,6 +32,9 @@ A complete home server setup running on Raspberry Pi with Docker containers.
 - **[Open WebUI](./open-webui/)** - Chat UI for the Studio's oMLX (https://chat.ankit.casa — Caddy only, no host port; OpenAI-API connection straight to the Studio, inference stays off-Pi)
 - **[Nurv](./nurv/)** - Deploy config for nurv.space, the pre-CRNA applicant platform — app code lives in [ankitsxchdeva/nurv](https://github.com/ankitsxchdeva/nurv). Hono API + Postgres here, exposed as api.nurv.space through a Cloudflare tunnel; the Next.js frontend runs as a Cloudflare Worker
 
+### Sales
+- **[Shop](./shop/)** - Friends & family sale page for the keycap cases (static site on GitHub Pages, orders in a Google Sheet through Apps Script; nothing runs on the Pi)
+
 ### Discord Bots
 - **[Commute Bot](./commute-bot/)** - Commute time lookup via Google Maps
 - **[AutoVRR](./autovrr/)** - Visitor parking registration automation. Also serves the guest parking web page (tailnet at park.ankit.casa; public via a Funnel :10000 → caddy path route at an unguessable path — PARK_PUBLIC_PATH in caddy/.env)

@@ -1,0 +1,10 @@
+{
+  "name": "shop",
+  "private": true,
+  "description": "Friends and family sale page: static site on GitHub Pages, orders in a Google Sheet",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "serve": "python3 -m http.server 8080 --directory site",
+    "address-data": "python3 -I scripts/build-address-data.py"
+  }
+}
