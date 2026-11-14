@@ -1,0 +1,42 @@
+name: shop-pages
+
+# Publishes shop/site to GitHub Pages. Manual only, so nothing goes live by
+# accident: Actions > shop-pages > Run workflow. Needs Settings > Pages >
+# Source set to "GitHub Actions" once. Never touches the Pi.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: shop-pages
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --test shop/tests/*.test.js
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: shop/site
+      - id: deployment
+        uses: actions/deploy-pages@v4

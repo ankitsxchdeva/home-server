@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Frosted Keycap Case</title>
+  <meta name="description" content="Friends and family order page for the frosted keycap case.">
+  <meta name="robots" content="noindex, nofollow">
+  <meta property="og:title" content="Frosted Keycap Case">
+  <meta property="og:image" content="img/case-shelf-800.jpg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600&display=swap">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="preview-banner" id="previewBanner" hidden>
+    Preview mode: orders stay in this browser and nobody is charged.
+  </div>
+
+  <main class="page">
+    <section class="product" aria-labelledby="productName">
+      <div class="gallery">
+        <figure class="gallery-main">
+          <img id="mainPhoto" src="img/case-shelf-800.jpg" srcset="img/case-shelf-800.jpg 800w, img/case-shelf.jpg 1600w"
+               sizes="(min-width: 900px) 50vw, 100vw" width="1600" height="1066"
+               alt="Frosted keycap case resting on a wooden shelf between two potted plants">
+        </figure>
+        <div class="thumbs" id="thumbs" role="group" aria-label="Product photos"></div>
+      </div>
+
+      <div class="product-copy">
+        <p class="eyebrow" id="shopName">Friends &amp; family sale</p>
+        <h1 id="productName">Frosted Keycap Case</h1>
+        <p class="price"><span id="unitPrice">$145</span> <span class="muted">per case</span></p>
+        <div class="stock" id="stock" aria-live="polite">
+          <div class="stock-row"><span id="stockText">Checking how many are left…</span><span id="stockLimit" class="muted"></span></div>
+          <div class="meter" aria-hidden="true"><span id="stockBar"></span></div>
+        </div>
+        <p id="description" class="lede">A frosted polycarbonate display case with a grid of individual slots for your artisan keycaps.</p>
+        <div class="status-note" id="saleNote" role="status" hidden></div>
+      </div>
+    </section>
+
+    <form id="order" class="order" novalidate>
+      <fieldset class="block">
+        <legend>How many?</legend>
+        <div class="qty">
+          <button type="button" class="qty-btn" id="qtyMinus" aria-label="One fewer">−</button>
+          <input id="qty" name="qty" type="number" inputmode="numeric" min="1" max="4" value="1" aria-describedby="qtyHelp">
+          <button type="button" class="qty-btn" id="qtyPlus" aria-label="One more">+</button>
+          <span id="qtyHelp" class="help">Up to 4 per order.</span>
+        </div>
+        <p class="error" id="err-qty" hidden></p>
+      </fieldset>
+
+      <fieldset class="block">
+        <legend>Contact</legend>
+        <div class="grid">
+          <label class="field span-2" for="name"><span>Full name</span>
+            <input id="name" name="name" autocomplete="name" required maxlength="100">
+            <em class="error" id="err-name" hidden></em></label>
+          <label class="field" for="email"><span>Email</span>
+            <input id="email" name="email" type="email" autocomplete="email" required maxlength="120">
+            <em class="error" id="err-email" hidden></em></label>
+          <label class="field" for="email2"><span>Confirm email</span>
+            <input id="email2" name="email2" type="email" autocomplete="email" required maxlength="120">
+            <em class="error" id="err-email2" hidden></em></label>
+          <label class="field span-2" for="phone"><span>Phone <small id="phoneHint">(optional, helps the carrier reach you)</small></span>
+            <input id="phone" name="phone" type="tel" autocomplete="tel" maxlength="30">
+            <em class="error" id="err-phone" hidden></em></label>
+        </div>
+        <p class="help">Payment details and your tracking number go to this email.</p>
+      </fieldset>
+
+      <fieldset class="block">
+        <legend>Shipping address</legend>
+        <div class="grid">
+          <label class="field span-2" for="country"><span>Country or region</span>
+            <select id="country" name="country" autocomplete="country"></select>
+            <em class="error" id="err-country" hidden></em></label>
+        </div>
+        <div class="grid" id="addressFields"></div>
+      </fieldset>
+
+      <fieldset class="block">
+        <legend>How you'll pay</legend>
+        <div class="pay-options" id="payOptions"></div>
+        <p class="error" id="err-paymentMethod" hidden></p>
+        <p class="help">You'll get the payment details by email once shipping is worked out. Nothing is charged on this page.</p>
+      </fieldset>
+
+      <fieldset class="block">
+        <legend>Anything else?</legend>
+        <label class="field" for="notes"><span>Note for Ankit <small>(optional)</small></span>
+          <textarea id="notes" name="notes" rows="3" maxlength="500"></textarea></label>
+      </fieldset>
+
+      <div class="ack" id="ackBox">
+        <label for="ack">
+          <input id="ack" name="ack" type="checkbox" required>
+          <span>I acknowledge the only payment methods available will be through friends and family.</span>
+        </label>
+        <p class="error" id="err-ack" hidden></p>
+      </div>
+
+      <div class="hp" aria-hidden="true">
+        <label for="website">Leave this empty</label>
+        <input id="website" name="website" tabindex="-1" autocomplete="off">
+      </div>
+
+      <div class="form-error" id="formError" role="alert" hidden></div>
+    </form>
+  </main>
+
+  <div class="totalbar" id="totalbar">
+    <div class="totalbar-inner">
+      <div class="totals">
+        <span class="line" id="totalLine">1 × $145</span>
+        <strong class="sum" id="subtotal">$145</strong>
+        <span class="ship">+ shipping, calculated later</span>
+      </div>
+      <button type="submit" form="order" class="btn" id="submitBtn">Place order</button>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="address.js"></script>
+  <script src="api.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
