@@ -6,7 +6,7 @@
 window.SHOP_CONFIG = {
   // Paste the Apps Script web app URL here (ends in /exec). Leave empty to run
   // the page in preview mode, where orders are kept only in your browser.
-  apiUrl: "",
+  apiUrl: "https://script.google.com/macros/s/AKfycbxkFOojADjidSxRzG-vFojuyzGwtCNPrIjwiy_Bg82gy-RxnJb5mmmNhBG-ZCWiJpxBIg/exec",
 
   // Shown until the sheet answers, and in preview mode.
   fallback: {
