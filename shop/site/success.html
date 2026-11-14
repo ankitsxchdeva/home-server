@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Order placed</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600&display=swap">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="page">
+    <section class="done" id="done" hidden>
+      <p class="eyebrow">Order placed</p>
+      <h1 id="headline">You got one.</h1>
+      <p class="lede" id="intro"></p>
+
+      <div class="card">
+        <h2>Your order</h2>
+        <dl class="rows">
+          <dt>Order number</dt><dd class="order-id" id="orderId"></dd>
+          <dt id="itemLabel">Frosted Keycap Case</dt><dd id="itemLine"></dd>
+          <dt>Subtotal</dt><dd id="subtotal"></dd>
+          <dt>Shipping</dt><dd>Calculated next</dd>
+          <dt>Paying with</dt><dd id="method"></dd>
+        </dl>
+      </div>
+
+      <div class="card">
+        <h2>Shipping to</h2>
+        <p class="address" id="address"></p>
+        <p class="help" id="contact"></p>
+      </div>
+
+      <div class="card">
+        <h2>What happens next</h2>
+        <ol class="steps">
+          <li>Ankit works out shipping to your address and emails you the total.</li>
+          <li id="payStep"></li>
+          <li>Once payment arrives, your case ships and the tracking number comes by email.</li>
+        </ol>
+        <div class="copy" id="handleRow" hidden>
+          <span id="handleLabel">Send to</span>
+          <code id="handle"></code>
+          <button type="button" id="copyHandle">Copy</button>
+        </div>
+      </div>
+
+      <p class="help">Keep your order number. Questions? Reply to the payment email or message Ankit directly.</p>
+      <p><a class="btn secondary" href="index.html" style="display:inline-block;text-decoration:none">Back to the sale page</a></p>
+    </section>
+
+    <section class="done" id="none" hidden>
+      <h1>No recent order on this device</h1>
+      <p class="lede">If you placed an order, Ankit will email you payment details. Otherwise head back to the sale page.</p>
+      <p><a class="btn" href="index.html" style="display:inline-block;text-decoration:none">Go to the sale page</a></p>
+    </section>
+  </main>
+
+  <script src="address.js"></script>
+  <script src="success.js"></script>
+</body>
+</html>
