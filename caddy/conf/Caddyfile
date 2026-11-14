@@ -62,6 +62,11 @@ ankit.casa, *.ankit.casa {
 		reverse_proxy dozzle:8080
 	}
 
+	@homeview host home.ankit.casa
+	handle @homeview {
+		reverse_proxy homeview:80
+	}
+
 	@diagram host diagram.ankit.casa
 	handle @diagram {
 		reverse_proxy diagram:80

@@ -8,6 +8,7 @@ A complete home server setup running on Raspberry Pi with Docker containers.
 ### Home Automation
 - **[Home Assistant](./home-assistant/)** - Home automation hub (port 8123, host network)
 - **[Matter Server](./matter-server/)** - Matter protocol bridge (internal)
+- **[Homeview](./homeview/)** - Apple Home style iPad dashboard for Home Assistant (https://home.ankit.casa — static site, Caddy only, no host port; talks to HA directly with a token stored on the iPad)
 
 ### Dashboard & Monitoring
 - **[Dynacat](./dynacat/)** - Dashboard (https://ankit.casa — Caddy only, no host port)

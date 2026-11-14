@@ -19,6 +19,7 @@ include:
   - kalshi-pnl/docker-compose.yml
   - quantlab/docker-compose.yml
   - diagram/docker-compose.yml
+  - homeview/docker-compose.yml
   - adguard/docker-compose.yml
   - open-webui/docker-compose.yml
   - nurv/docker-compose.yml
