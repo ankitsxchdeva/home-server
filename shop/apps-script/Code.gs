@@ -25,7 +25,8 @@ var CARRIERS = ["USPS", "UPS", "FedEx", "DHL", "Other"];
 
 var DEFAULT_SETTINGS = [
   ["shop_name", "Friends & family sale", "Small line above the product name"],
-  ["product_name", "Frosted Keycap Case", ""],
+  ["page_title", "2026 Inkwell 10x10 in-stock sale", "Big heading and browser tab title"],
+  ["product_name", "Inkwell 10x10", "Used in order summaries and emails"],
   ["description", "A frosted polycarbonate display case with a grid of individual slots for your artisan keycaps.", ""],
   ["seller_name", "Ankit", "Signs the emails"],
   ["order_prefix", "KC", "Order numbers look like KC-001"],
@@ -34,7 +35,7 @@ var DEFAULT_SETTINGS = [
   ["max_per_email", 4, "Cap across all orders from one email address"],
   ["unit_price", 145, ""],
   ["currency", "USD", ""],
-  ["home_country", "US", "Two-letter code. Phone is required for addresses outside it."],
+  ["home_country", "US", "Two-letter code. Buyers outside it aren't asked for a phone number."],
   ["allowed_countries", "", "Blank = ship anywhere. Or a list like US, CA, GB"],
   ["sale_opens_at", "", "Blank = open now. Or a date and time (sheet time zone)"],
   ["sale_closes_at", "", "Blank = no end"],
@@ -161,7 +162,7 @@ function publicStatus_() {
   var st = saleState_(s);
   return {
     ok: true,
-    shopName: s.shop_name, productName: s.product_name, description: s.description,
+    shopName: s.shop_name, pageTitle: s.page_title, productName: s.product_name, description: s.description,
     unitPrice: s.unit_price, currency: s.currency,
     total: s.inventory_total, remaining: Math.max(0, s.inventory_total - sold),
     maxPerOrder: Math.min(s.max_per_order, s.max_per_email),
@@ -336,9 +337,10 @@ function validateOrder_(p, s) {
       }
     }
   }
+  // Phone is only asked for (optionally) on home-country orders.
+  if (cc !== s.home_country) o.phone = "";
   var digits = o.phone.replace(/\D/g, "");
-  if (cc && cc !== s.home_country && digits.length < 7) f.phone = "A phone number is needed for international shipping.";
-  else if (o.phone && (digits.length < 7 || digits.length > 15)) f.phone = "Enter a phone number with 7 to 15 digits.";
+  if (o.phone && (digits.length < 7 || digits.length > 15)) f.phone = "Enter a phone number with 7 to 15 digits.";
 
   var method = paymentMethods_(s).filter(function (m) { return m.id === o.paymentMethod; })[0];
   if (!method) f.paymentMethod = "Choose how you'll pay.";

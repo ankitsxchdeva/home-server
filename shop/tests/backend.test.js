@@ -23,6 +23,8 @@ test("setup builds the tabs and status reports 60 left at $145", () => {
   assert.ok(env.ss.getSheetByName("Orders") && env.ss.getSheetByName("Settings") && env.ss.getSheetByName("Summary"));
   const s = status(env);
   assert.strictEqual(s.remaining, 60); assert.strictEqual(s.unitPrice, 145); assert.strictEqual(s.maxPerOrder, 4);
+  assert.strictEqual(s.pageTitle, "2026 Inkwell 10x10 in-stock sale");
+  assert.ok(s.paymentMethods.every((m) => !("handle" in m)), "handles not public");
   assert.deepStrictEqual(s.paymentMethods.map((m) => m.id), ["paypal", "venmo", "wise"]);
 });
 
@@ -84,14 +86,20 @@ test("server rejects bad input even if the page is bypassed", () => {
   const r = post(env, order({ qty: 9, email: "nope", ack: false, paymentMethod: "venmo",
     address: { country: "GB", address1: "1 High St", city: "London", postal: "12345" } }));
   assert.strictEqual(r.error, "invalid");
-  for (const k of ["qty", "email", "ack", "postal", "phone", "paymentMethod"]) assert.ok(r.fields[k], k);
+  for (const k of ["qty", "email", "ack", "postal", "paymentMethod"]) assert.ok(r.fields[k], k);
+  assert.ok(!r.fields.phone, "no phone asked for international");
+  assert.ok(post(env, order({ phone: "12" })).fields.phone, "short US phone rejected");
   assert.strictEqual(env.ss.getSheetByName("Orders").getLastRow(), 1);
 });
 
-test("international order with phone and Wise works; ZIP-state mismatch is caught", () => {
+test("international order with Wise works without a phone; ZIP-state mismatch is caught", () => {
   const env = fresh();
   assert.ok(post(env, order({ paymentMethod: "wise", phone: "+44 20 7946 0958",
     address: { country: "GB", address1: "221B Baker St", city: "London", postal: "NW1 6XE" } })).ok);
+  const sh = env.ss.getSheetByName("Orders"); const col = env.ctx.columns_(sh);
+  assert.strictEqual(sh.cells[1][col["Phone"]], "", "phone not stored for international orders");
+  assert.ok(post(env, order({ paymentMethod: "paypal", phone: "",
+    address: { country: "DE", address1: "Unter den Linden 1", city: "Berlin", postal: "10117" } })).ok);
   const r = post(env, order({ address: { country: "US", address1: "1 Main", city: "Austin", region: "TX", postal: "10001" } }));
   assert.ok(r.fields.postal);
 });

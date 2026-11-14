@@ -11,7 +11,8 @@ window.SHOP_CONFIG = {
   // Shown until the sheet answers, and in preview mode.
   fallback: {
     shopName: "Friends & family sale",
-    productName: "Frosted Keycap Case",
+    pageTitle: "2026 Inkwell 10x10 in-stock sale",
+    productName: "Inkwell 10x10",
     description: "A frosted polycarbonate display case with a grid of individual slots for your artisan keycaps.",
     unitPrice: 145,
     currency: "USD",

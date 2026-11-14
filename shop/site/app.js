@@ -57,7 +57,8 @@
     state.status = Object.assign({}, state.status, s);
     s = state.status;
     if (s.shopName) $("shopName").textContent = s.shopName;
-    if (s.productName) { $("productName").textContent = s.productName; document.title = s.productName; }
+    var title = s.pageTitle || s.productName;
+    if (title) { $("productName").textContent = title; document.title = title; }
     if (s.description) $("description").textContent = s.description;
     $("unitPrice").textContent = money(s.unitPrice);
     $("qtyHelp").textContent = "Up to " + (s.maxPerOrder || 4) + " per order.";
@@ -216,8 +217,10 @@
   }
 
   function isHome() { return $("country").value === (state.status.homeCountry || "US"); }
+  // Phone is an optional field for home-country orders only.
   function updatePhoneHint() {
-    $("phoneHint").textContent = isHome() ? "(optional, helps the carrier reach you)" : "(needed for international shipping and customs)";
+    $("phoneField").hidden = !isHome();
+    if (!isHome()) { $("phone").value = ""; showError("phone", null); }
   }
 
   // ---------- Payment methods
@@ -267,7 +270,7 @@
     if (!EMAIL.test(email)) errors.email = "Enter an email address like name@example.com.";
     else if (email.toLowerCase() !== email2.toLowerCase()) errors.email2 = "The two email addresses don't match.";
     var digits = phone.replace(/\D/g, "");
-    if (!isHome() && digits.length < 7) errors.phone = "Add a phone number with country code. Carriers need it for international parcels.";
+    if (!isHome()) phone = "";
     else if (phone && (digits.length < 7 || digits.length > 15)) errors.phone = "Enter a phone number with 7 to 15 digits.";
     if (q < 1 || q > maxQty()) errors.qty = maxQty() > 0 ? "Choose between 1 and " + maxQty() + "." : "None left to order.";
     var addr = checkAddress();

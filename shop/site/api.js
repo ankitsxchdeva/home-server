@@ -50,7 +50,7 @@
     var opensAt = mode === "closed" ? new Date(Date.now() + 26 * 3600e3).toISOString() : null;
     return {
       ok: true, preview: true,
-      shopName: fb.shopName, productName: fb.productName, description: fb.description,
+      shopName: fb.shopName, pageTitle: fb.pageTitle, productName: fb.productName, description: fb.description,
       unitPrice: fb.unitPrice, currency: fb.currency, shippingNote: fb.shippingNote,
       total: total, remaining: Math.max(0, total - sold), maxPerOrder: fb.maxPerOrder || 4,
       homeCountry: fb.homeCountry || "US", payDays: fb.payDays || 3,

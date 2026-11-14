@@ -1,6 +1,6 @@
 # Shop
 
-Friends and family sale page for the frosted keycap cases: 60 cases at $145, up to 4 per person, shipping worked out after the order.
+Friends and family sale page, "2026 Inkwell 10x10 in-stock sale": 60 Inkwell 10x10 cases at $145, up to 4 per person, shipping worked out after the order.
 
 - **Page:** static HTML in `site/`, served by GitHub Pages. No build step.
 - **Orders:** a Google Sheet. A small Apps Script in the sheet (`apps-script/`) takes orders, holds a lock while it checks stock so two people can't buy the last case, and gives you a **Shop** menu to email payment details and tracking numbers from your own Gmail.
@@ -10,7 +10,7 @@ Nothing here runs on the Pi, and the root `docker-compose.yml` doesn't include i
 
 ## How an order flows
 
-1. Buyer fills in the page. Address fields, labels and postal-code checks change per country (Google's address data for 250 countries, bundled in `site/address-data.json`). A US ZIP has to match the state. International buyers must give a phone number for customs.
+1. Buyer fills in the page. Address fields, labels and postal-code checks change per country (Google's address data for 250 countries, bundled in `site/address-data.json`). A US ZIP has to match the state. US buyers can add a phone number; buyers elsewhere aren't asked for one.
 2. The sheet re-checks everything, takes the lock, checks stock and the 4-per-email cap, and adds a row with status **New**. The buyer lands on the success page with their order number.
 3. You type the **Shipping** amount on the row. **Total due** fills itself.
 4. Select rows, then **Shop > Draft payment emails** (lands in Gmail Drafts for you to check and send) or **Send payment emails** (asks you to confirm the list first). Status becomes **Payment requested**.
@@ -60,9 +60,14 @@ Price ($145), stock (60), 4 per order, product name and both email templates are
 
 Pages for this repo lives at `ankitsachdeva.com/home-server/`, because the user site has that custom domain. For a cleaner link, move `shop/` into its own repo (the workflow just needs its paths changed from `shop/site` to `site`).
 
-### 5. Dry run
+### 5. End-to-end test (before announcing)
 
-Open the page, place an order with your own email, check the row appears and the stock drops, try **Email me a test**, then set the row to **Cancelled** (or delete it).
+`tests/e2e.html` places real test orders against the sheet and checks the answers: bad ZIP, Venmo outside the US and a missing friends-and-family tick are refused; a 3-case order goes through with the right subtotal; a double submit makes one order; the same email can't pass 4; a UK order with Wise and no phone goes through; a burst of simultaneous orders for the last few cases sells exactly what's left and no more; the next order says sold out.
+
+1. In Settings set `inventory_total` to `8` and leave Orders empty.
+2. Run the shop-pages workflow with **include_e2e** ticked, open `…/e2e.html` and press **Run test**. Test orders use `@example.com` addresses and the name "E2E Test".
+3. Open the sale page: it should say sold out. Fill in a Shipping amount on one test row, then **Shop > Draft payment emails**: a draft appears in Gmail Drafts (don't send it).
+4. Clean up: delete the test rows and drafts, set `inventory_total` back to `60`, and run the workflow again with **include_e2e** unticked.
 
 ## Preview without the sheet
 

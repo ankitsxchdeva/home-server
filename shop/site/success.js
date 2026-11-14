@@ -14,7 +14,7 @@
   $("headline").textContent = first ? "You're in, " + first + "." : "You're in.";
   $("intro").textContent = (o.qty === 1 ? "One case is" : o.qty + " cases are") + " set aside for you. Nothing has been charged yet.";
   $("orderId").textContent = o.id;
-  $("itemLabel").textContent = o.productName || "Keycap case";
+  $("itemLabel").textContent = o.productName || "Inkwell 10x10";
   $("itemLine").textContent = o.qty + " × " + money(o.unitPrice);
   $("subtotal").textContent = money(o.subtotal);
   $("method").textContent = (o.paymentMethod || "") + " (friends and family)";
