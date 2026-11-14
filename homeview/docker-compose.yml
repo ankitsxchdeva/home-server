@@ -1,0 +1,9 @@
+services:
+  homeview:
+    container_name: homeview
+    build: .
+    restart: unless-stopped
+    # No published port — reached via https://home.ankit.casa (Caddy -> homeview:80).
+    # Pure static site: the browser talks to Home Assistant directly over
+    # wss://ha.ankit.casa with a token stored on the iPad, so this container
+    # holds no secrets and needs no .env.
