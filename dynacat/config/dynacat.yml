@@ -101,10 +101,6 @@ pages:
                 url: https://netalertx.ankit.casa
                 description: network monitoring
                 icon: mdi:network
-              - title: Service Map
-                url: https://diagram.ankit.casa
-                description: interactive architecture diagram
-                icon: mdi:map-legend
               - title: AdGuard Home
                 url: https://adguard.ankit.casa
                 description: network-wide DNS ad blocking

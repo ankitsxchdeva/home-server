@@ -18,8 +18,7 @@
 # -wal/-shm files are left out. nurv's Postgres goes in as a pg_dump
 # (nurv/db-dump.sql inside the tarball; restore steps in RESTORE.md).
 #
-# Regenerable bulk stays out: AdGuard's query log + downloaded filter lists and
-# Open WebUI's model cache (~1.8 GB together; the tarball was 1 GB by 2026-10).
+# Regenerable bulk stays out: AdGuard's query log + downloaded filter lists.
 #
 # Pushes up/down to an uptime-kuma push monitor (BACKUP_PUSH_URL in
 # scripts/backup.env, local-only); down when the Studio copy fails.
@@ -30,7 +29,7 @@ DEST=${1:-/home/ankit/backups}
 STAMP=$(date +%Y-%m-%d_%H%M)
 OUT="$DEST/home-server-backup-$STAMP.tar.gz"
 DATA_DIRS="adguard/data home-assistant/config matter-server/data uptime-kuma/data
-  reddit-swap-notifier/data rss-reader/data open-webui/data netalertx/db cups/config"
+  reddit-swap-notifier/data rss-reader/data netalertx/db cups/config"
 BACKUP_PUSH_URL=""
 [ -f "$REPO/scripts/backup.env" ] && . "$REPO/scripts/backup.env"
 
@@ -73,7 +72,6 @@ tar -czf "$OUT" \
   --exclude='*.db-wal' --exclude='*.db-shm' --exclude='*.sqlite3-wal' --exclude='*.sqlite3-shm' \
   --exclude=adguard/data/work/data/querylog.json\* \
   --exclude=adguard/data/work/data/filters \
-  --exclude=open-webui/data/cache \
   -C "$TMP" nurv/db-dump.sql \
   -C "$REPO" .env */.env $DATA_DIRS \
   -C "$TMP/sqlite" $SNAPS \
