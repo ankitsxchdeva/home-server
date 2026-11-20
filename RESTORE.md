@@ -53,11 +53,16 @@ sudo systemctl disable --now dphys-swapfile 2>/dev/null; sudo dphys-swapfile uni
 # Headless (only if a Desktop image was flashed). Keep bluetooth: HA uses it.
 sudo systemctl set-default multi-user.target
 sudo systemctl disable lightdm ModemManager triggerhappy 2>/dev/null
+# Persistent journal: journald.conf ships Storage=volatile, which loses the
+# crashed boot's logs on restart (2026-11-20 crash left no cause). Capped for SD wear.
+sudo mkdir -p /etc/systemd/journald.conf.d
+printf '[Journal]\nStorage=persistent\nSystemMaxUse=200M\n' | sudo tee /etc/systemd/journald.conf.d/persistent.conf
 sudo reboot
 ```
 
-Verify: `grep -w memory /sys/fs/cgroup/cgroup.controllers` and
-`cat /proc/swaps` shows only `/dev/zram0`.
+Verify: `grep -w memory /sys/fs/cgroup/cgroup.controllers`,
+`cat /proc/swaps` shows only `/dev/zram0`, and after a second boot
+`journalctl --list-boots` shows more than one.
 
 ## 4. Tailscale
 
