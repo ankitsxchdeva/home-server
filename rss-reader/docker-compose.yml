@@ -6,6 +6,7 @@ services:
     #   docker compose pull rss-reader && docker compose up -d rss-reader
     image: ghcr.io/ankitsxchdeva/lede-backend:latest
     container_name: rss-reader
+    mem_limit: 1g
     restart: unless-stopped
     cpus: "1.5"        # background digest builder; cap so build cycles can't hog the Pi
     # No published port — public via funnel :10000 → caddy :8089 (/lede route),

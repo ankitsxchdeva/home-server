@@ -1,6 +1,7 @@
 services:
   dozzle:
     container_name: dozzle
+    mem_limit: 256m
     image: amir20/dozzle:latest
     restart: unless-stopped
     volumes:

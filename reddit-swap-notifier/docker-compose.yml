@@ -2,6 +2,7 @@ services:
   reddit-swap-notifier:
     build: .
     container_name: reddit-swap-notifier
+    mem_limit: 256m
     restart: unless-stopped
     volumes:
       - ./data:/app/data   # Persistent SQLite state (watches survive rebuilds)

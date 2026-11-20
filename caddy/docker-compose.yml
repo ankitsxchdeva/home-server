@@ -1,6 +1,7 @@
 services:
   caddy:
     container_name: caddy
+    mem_limit: 256m
     build: .
     restart: unless-stopped
     # --watch does NOT survive git's inode swap on deploy (verified 2026-08-30):

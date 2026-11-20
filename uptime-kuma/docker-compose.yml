@@ -2,6 +2,7 @@ services:
   uptime-kuma:
     image: louislam/uptime-kuma:2
     container_name: uptime-kuma
+    mem_limit: 768m
     restart: unless-stopped
     ports:
       # localhost-only: the host watchdogs (scripts/*watchdog) push heartbeats

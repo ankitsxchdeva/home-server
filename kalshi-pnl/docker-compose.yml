@@ -2,6 +2,7 @@ services:
   kalshi-pnl:
     build: .
     container_name: kalshi-pnl
+    mem_limit: 256m
     restart: unless-stopped
     # No published port — public via funnel :10000 → caddy :8089 (/ route),
     # tailnet via https://kalshi.ankit.casa.

@@ -8,6 +8,7 @@ services:
     build:
       context: https://github.com/ankitsxchdeva/quantlab.git#${QUANTLAB_REF:-main}
     container_name: quantlab
+    mem_limit: 512m
     restart: unless-stopped
     env_file: .env # OLLAMA_BASE_URL override only; no secrets (see .env.example)
     cpus: "2.0"        # backtests are CPU-bound; cap so a big run can't stall the Pi

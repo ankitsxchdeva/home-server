@@ -1,6 +1,7 @@
 services:
   glances:
     container_name: glances
+    mem_limit: 384m
     image: nicolargo/glances:latest
     restart: unless-stopped
     pid: host

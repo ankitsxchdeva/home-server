@@ -2,6 +2,7 @@ services:
   cups:
     image: ghcr.io/ankitsxchdeva/cups:latest
     container_name: cups
+    mem_limit: 256m
     restart: unless-stopped
     # CUPSADMIN/CUPSPASSWORD/TZ come from cups/.env via env_file. Never
     # re-set them here via ${VAR} — interpolation reads the (empty) root

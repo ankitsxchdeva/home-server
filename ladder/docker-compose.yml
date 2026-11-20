@@ -6,6 +6,7 @@ services:
     # paywall overlays, cookie/header tweaks) on top of the UA spoof.
     image: ghcr.io/everywall/ladder:latest
     container_name: ladder
+    mem_limit: 256m
     restart: unless-stopped
     environment:
       - PORT=8080

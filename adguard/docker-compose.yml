@@ -3,6 +3,7 @@ services:
     # Official image, multi-arch incl. arm64; watchtower keeps it updated.
     image: adguard/adguardhome:latest
     container_name: adguard
+    mem_limit: 512m
     restart: unless-stopped
     volumes:
       - ./data/work:/opt/adguardhome/work

@@ -1,6 +1,7 @@
 services:
   netalertx:
     container_name: netalertx
+    mem_limit: 768m
     image: jokobsk/netalertx:latest
     restart: unless-stopped
     network_mode: "host"

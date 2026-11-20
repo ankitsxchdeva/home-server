@@ -19,6 +19,7 @@ services:
       context: https://x-access-token:${NURV_GH_PAT}@github.com/ankitsxchdeva/nurv.git#${NURV_REF:-main}
       dockerfile: db/Dockerfile
     container_name: nurv-db
+    mem_limit: 512m
     restart: unless-stopped
     env_file:
       - .env # POSTGRES_PASSWORD, TZ
@@ -39,6 +40,7 @@ services:
       context: https://x-access-token:${NURV_GH_PAT}@github.com/ankitsxchdeva/nurv.git#${NURV_REF:-main}
       dockerfile: api/Dockerfile
     container_name: nurv-api
+    mem_limit: 256m
     restart: unless-stopped
     env_file:
       - .env # POSTGRES_PASSWORD (api reads it directly), JWT_SECRET, TZ
@@ -59,6 +61,7 @@ services:
     # whole API) would change under us without a deploy. Bump deliberately.
     image: cloudflare/cloudflared:2026.10.3
     container_name: nurv-tunnel
+    mem_limit: 256m
     restart: unless-stopped
     command: tunnel --no-autoupdate run
     env_file:
