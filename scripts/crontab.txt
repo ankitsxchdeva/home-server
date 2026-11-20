@@ -4,9 +4,10 @@
 # GitOps deploy tick (this repo + nurv/quantlab app repos) — see scripts/deploy.sh
 */5 * * * * flock -n /tmp/home-server-deploy.lock /home/ankit/home-server/scripts/deploy.sh >> /home/ankit/home-server/scripts/deploy.log 2>&1
 
-# Weekly prune. system prune keeps the last week of build cache; builder prune
-# then caps what's left (it grew to 29 GB on the SD card, 2026-10).
-30 4 * * 0 (docker system prune -af --filter "until=168h" && docker builder prune -af --max-used-space 5GB) >> /home/ankit/home-server/scripts/docker-prune.log 2>&1
+# Weekly prune. No -a on system prune: it deleted caddy:builder and the xcaddy
+# cache, so most deploys recompiled caddy from source (2026-11). Dangling
+# images/cache go; builder prune then caps the rest (it grew to 29 GB, 2026-10).
+30 4 * * 0 (docker system prune -f --filter "until=168h" && docker builder prune -af --max-used-space 5GB) >> /home/ankit/home-server/scripts/docker-prune.log 2>&1
 
 # Weekly backup (Sun 03:00) — tarball on the Pi + off-box copy on the Mac Studio
 0 3 * * 0 sudo /home/ankit/home-server/scripts/backup.sh >> /home/ankit/home-server/scripts/backup.log 2>&1
