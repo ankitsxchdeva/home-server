@@ -109,7 +109,7 @@ back if the same USB coordinator is plugged in), Matter fabric keys, uptime-kuma
 subscriptions, NetAlertX history, and CUPS printers. SQLite DBs appear twice
 in the tarball (live copy, then a consistent snapshot); plain `tar -x` keeps
 the later one, which is what you want. Not in it, by design: AdGuard's query
-log + filter lists and Open WebUI's model cache (regenerated on start).
+log + filter lists (regenerated on start).
 
 Not in the tarball either — restore by hand:
 

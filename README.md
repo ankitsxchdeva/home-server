@@ -8,14 +8,12 @@ A complete home server setup running on Raspberry Pi with Docker containers.
 ### Home Automation
 - **[Home Assistant](./home-assistant/)** - Home automation hub (port 8123, host network)
 - **[Matter Server](./matter-server/)** - Matter protocol bridge (internal)
-- **[Homeview](./homeview/)** - Apple Home style iPad dashboard for Home Assistant (https://home.ankit.casa — static site, Caddy only, no host port; talks to HA directly with a token stored on the iPad)
 
 ### Dashboard & Monitoring
 - **[Dynacat](./dynacat/)** - Dashboard (https://ankit.casa — Caddy only, no host port)
 - **[Uptime Kuma](./uptime-kuma/)** - Service monitoring (https://kuma.ankit.casa; port 3001 bound to localhost for the host watchdogs' heartbeats)
 - **[Glances](./glances/)** - System resource monitoring (https://glances.ankit.casa — Caddy only, no host port)
 - **[Dozzle](./dozzle/)** - Container log viewer (https://logs.ankit.casa — Caddy only, no host port)
-- **[Service Map](./diagram/)** - Interactive transit-style diagram of the whole stack (https://diagram.ankit.casa — static site, nginx; click any service for its end-to-end path)
 
 ### Network
 - **[NetAlertX](./netalertx/)** - Network device scanner (port 20211, host network)
@@ -28,8 +26,7 @@ A complete home server setup running on Raspberry Pi with Docker containers.
 - **[RSS Reader](./rss-reader/)** - Deploy config for the lede digest API — app code + image live in [ankitsxchdeva/lede](https://github.com/ankitsxchdeva/lede) (`backend/`). JSON API; public via Funnel :10000 → caddy `/lede` route, feeds ankitsachdeva.com/lede
 - **[Kalshi PnL](./kalshi-pnl/)** - Lifetime Kalshi profit/loss JSON API (public via Funnel :10000 → caddy `/` route for ankitsachdeva.com/kalshi — response is the net number only; secrets scp'd by hand, see its README)
 - **[Quantlab](./quantlab/)** - Backtest + Kalshi arbitrage API (public via Funnel :10000 → caddy `/quantlab` route for ankitsachdeva.com/quantlab, see its README)
-- **oMLX** (off the Pi — see the [studio-llm](https://github.com/ankitsxchdeva/studio-llm) repo; replaced Ollama 2026-10-05) - Local LLM (`Muse-Glimmer-30B-MLX-4bit`) served natively on a Mac Studio as an OpenAI-compatible API on `:8000/v1`, bearer-key auth. rss-reader (item summaries + daily themes), quantlab (default strategy-compile provider) and Open WebUI call the Studio directly; tailnet clients use `https://ollama.ankit.casa`, where Caddy injects the key
-- **[Open WebUI](./open-webui/)** - Chat UI for the Studio's oMLX (https://chat.ankit.casa — Caddy only, no host port; OpenAI-API connection straight to the Studio, inference stays off-Pi)
+- **oMLX** (off the Pi — see the [studio-llm](https://github.com/ankitsxchdeva/studio-llm) repo; replaced Ollama 2026-10-05) - Local LLM (`Muse-Glimmer-30B-MLX-4bit`) served natively on a Mac Studio as an OpenAI-compatible API on `:8000/v1`, bearer-key auth. rss-reader (item summaries + daily themes) and quantlab (default strategy-compile provider) call the Studio directly; tailnet clients use `https://ollama.ankit.casa`, where Caddy injects the key
 - **[Nurv](./nurv/)** - Deploy config for nurv.space, the pre-CRNA applicant platform — app code lives in [ankitsxchdeva/nurv](https://github.com/ankitsxchdeva/nurv). Hono API + Postgres here, exposed as api.nurv.space through a Cloudflare tunnel; the Next.js frontend runs as a Cloudflare Worker
 
 ### Discord Bots
@@ -41,6 +38,9 @@ A complete home server setup running on Raspberry Pi with Docker containers.
 ### Deprecated
 Retired services live in [`deprecated/`](./deprecated/) and are excluded from the main compose file:
 - **Homepage (gethomepage)** - the original dashboard; replaced by [Dynacat](./dynacat/)
+- **Open WebUI** - chat UI for the Studio's oMLX (was chat.ankit.casa)
+- **Service Map** - interactive architecture diagram (was diagram.ankit.casa)
+- **Homeview** - Apple Home style iPad dashboard for Home Assistant (was home.ankit.casa)
 - **Pi-hole** - was never used as a DNS server by any LAN client
 - **Traefik** - reverse proxy; only ever routed the wg-easy UI, otherwise served internet scanners
 - **wg-easy (WireGuard)** - never worked externally: UDP 51820 was not forwarded and `vpn.ankit.casa` was Cloudflare-proxied (Cloudflare doesn't carry WireGuard UDP). Replaced by Tailscale.
@@ -142,7 +142,6 @@ flowchart LR
                 park["guest parking page — park.ankit.casa — Basic auth"]
                 kalshipnl["kalshi-pnl — kalshi.ankit.casa"]
                 quantlab["quantlab — quantlab.ankit.casa"]
-                openwebui["open-webui — chat.ankit.casa — chat UI"]
                 dozzle["dozzle — logs.ankit.casa — container logs"]
             end
 
@@ -308,8 +307,6 @@ All served HTTPS by Caddy (http redirects to https):
 - **Kalshi PnL**: https://kalshi.ankit.casa/pnl (JSON API; also public via Funnel :10000)
 - **Quantlab**: https://quantlab.ankit.casa (full UI + API; also public at https://raspberrypi.tail9476fb.ts.net:10000/quantlab via Funnel)
 - **Dozzle**: https://logs.ankit.casa
-- **Service Map**: https://diagram.ankit.casa (interactive architecture diagram — data in `diagram/site/data.js`)
 - **oMLX**: https://ollama.ankit.casa (OpenAI-compatible LLM API at `/v1`; served natively by the Mac Studio over the tailnet, Caddy adds the bearer key — no web UI, no host port on the Pi. Hostname kept from the Ollama era.)
-- **Open WebUI**: https://chat.ankit.casa (chat UI for the Studio's oMLX; inference stays off-Pi)
 
 Direct `http://<pi>:<port>` access remains only where something actually needs it: the host-network services (8123 HA, 20211 NetAlertX, 631 CUPS), uptime-kuma's 3001 bound to localhost for the watchdogs, and caddy's localhost funnel listener (8089). Everything else is Caddy-only — `https://name.ankit.casa` is the single door. oMLX is the exception: it isn't on the Pi at all — native on the Mac Studio (`:8000`), reached directly by the LLM consumers or via `ollama.ankit.casa`.
