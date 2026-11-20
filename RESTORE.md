@@ -57,11 +57,16 @@ sudo systemctl disable lightdm ModemManager triggerhappy 2>/dev/null
 # crashed boot's logs on restart (2026-11-20 crash left no cause). Capped for SD wear.
 sudo mkdir -p /etc/systemd/journald.conf.d
 printf '[Journal]\nStorage=persistent\nSystemMaxUse=200M\n' | sudo tee /etc/systemd/journald.conf.d/persistent.conf
+# Hardware watchdog: a hung kernel reboots itself instead of waiting for a
+# power-cycle (bcm2835 max timeout is 15s).
+sudo mkdir -p /etc/systemd/system.conf.d
+printf '[Manager]\nRuntimeWatchdogSec=15s\nRebootWatchdogSec=2min\n' | sudo tee /etc/systemd/system.conf.d/watchdog.conf
 sudo reboot
 ```
 
 Verify: `grep -w memory /sys/fs/cgroup/cgroup.controllers`,
-`cat /proc/swaps` shows only `/dev/zram0`, and after a second boot
+`cat /proc/swaps` shows only `/dev/zram0`,
+`cat /sys/class/watchdog/watchdog0/state` is `active`, and after a second boot
 `journalctl --list-boots` shows more than one.
 
 ## 4. Tailscale
