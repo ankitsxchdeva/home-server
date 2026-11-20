@@ -13,5 +13,10 @@ services:
       # v25+ moved app data from /app/* to /data/*
       - ./config:/data/config
       - ./db:/data/db
+    # Logs, API json and run state live under /tmp; keep them in RAM to spare
+    # the SD card (netalertx was its top writer). Line is upstream's; the root
+    # entrypoint chowns it.
+    tmpfs:
+      - "/tmp:mode=1700,uid=0,gid=0,rw,noexec,nosuid,nodev,async,noatime,nodiratime"
     env_file:
       - .env   # TZ lives here
